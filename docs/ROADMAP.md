@@ -3,25 +3,34 @@
 Milestones are ordered; each builds on the previous. Scope is intentionally
 small — Copybara does one thing well.
 
-## M0 — Foundations (project skeleton)
-- [ ] Xcode project: menu-bar agent (`LSUIElement`), macOS 12 deployment target.
-- [ ] SPM dependencies: `KeyboardShortcuts`, `Defaults`.
-- [ ] Folder structure per `docs/ARCHITECTURE.md`.
-- [ ] `CoreDataStack` + `Copybara.xcdatamodeld` (`ClipEntity`).
-- [ ] `AppDelegate` wiring; activation policy toggle.
+## M0 — Foundations (project skeleton) ✅
+- [x] XcodeGen project (`project.yml`): menu-bar agent (`LSUIElement`), macOS 12 target.
+- [x] Folder structure per `docs/ARCHITECTURE.md`.
+- [x] `CoreDataStack` + `Copybara.xcdatamodeld` (`ClipEntity`).
+- [x] `AppDelegate` wiring; activation-policy toggle from icon-visibility.
+- [x] Builds clean; `FuzzyMatcher` unit tests pass.
+- [ ] SPM dependencies (`KeyboardShortcuts`, `Defaults`) — deferred to M1, where
+      they are first used, so they can be pinned to macOS-12-compatible versions.
+
+> Note: some M1 services landed early in M0 because they are self-contained —
+> `ClipboardMonitor`, `PasteboardFilter`, and `HistoryStore` are already wired, so
+> the app captures text history in the background today. The menu shows the live
+> item count and can clear history.
 
 ## M1 — MVP (v0.1): text history, keyboard paste
-- [ ] `ClipboardMonitor` — changeCount polling for text.
-- [ ] `PasteboardFilter` — drop concealed/transient/auto-generated types.
-- [ ] `HistoryStore` — insert/dedup/size-cap/fetch.
-- [ ] `StatusItemController` + `PopupWindow` (NSPanel).
-- [ ] `PopupView` / `PopupOO` — search field, results list, selection.
-- [ ] `FuzzyMatcher` — instant filtering.
-- [ ] `HotKeyManager` — default ⌘⇧C toggles the popup.
-- [ ] `Paster` — set pasteboard + synthesize ⌘V (Accessibility prompt).
-- [ ] Clear history.
+- [x] `ClipboardMonitor` — changeCount polling for text. *(landed in M0)*
+- [x] `PasteboardFilter` — drop concealed/transient/auto-generated types. *(M0)*
+- [x] `HistoryStore` — insert/dedup/size-cap/fetch. *(M0)*
+- [x] `FuzzyMatcher` — instant filtering. *(M0)*
+- [x] `PopupView` / `PopupOO` — search field, results list, live filter.
+      *(rendered in M0; not yet hosted or keyboard-driven)*
+- [ ] Host `PopupView` in `PopupWindow` (NSPanel); position under the status item.
+- [ ] Keyboard navigation (↑/↓), paste-on-Return, Esc-to-dismiss.
+- [ ] `HotKeyManager` — default ⌘⇧C toggles the popup (via `KeyboardShortcuts`).
+- [ ] `Paster` — set pasteboard + synthesize ⌘V, with the Accessibility prompt.
+      *(paste logic written in M0; needs to be wired to the popup)*
 - [ ] Launch at login (`SMAppService` 13+, fallback on 12).
-- [ ] Unit tests: `FuzzyMatcher`, `PasteboardFilter`, `HistoryStore`.
+- [ ] Unit tests: `PasteboardFilter`, `HistoryStore` (in-memory store).
 
 **Definition of done:** install, grant Accessibility once, then recall & paste any
 recent text clip entirely from the keyboard; survives reboot via launch-at-login.

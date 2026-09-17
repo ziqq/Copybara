@@ -25,6 +25,9 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
+# XcodeGen — the project is generated from project.yml
+*.xcodeproj
+
 # Swift Package Manager
 .build/
 .swiftpm/
