@@ -1,8 +1,10 @@
 import AppKit
+import Combine
 import SwiftUI
 
 /// Coordinates the search popup: owns the panel and its SwiftUI content, shows
-/// and hides it, routes keyboard navigation, and performs paste-on-commit.
+/// and hides it, routes keyboard navigation, sizes the window to the results,
+/// and performs paste-on-commit.
 ///
 /// The tricky part is focus: to receive keystrokes, Copybara must become active,
 /// which steals focus from the app the user was in. So the controller remembers
@@ -15,6 +17,7 @@ final class PopupController {
 
     private var keyMonitor: Any?
     private weak var previousApp: NSRunningApplication?
+    private var cancellables = Set<AnyCancellable>()
 
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
@@ -27,7 +30,36 @@ final class PopupController {
         let root = PopupView(oo: oo) { [weak self] item in
             self?.commit(item)
         }
-        window.contentView = NSHostingView(rootView: root)
+        window.contentView = makeContentView(hosting: NSHostingView(rootView: root))
+
+        // Keep the window sized to the current number of results.
+        oo.$results
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.layoutWindow() }
+            .store(in: &cancellables)
+    }
+
+    /// Builds a rounded, vibrant container that hosts the SwiftUI content.
+    private func makeContentView(hosting: NSHostingView<PopupView>) -> NSView {
+        let effect = NSVisualEffectView()
+        effect.material = .popover
+        effect.blendingMode = .behindWindow
+        effect.state = .active
+        effect.wantsLayer = true
+        effect.layer?.cornerRadius = PopupMetrics.cornerRadius
+        effect.layer?.masksToBounds = true
+        effect.layer?.borderWidth = 0.5
+        effect.layer?.borderColor = NSColor.separatorColor.cgColor
+
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        effect.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: effect.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: effect.bottomAnchor)
+        ])
+        return effect
     }
 
     var isVisible: Bool { window.isVisible }
@@ -41,7 +73,7 @@ final class PopupController {
     func show() {
         previousApp = NSWorkspace.shared.frontmostApplication
         oo.reset()
-        positionWindow()
+        layoutWindow()
         installKeyMonitor()
 
         if #available(macOS 14.0, *) {
@@ -55,6 +87,13 @@ final class PopupController {
     func hide() {
         removeKeyMonitor()
         window.orderOut(nil)
+    }
+
+    /// Sizes the window to the current results and re-anchors it under the icon.
+    private func layoutWindow() {
+        let height = PopupMetrics.totalHeight(for: oo.results.count)
+        window.setContentSize(NSSize(width: PopupMetrics.width, height: height))
+        positionWindow()
     }
 
     private func positionWindow() {
