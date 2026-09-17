@@ -1,0 +1,104 @@
+import CoreData
+
+/// Local, on-device store of clipboard history backed by Core Data.
+///
+/// Access to the `ClipEntity` managed object is done via key-value coding so the
+/// store does not depend on the Xcode-generated subclass symbol at compile time.
+final class HistoryStore {
+    private static let entityName = "ClipEntity"
+
+    private let stack: CoreDataStack
+
+    /// Maximum number of non-pinned items to retain. Pinned items are never trimmed.
+    var sizeLimit: Int
+
+    init(stack: CoreDataStack = .shared, sizeLimit: Int = 200) {
+        self.stack = stack
+        self.sizeLimit = sizeLimit
+    }
+
+    // MARK: - Writes
+
+    /// Inserts a text clip, de-duplicating against an existing identical entry
+    /// (which is bumped to the top instead of duplicated), then enforces the size cap.
+    func insertText(_ text: String, appBundleID: String? = nil) {
+        let context = stack.newBackgroundContext()
+        context.perform {
+            let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+            request.predicate = NSPredicate(format: "text == %@", text)
+            request.fetchLimit = 1
+
+            if let existing = try? context.fetch(request).first {
+                existing.setValue(Date(), forKey: "createdAt")
+            } else {
+                let item = NSEntityDescription.insertNewObject(forEntityName: Self.entityName, into: context)
+                item.setValue(UUID(), forKey: "id")
+                item.setValue(text, forKey: "text")
+                item.setValue(ClipKind.text.rawValue, forKey: "kind")
+                item.setValue(Date(), forKey: "createdAt")
+                item.setValue(false, forKey: "isPinned")
+                item.setValue(appBundleID, forKey: "appBundleID")
+            }
+
+            self.trim(in: context)
+            try? context.save()
+        }
+    }
+
+    /// Removes every stored clip.
+    func clearAll() {
+        let context = stack.newBackgroundContext()
+        context.perform {
+            let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: Self.entityName)
+            let delete = NSBatchDeleteRequest(fetchRequest: fetch)
+            delete.resultType = .resultTypeObjectIDs
+            if let result = try? context.execute(delete) as? NSBatchDeleteResult,
+               let ids = result.result as? [NSManagedObjectID] {
+                NSManagedObjectContext.mergeChanges(
+                    fromRemoteContextSave: [NSDeletedObjectsKey: ids],
+                    into: [self.stack.viewContext]
+                )
+            }
+        }
+    }
+
+    // MARK: - Reads
+
+    /// Fetches items ordered pinned-first, then newest-first.
+    func recentItems(limit: Int = 200) -> [ClipItemDO] {
+        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        request.sortDescriptors = [
+            NSSortDescriptor(key: "isPinned", ascending: false),
+            NSSortDescriptor(key: "createdAt", ascending: false)
+        ]
+        request.fetchLimit = limit
+
+        let objects = (try? stack.viewContext.fetch(request)) ?? []
+        return objects.map(Self.makeDataObject)
+    }
+
+    // MARK: - Helpers
+
+    private func trim(in context: NSManagedObjectContext) {
+        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        request.predicate = NSPredicate(format: "isPinned == NO")
+        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+
+        let objects = (try? context.fetch(request)) ?? []
+        guard objects.count > sizeLimit else { return }
+        for stale in objects[sizeLimit...] {
+            context.delete(stale)
+        }
+    }
+
+    private static func makeDataObject(from object: NSManagedObject) -> ClipItemDO {
+        ClipItemDO(
+            id: object.value(forKey: "id") as? UUID ?? UUID(),
+            kind: ClipKind(rawValue: object.value(forKey: "kind") as? String ?? "text") ?? .text,
+            preview: object.value(forKey: "text") as? String ?? "",
+            createdAt: object.value(forKey: "createdAt") as? Date ?? Date(),
+            isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
+            appBundleID: object.value(forKey: "appBundleID") as? String
+        )
+    }
+}

@@ -1,0 +1,29 @@
+import Combine
+import Foundation
+
+/// Observable Object backing the settings screen. Reads and writes through
+/// `AppSettings`, publishing changes for the SwiftUI form.
+@MainActor
+final class SettingsOO: ObservableObject {
+    @Published var historySize: Int {
+        didSet { settings.historySize = historySize }
+    }
+    @Published var iconVisibility: IconVisibility {
+        didSet {
+            settings.iconVisibility = iconVisibility
+            NotificationCenter.default.post(
+                name: .copybaraIconVisibilityChanged,
+                object: nil,
+                userInfo: ["value": iconVisibility.rawValue]
+            )
+        }
+    }
+
+    private let settings: AppSettings
+
+    init(settings: AppSettings = .shared) {
+        self.settings = settings
+        self.historySize = settings.historySize
+        self.iconVisibility = settings.iconVisibility
+    }
+}
