@@ -1,0 +1,221 @@
+# Copybara — Architecture
+
+This document defines how Copybara is structured, the conventions to follow, and
+the reasoning behind the key decisions.
+
+## 1. Guiding constraints
+
+| Constraint | Consequence |
+|---|---|
+| Minimum **macOS 12.0**, progressive enhancement | No `@Observable`, no `MenuBarExtra`, no `SwiftData`; newer APIs adopted behind `if #available`. |
+| Menu-bar agent, optional Dock icon | `LSUIElement = true`; activation policy toggled at runtime. |
+| Keyboard-first popup | Custom `NSPanel` (borderless key window), not `MenuBarExtra`. |
+| Local-only, privacy-respecting | On-device Core Data; secret/transient pasteboard types filtered out. |
+| Small and fast | Minimal dependencies; polling instead of heavyweight observers. |
+
+## 2. Architectural pattern: VOODO + a service layer
+
+The SwiftUI **screens** follow the **VOODO** convention (from
+[VOODOFileTemplate](https://github.com/ziqq/VOODOFileTemplate)):
+
+- **V — View**: a SwiftUI `View` (`XxxView`). Rendering and user input only.
+- **OO — Observable Object**: `XxxOO`, the screen's state + logic (the "view
+  model"). Talks to services. Publishes state to the View.
+- **DO — Data Object**: `XxxDO`, an `Identifiable` value type (the model the View
+  renders).
+
+> ⚠️ **macOS 12 adaptation.** The original template uses `@Observable`
+> (macOS 14+). Because Copybara targets macOS 12, the baseline `OO` is a
+> `final class XxxOO: ObservableObject` with `@Published` properties, consumed by
+> Views via `@StateObject` / `@ObservedObject`. This is the `ObservableObject`
+> flavor of VOODO the template README points to for older OSes. Naming and file
+> organization are identical; only the observation mechanism differs. If the
+> deployment floor is ever raised to 14, individual `OO`s can migrate to
+> `@Observable` one at a time.
+
+VOODO governs the **UI layer only**. The parts of Copybara that talk to AppKit,
+the pasteboard, hotkeys, and Core Data are a separate, plain **service layer**
+(ordinary classes/actors with clear responsibilities). Screens depend on
+services; services never depend on screens.
+
+```
+┌───────────────────────────── UI (VOODO) ─────────────────────────────┐
+│  PopupView  ⇄  PopupOO            SettingsView  ⇄  SettingsOO          │
+│      │            │                     │             │               │
+└──────┼────────────┼─────────────────────┼─────────────┼──────────────-┘
+       │            │                     │             │
+       ▼            ▼                     ▼             ▼
+┌──────────────────────── Service layer ────────────────────────────────┐
+│  ClipboardMonitor   HistoryStore   HotKeyManager   Paster             │
+│  StatusItemController   PopupWindow   AppSettings   PasteboardFilter   │
+└───────────────────────────────────────────────────────────────────────┘
+                             │
+                             ▼
+                   ┌───────────────────┐
+                   │  Core Data (local)│
+                   └───────────────────┘
+```
+
+## 3. Runtime data flow
+
+```
+        copy anywhere
+             │
+             ▼
+   NSPasteboard.general
+             │  poll changeCount (~0.5s)
+             ▼
+     ClipboardMonitor ──▶ PasteboardFilter ──▶ HistoryStore ──▶ Core Data
+                            (drop secrets,        (dedup,
+                             transient, blocked)   size cap)
+
+   global hotkey (⌘⇧C)
+             │
+             ▼
+      HotKeyManager ──▶ StatusItemController ──▶ PopupWindow (NSPanel)
+                                                     │ hosts
+                                                     ▼
+                                         PopupView ⇄ PopupOO
+                                                     │  query
+                                                     ▼
+                                               HistoryStore ──▶ results
+                                                     │  Return / click
+                                                     ▼
+                                                  Paster
+                                          (write item to pasteboard,
+                                           synthesize ⌘V via CGEvent)
+                                                     │
+                                                     ▼
+                                              frontmost app
+```
+
+## 4. Modules
+
+### App layer
+- **`CopybaraApp`** — `@main` SwiftUI `App`. Hosts the `Settings` scene and an
+  `@NSApplicationDelegateAdaptor(AppDelegate.self)`.
+- **`AppDelegate`** — sets the activation policy (`.accessory`/`.regular`),
+  constructs and wires the services, owns their lifetime.
+
+### Service layer
+- **`ClipboardMonitor`** — timer-based `NSPasteboard.changeCount` poller; reads
+  new content, runs it through `PasteboardFilter`, forwards to `HistoryStore`.
+- **`PasteboardFilter`** — drops `org.nspasteboard.ConcealedType` (passwords),
+  `TransientType`, `AutoGeneratedType`, and items from blocked apps.
+- **`HistoryStore`** — Core Data–backed history: insert with de-duplication,
+  fetch, delete, pin, and enforce the configured size cap.
+- **`HotKeyManager`** — thin wrapper over `KeyboardShortcuts`; owns the "toggle
+  popup" shortcut (default <kbd>⌘⇧C</kbd>).
+- **`StatusItemController`** — owns the `NSStatusItem` and shows/hides the popup.
+- **`PopupWindow`** — `NSPanel` subclass: borderless, non-activating key window
+  that can become key so the search field receives keystrokes; hosts `PopupView`
+  via `NSHostingView`.
+- **`Paster`** — places an item on the pasteboard and synthesizes
+  <kbd>⌘V</kbd> with `CGEvent`; owns the Accessibility-permission check/prompt.
+- **`AppSettings`** — typed wrapper over [`Defaults`](https://github.com/sindresorhus/Defaults)
+  (history size, hotkey, paste behavior, icon visibility, blocklist).
+
+### Screens (VOODO)
+- **Popup** — `PopupView`, `PopupOO`, `ClipRowView`. `PopupOO` holds the query,
+  filtered `[ClipItemDO]`, and selection index; drives search and paste.
+- **Settings** — `SettingsView`, `SettingsOO`, bound to `AppSettings`.
+
+### Models & support
+- **`ClipItemDO`** — `Identifiable` value type: `id`, `kind`, `preview`,
+  `createdAt`, `isPinned`, and a reference/handle to the payload.
+- **`ClipKind`** — enum: `.text`, `.rtf`, `.image`, `.file` (MVP uses `.text`).
+- **`FuzzyMatcher`** — small, dependency-free scoring/highlighting for search.
+- **`CoreDataStack`** — Core Data container; `viewContext` for reads, a
+  background context for writes.
+- **`Log`** — thin `os.Logger` wrapper.
+
+## 5. Persistence
+
+- **Core Data** (baseline for macOS 12+). Model `Copybara.xcdatamodeld`, entity
+  `ClipEntity` (text, kind, createdAt, isPinned, appBundleID, payload/image blob).
+- Reads on `viewContext` (main queue); writes on a background context to keep the
+  monitor off the UI thread.
+- Size cap enforced on insert: trim oldest **non-pinned** rows beyond the limit.
+- De-duplication: copying the same content again moves the existing row to the
+  top instead of creating a duplicate.
+
+## 6. macOS version strategy (progressive enhancement)
+
+| Capability | Modern API (unavailable on 12) | Copybara's approach |
+|---|---|---|
+| Observation | `@Observable` (14+) | `ObservableObject` baseline; per-screen `@Observable` migration possible if floor rises. |
+| Menu bar | `MenuBarExtra` (13+) | `NSStatusItem` (works on 12). |
+| Persistence | `SwiftData` (14+) | Core Data. |
+| Launch at login | `SMAppService` (13+) | `SMAppService` under `if #available(macOS 13, *)`, else legacy login-item API. |
+| Misc SwiftUI modifiers | various | Guarded with `if #available`; no unconditional new-OS calls. |
+
+Rule: **never** call a newer-OS API unconditionally. Gate it with `@available` /
+`if #available`, and provide a working path for macOS 12.
+
+## 7. Permissions & privacy
+
+- **Accessibility** — the *only* permission Copybara needs, used solely to
+  synthesize <kbd>⌘V</kbd> for paste. Requested lazily on first paste with a clear
+  explanation. Copybara never reads the screen or other apps' content.
+- **No network.** The app makes no network calls; history stays on-device.
+- **Secret data** is filtered before it ever reaches storage (see
+  `PasteboardFilter`).
+
+## 8. Concurrency
+
+- `OO` types are annotated `@MainActor`; they publish UI state on the main queue.
+- Core Data writes happen on a background context; results are read on
+  `viewContext`.
+- The clipboard poll timer runs on the main run loop but does only cheap work
+  (compare `changeCount`); extraction/persistence hops to the background context.
+
+## 9. Directory layout
+
+```
+copybara/
+├─ Copybara.xcodeproj
+├─ Copybara/
+│  ├─ App/            CopybaraApp.swift · AppDelegate.swift
+│  ├─ Services/       ClipboardMonitor · HistoryStore · HotKeyManager ·
+│  │                  Paster · StatusItemController · PopupWindow
+│  │  └─ Privacy/     PasteboardFilter.swift
+│  ├─ Features/
+│  │  ├─ Popup/       PopupView · PopupOO · ClipRowView
+│  │  └─ Settings/    SettingsView · SettingsOO
+│  ├─ Models/         ClipItemDO.swift · ClipKind.swift
+│  ├─ Persistence/    Copybara.xcdatamodeld · CoreDataStack.swift
+│  ├─ Support/        FuzzyMatcher · AppSettings · Log
+│  └─ Resources/      Assets.xcassets · Info.plist
+├─ CopybaraTests/     FuzzyMatcherTests · HistoryStoreTests · PasteboardFilterTests
+└─ docs/              CONCEPT.md · ARCHITECTURE.md · ROADMAP.md
+```
+
+## 10. Naming conventions
+
+- Screens use VOODO suffixes: `XxxView`, `XxxOO`, `XxxDO`.
+- `OO` = `final class … : ObservableObject`, `@MainActor`, `@Published` state.
+- `DO` = `Identifiable` value type (`struct`).
+- Services are plain descriptive nouns (`ClipboardMonitor`, `Paster`) — **not**
+  VOODO-suffixed; they are infrastructure, not screens.
+- One screen per folder; the View/OO/DO may live in one file or be split — both
+  are acceptable per the VOODO template.
+
+## 11. Testing
+
+- **Unit tests** for pure logic: `FuzzyMatcher` (scoring/order), `PasteboardFilter`
+  (secret/transient/blocklist rules), `HistoryStore` (dedup, size-cap, pinning)
+  using an in-memory Core Data store.
+- **OO tests** exercise screen logic without a UI by driving `PopupOO` against a
+  fake `HistoryStore`/`Paster`.
+- UI is kept thin so most behavior is testable below the View.
+
+## 12. Dependencies
+
+Kept deliberately minimal:
+
+- [`KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) — global hotkey + rebinding UI.
+- [`Defaults`](https://github.com/sindresorhus/Defaults) — typed user settings.
+
+Everything else (pasteboard, Core Data, CGEvent, status item) uses the system
+frameworks directly. Sparkle (auto-update) and notarization are deferred to a
+release milestone.
