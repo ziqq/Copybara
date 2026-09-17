@@ -17,23 +17,28 @@ small — Copybara does one thing well.
 > the app captures text history in the background today. The menu shows the live
 > item count and can clear history.
 
-## M1 — MVP (v0.1): text history, keyboard paste
+## M1 — MVP (v0.1): text history, keyboard paste ✅
 - [x] `ClipboardMonitor` — changeCount polling for text. *(landed in M0)*
 - [x] `PasteboardFilter` — drop concealed/transient/auto-generated types. *(M0)*
 - [x] `HistoryStore` — insert/dedup/size-cap/fetch. *(M0)*
 - [x] `FuzzyMatcher` — instant filtering. *(M0)*
 - [x] `PopupView` / `PopupOO` — search field, results list, live filter.
-      *(rendered in M0; not yet hosted or keyboard-driven)*
-- [ ] Host `PopupView` in `PopupWindow` (NSPanel); position under the status item.
-- [ ] Keyboard navigation (↑/↓), paste-on-Return, Esc-to-dismiss.
-- [ ] `HotKeyManager` — default ⌘⇧C toggles the popup (via `KeyboardShortcuts`).
-- [ ] `Paster` — set pasteboard + synthesize ⌘V, with the Accessibility prompt.
-      *(paste logic written in M0; needs to be wired to the popup)*
-- [ ] Launch at login (`SMAppService` 13+, fallback on 12).
-- [ ] Unit tests: `PasteboardFilter`, `HistoryStore` (in-memory store).
+- [x] Host `PopupView` in `PopupWindow` (NSPanel), anchored under the status item.
+- [x] Keyboard navigation (↑/↓), paste-on-Return, Esc-to-dismiss (`PopupController`).
+- [x] `HotKeyManager` — default ⌘⇧C toggles the popup (via `KeyboardShortcuts`),
+      rebindable in Settings.
+- [x] `Paster` — stage + synthesize ⌘V, re-activating the previous app, with the
+      Accessibility prompt.
+- [x] Launch at login (`SMAppService` 13+; no-op with notice on 12).
+- [x] Unit tests: `PasteboardFilter`, `HistoryStore` (in-memory store).
 
 **Definition of done:** install, grant Accessibility once, then recall & paste any
 recent text clip entirely from the keyboard; survives reboot via launch-at-login.
+
+> ⚠️ The interactive paste loop (⌘⇧C → search → Return → paste) is implemented
+> and compiles, but end-to-end behavior depends on the Accessibility grant and
+> must be verified by running the app. Remaining M1 polish: adopt the `Defaults`
+> package, and tune popup positioning/animation.
 
 ## M2 — v0.2: parity with Maccy
 - [ ] Pin favorites (excluded from size-cap trimming).

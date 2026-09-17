@@ -19,30 +19,44 @@ final class HistoryStore {
 
     // MARK: - Writes
 
-    /// Inserts a text clip, de-duplicating against an existing identical entry
-    /// (which is bumped to the top instead of duplicated), then enforces the size cap.
+    /// Inserts a text clip on a background context, de-duplicating against an
+    /// existing identical entry (bumped to the top instead of duplicated), then
+    /// enforces the size cap.
     func insertText(_ text: String, appBundleID: String? = nil) {
         let context = stack.newBackgroundContext()
         context.perform {
-            let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
-            request.predicate = NSPredicate(format: "text == %@", text)
-            request.fetchLimit = 1
-
-            if let existing = try? context.fetch(request).first {
-                existing.setValue(Date(), forKey: "createdAt")
-            } else {
-                let item = NSEntityDescription.insertNewObject(forEntityName: Self.entityName, into: context)
-                item.setValue(UUID(), forKey: "id")
-                item.setValue(text, forKey: "text")
-                item.setValue(ClipKind.text.rawValue, forKey: "kind")
-                item.setValue(Date(), forKey: "createdAt")
-                item.setValue(false, forKey: "isPinned")
-                item.setValue(appBundleID, forKey: "appBundleID")
-            }
-
-            self.trim(in: context)
-            try? context.save()
+            self.performInsert(text: text, appBundleID: appBundleID, in: context)
         }
+    }
+
+    /// Synchronous insert used by tests; runs on the view context so a subsequent
+    /// `recentItems()` read observes it immediately.
+    func insertTextSynchronously(_ text: String, appBundleID: String? = nil) {
+        let context = stack.viewContext
+        context.performAndWait {
+            self.performInsert(text: text, appBundleID: appBundleID, in: context)
+        }
+    }
+
+    private func performInsert(text: String, appBundleID: String?, in context: NSManagedObjectContext) {
+        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        request.predicate = NSPredicate(format: "text == %@", text)
+        request.fetchLimit = 1
+
+        if let existing = try? context.fetch(request).first {
+            existing.setValue(Date(), forKey: "createdAt")
+        } else {
+            let item = NSEntityDescription.insertNewObject(forEntityName: Self.entityName, into: context)
+            item.setValue(UUID(), forKey: "id")
+            item.setValue(text, forKey: "text")
+            item.setValue(ClipKind.text.rawValue, forKey: "kind")
+            item.setValue(Date(), forKey: "createdAt")
+            item.setValue(false, forKey: "isPinned")
+            item.setValue(appBundleID, forKey: "appBundleID")
+        }
+
+        trim(in: context)
+        try? context.save()
     }
 
     /// Removes every stored clip.

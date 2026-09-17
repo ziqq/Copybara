@@ -1,11 +1,17 @@
 import SwiftUI
 
-/// The search popup: a search field over a list of clip results.
+/// The search popup: a focused search field over a scrollable list of clip
+/// results with a highlighted selection.
 ///
-/// M0 renders the UI and live fuzzy filtering. TODO(M1): keyboard navigation
-/// (↑/↓), paste-on-Return, and dismissal on Esc, hosted inside `PopupWindow`.
+/// Keyboard navigation (↑/↓/Return/Esc) is handled by `PopupController` via a
+/// local event monitor, which updates `oo.selectedIndex` and calls `onCommit`.
+/// This view reflects that selection and auto-scrolls to keep it visible.
 struct PopupView: View {
     @ObservedObject var oo: PopupOO
+    /// Invoked when the user commits an item (Return or click).
+    var onCommit: (ClipItemDO) -> Void
+
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,6 +19,7 @@ struct PopupView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 14))
                 .padding(10)
+                .focused($searchFocused)
 
             Divider()
 
@@ -22,13 +29,44 @@ struct PopupView: View {
                     .foregroundColor(.secondary)
                 Spacer()
             } else {
-                List(oo.results) { item in
-                    ClipRowView(item: item)
-                }
-                .listStyle(.plain)
+                resultsList
             }
         }
         .frame(width: 420, height: 480)
-        .onAppear { oo.reload() }
+        .background(.regularMaterial)
+        .onAppear {
+            oo.reload()
+            searchFocused = true
+        }
+    }
+
+    private var resultsList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
+                        ClipRowView(item: item)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(rowBackground(isSelected: index == oo.selectedIndex))
+                            .contentShape(Rectangle())
+                            .onTapGesture { onCommit(item) }
+                            .id(item.id)
+                    }
+                }
+                .padding(6)
+            }
+            .onChange(of: oo.selectedIndex) { _ in
+                guard let item = oo.selectedItem else { return }
+                withAnimation(.easeOut(duration: 0.1)) {
+                    proxy.scrollTo(item.id, anchor: .center)
+                }
+            }
+        }
+    }
+
+    private func rowBackground(isSelected: Bool) -> some View {
+        RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.clear)
     }
 }
