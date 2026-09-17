@@ -18,6 +18,12 @@ final class SettingsOO: ObservableObject {
             )
         }
     }
+    @Published var launchAtLogin: Bool {
+        didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
+    }
+
+    /// Whether the OS supports toggling launch at login (macOS 13+).
+    let launchAtLoginSupported = LaunchAtLoginManager.isSupported
 
     private let settings: AppSettings
 
@@ -25,5 +31,6 @@ final class SettingsOO: ObservableObject {
         self.settings = settings
         self.historySize = settings.historySize
         self.iconVisibility = settings.iconVisibility
+        self.launchAtLogin = LaunchAtLoginManager.isEnabled
     }
 }

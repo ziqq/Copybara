@@ -1,22 +1,26 @@
-import Foundation
+import KeyboardShortcuts
 
-/// Owns the global hotkey that toggles the search popup.
-///
-/// M0 defines the surface only. The default shortcut is ⌘⇧C.
-/// TODO(M1): back this with the `KeyboardShortcuts` package, including the
-/// rebinding UI shown in Settings.
+extension KeyboardShortcuts.Name {
+    /// Global shortcut that toggles the search popup. Default: ⌘⇧C.
+    static let togglePopup = Self("togglePopup", default: .init(.c, modifiers: [.command, .shift]))
+}
+
+/// Owns the global hotkey that toggles the search popup, backed by the
+/// `KeyboardShortcuts` package (which also provides the rebinding UI).
 final class HotKeyManager {
-    /// Invoked when the global shortcut fires.
+    /// Invoked on the main queue when the global shortcut fires.
     var onToggle: (() -> Void)?
 
-    /// Registers the global shortcut.
+    /// Registers the global shortcut handler.
     func register() {
-        // TODO(M1): register ⌘⇧C via KeyboardShortcuts and call `onToggle`.
-        Log.app.debug("HotKeyManager.register() is a no-op until M1")
+        KeyboardShortcuts.onKeyUp(for: .togglePopup) { [weak self] in
+            self?.onToggle?()
+        }
+        Log.app.debug("Global shortcut registered for togglePopup")
     }
 
-    /// Removes the global shortcut.
+    /// Removes the global shortcut handler.
     func unregister() {
-        // TODO(M1)
+        KeyboardShortcuts.disable(.togglePopup)
     }
 }
