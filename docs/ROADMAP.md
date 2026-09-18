@@ -55,8 +55,8 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] Search modes (fuzzy / exact / regex) + sorting (last / first / most copied).
 
 ## M3 — Polish & release
-- [ ] App icon + capybara mascot artwork.
-- [ ] Onboarding for the Accessibility permission.
+- [x] App icon (generated; capybara mascot artwork still welcome).
+- [x] Onboarding for the Accessibility permission + Settings permission status.
 - [ ] Sparkle auto-update + notarized DMG.
 - [ ] README screenshots / demo GIF.
 

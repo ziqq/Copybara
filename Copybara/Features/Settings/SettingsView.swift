@@ -1,3 +1,4 @@
+import ApplicationServices
 import KeyboardShortcuts
 import SwiftUI
 
@@ -77,6 +78,23 @@ struct SettingsView: View {
                     Text("Requires macOS 13 or later.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+            }
+
+            Section(header: Text("Permissions")) {
+                HStack {
+                    Text("Accessibility")
+                    Spacer()
+                    let granted = AXIsProcessTrusted()
+                    Text(granted ? "Granted" : "Not granted")
+                        .font(.caption)
+                        .foregroundColor(granted ? .secondary : .orange)
+                }
+                Text("Needed to paste into the app you were using.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Button("Open Accessibility Settings") {
+                    OnboardingController.openAccessibilitySettings()
                 }
             }
         }

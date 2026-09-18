@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var monitor = ClipboardMonitor(store: store)
     private lazy var popupController = PopupController(store: store, paster: paster)
     private let hotKeyManager = HotKeyManager()
+    private lazy var onboardingController = OnboardingController(paster: paster)
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -39,6 +40,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: .copybaraIconVisibilityChanged,
             object: nil
         )
+
+        onboardingController.showIfNeeded()
 
         Log.app.info("Copybara launched")
     }
