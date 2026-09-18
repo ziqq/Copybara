@@ -63,7 +63,8 @@ final class PopupController {
             oo: oo,
             useGlass: glass,
             onCommit: { [weak self] item in self?.commit(item) },
-            onHoverPreview: { [weak self] item in self?.updatePreview(item) }
+            onHoverPreview: { [weak self] item in self?.updatePreview(item) },
+            onAction: { [weak self] action in self?.perform(action) }
         )
         let hosting = NSHostingView(rootView: root)
         window.contentView = glass ? hosting : makeContentView(hosting: hosting)
@@ -351,8 +352,15 @@ final class PopupController {
             case (36, _), (76, _): // Return / Enter — paste
                 if let item = self.oo.selectedItem { self.commit(item) }
                 return nil
-            case (53, _): // Esc
-                self.hide()
+            case (40, .command): // ⌘K — toggle the actions menu
+                self.oo.showActions.toggle()
+                return nil
+            case (53, _): // Esc — close the actions menu first, else hide the popup
+                if self.oo.showActions {
+                    self.oo.showActions = false
+                } else {
+                    self.hide()
+                }
                 return nil
             case (35, .option): // ⌥P — pin / unpin
                 self.oo.togglePinSelected()
@@ -380,6 +388,22 @@ final class PopupController {
     }
 
     // MARK: - Commit / paste
+
+    /// Runs an action from the ⌘K menu against the current selection.
+    private func perform(_ action: PopupAction) {
+        switch action {
+        case .paste:
+            if let item = oo.selectedItem { commit(item) }
+        case .pastePlain:
+            if let item = oo.selectedItem { commit(item, plain: true) }
+        case .pin:
+            oo.togglePinSelected()
+        case .delete:
+            oo.deleteSelected()
+        case .clearAll:
+            oo.clearAll()
+        }
+    }
 
     private func commit(_ item: ClipItemDO, plain: Bool = false) {
         hide()

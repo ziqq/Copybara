@@ -10,6 +10,8 @@ final class PopupOO: ObservableObject {
     }
     @Published private(set) var results: [ClipItemDO] = []
     @Published var selectedIndex: Int = 0
+    /// Whether the ⌘K actions menu is open.
+    @Published var showActions: Bool = false
 
     private let store: HistoryStore
     private let settings: AppSettings
@@ -34,6 +36,7 @@ final class PopupOO: ObservableObject {
     func reset() {
         query = ""
         selectedIndex = 0
+        showActions = false
         reload()
     }
 

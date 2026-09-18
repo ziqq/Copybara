@@ -1,8 +1,17 @@
 import ApplicationServices
 import SwiftUI
 
+/// An action available for the selected clip, surfaced in the ⌘K actions menu.
+enum PopupAction {
+    case paste
+    case pastePlain
+    case pin
+    case delete
+    case clearAll
+}
+
 /// The search popup: a focused search field over a scrollable list of clip
-/// results with a highlighted selection and a keyboard-hint footer.
+/// results with a highlighted selection and a Raycast-style action footer.
 ///
 /// Keyboard navigation (↑/↓/Return/Esc) is handled by `PopupController` via a
 /// local event monitor, which updates `oo.selectedIndex` and calls `onCommit`.
@@ -20,6 +29,8 @@ struct PopupView: View {
     /// Invoked with the hovered item (or nil) so the controller can show a
     /// side preview panel.
     var onHoverPreview: (ClipItemDO?) -> Void = { _ in }
+    /// Invoked when an action is chosen (footer, ⌘K menu, or click).
+    var onAction: (PopupAction) -> Void = { _ in }
 
     @FocusState private var searchFocused: Bool
     @State private var previewItem: ClipItemDO?
@@ -106,32 +117,93 @@ struct PopupView: View {
 
     @ViewBuilder
     private var footer: some View {
-        if AXIsProcessTrusted() {
-            hintsRow
-                .padding(.horizontal, 12)
-                .frame(height: PopupMetrics.footerHeight)
-        } else {
-            accessibilityWarning
-                .padding(.horizontal, 12)
-                .frame(height: PopupMetrics.footerHeight)
-                .contentShape(Rectangle())
-                .onTapGesture { OnboardingController.openAccessibilitySettings() }
+        Group {
+            if AXIsProcessTrusted() {
+                raycastFooter
+            } else {
+                accessibilityWarning
+                    .contentShape(Rectangle())
+                    .onTapGesture { OnboardingController.openAccessibilitySettings() }
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: PopupMetrics.footerHeight)
+    }
+
+    private var raycastFooter: some View {
+        HStack(spacing: 8) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 16, height: 16)
+
+            Spacer()
+
+            Button {
+                if let item = oo.selectedItem { onCommit(item) }
+            } label: {
+                actionLabel("Paste", keys: "↩")
+            }
+            .buttonStyle(.plain)
+            .disabled(oo.selectedItem == nil)
+
+            Divider().frame(height: 14)
+
+            Button { oo.showActions.toggle() } label: {
+                actionLabel("Actions", keys: "⌘K")
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $oo.showActions, arrowEdge: .bottom) { actionsMenu }
         }
     }
 
-    private var hintsRow: some View {
-        HStack(spacing: 12) {
-            hint("↩", "Paste")
-            hint("↑↓", nil)
-            hint("→", "Preview")
-            hint("⌥P", "Pin")
-            hint("⌥⌫", "Delete")
-            hint("esc", "Close")
-            Spacer()
-            Text("\(oo.results.count)")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
+    private func actionLabel(_ title: String, keys: String) -> some View {
+        HStack(spacing: 6) {
+            Text(title).font(.system(size: 11))
+            keycap(keys)
         }
+        .foregroundStyle(.secondary)
+    }
+
+    private func keycap(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium, design: .rounded))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color.primary.opacity(0.08)))
+            .foregroundStyle(.secondary)
+    }
+
+    // MARK: - Actions menu (⌘K)
+
+    private var actionsMenu: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            actionRow("Paste", keys: "↩", action: .paste)
+            actionRow("Paste as Plain Text", keys: "⌥⇧↩", action: .pastePlain)
+            Divider()
+            actionRow(oo.selectedItem?.isPinned == true ? "Unpin" : "Pin", keys: "⌥P", action: .pin)
+            actionRow("Delete", keys: "⌥⌫", action: .delete)
+            Divider()
+            actionRow("Clear History", keys: nil, action: .clearAll)
+        }
+        .padding(6)
+        .frame(width: 240)
+    }
+
+    private func actionRow(_ title: String, keys: String?, action: PopupAction) -> some View {
+        Button {
+            oo.showActions = false
+            onAction(action)
+        } label: {
+            HStack {
+                Text(title).font(.system(size: 12))
+                Spacer()
+                if let keys { keycap(keys) }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+        }
+        .buttonStyle(.plain)
     }
 
     private var accessibilityWarning: some View {
@@ -148,17 +220,6 @@ struct PopupView: View {
         }
     }
 
-    private func hint(_ keys: String, _ label: String?) -> some View {
-        HStack(spacing: 4) {
-            Text(keys)
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-            if let label {
-                Text(label)
-                    .font(.system(size: 11))
-            }
-        }
-        .foregroundStyle(.secondary)
-    }
 }
 
 #if DEBUG

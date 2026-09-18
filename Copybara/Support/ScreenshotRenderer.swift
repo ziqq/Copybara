@@ -102,16 +102,14 @@ enum ScreenshotRenderer {
 
                 Divider()
 
-                HStack(spacing: 12) {
-                    hint("↩", "Paste")
-                    hint("↑↓", nil)
-                    hint("⌥P", "Pin")
-                    hint("⌥⌫", "Delete")
-                    hint("esc", "Close")
+                HStack(spacing: 8) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 16, height: 16)
                     Spacer()
-                    Text("\(items.count)")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
+                    footerAction("Paste", "↩")
+                    Divider().frame(height: 14)
+                    footerAction("Actions", "⌘K")
                 }
                 .padding(.horizontal, 12)
                 .frame(height: PopupMetrics.footerHeight)
@@ -119,10 +117,14 @@ enum ScreenshotRenderer {
             .frame(width: PopupMetrics.width)
         }
 
-        private func hint(_ keys: String, _ label: String?) -> some View {
-            HStack(spacing: 4) {
-                Text(keys).font(.system(size: 11, weight: .medium, design: .rounded))
-                if let label { Text(label).font(.system(size: 11)) }
+        private func footerAction(_ title: String, _ keys: String) -> some View {
+            HStack(spacing: 6) {
+                Text(title).font(.system(size: 11))
+                Text(keys)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Color.primary.opacity(0.08)))
             }
             .foregroundStyle(.secondary)
         }
