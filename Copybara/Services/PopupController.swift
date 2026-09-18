@@ -312,7 +312,9 @@ final class PopupController {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            // Only the "real" modifiers — arrow keys carry .function/.numericPad,
+            // which would otherwise break exact `[]` / `.command` matches below.
+            let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
 
             // ⌘1–9 — quick-paste the Nth item.
             if flags == .command, let digit = Int(event.charactersIgnoringModifiers ?? ""), digit >= 1, digit <= 9 {

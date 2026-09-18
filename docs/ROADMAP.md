@@ -25,7 +25,7 @@ small — Copybara does one thing well.
 - [x] `PopupView` / `PopupOO` — search field, results list, live filter.
 - [x] Host `PopupView` in `PopupWindow` (NSPanel), anchored under the status item.
 - [x] Keyboard navigation (↑/↓), paste-on-Return, Esc-to-dismiss (`PopupController`).
-- [x] `HotKeyManager` — default ⌘⇧C toggles the popup (via `KeyboardShortcuts`),
+- [x] `HotKeyManager` — default ⌘⇧V toggles the popup (via `KeyboardShortcuts`),
       rebindable in Settings.
 - [x] `Paster` — stage + synthesize ⌘V, re-activating the previous app, with the
       Accessibility prompt.
@@ -35,7 +35,7 @@ small — Copybara does one thing well.
 **Definition of done:** install, grant Accessibility once, then recall & paste any
 recent text clip entirely from the keyboard; survives reboot via launch-at-login.
 
-> ⚠️ The interactive paste loop (⌘⇧C → search → Return → paste) is implemented
+> ⚠️ The interactive paste loop (⌘⇧V → search → Return → paste) is implemented
 > and compiles, but end-to-end behavior depends on the Accessibility grant and
 > must be verified by running the app. Remaining M1 polish: adopt the `Defaults`
 > package, and tune popup positioning/animation.
