@@ -91,7 +91,7 @@ struct PopupView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
-                            ClipRowView(item: item, isSelected: index == oo.selectedIndex, query: oo.query)
+                            ClipRowView(item: item, isSelected: index == oo.selectedIndex, query: oo.query, index: index)
                                 .onTapGesture { onCommit(item) }
                                 .onHover { hovering in
                                     previewItem = hovering ? item : (previewItem?.id == item.id ? nil : previewItem)
