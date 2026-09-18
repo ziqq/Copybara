@@ -17,6 +17,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+#if DEBUG
+        if let path = ProcessInfo.processInfo.environment["COPYBARA_SCREENSHOT"] {
+            ScreenshotRenderer.renderPopup(to: path)
+            NSApp.terminate(nil)
+            return
+        }
+#endif
+
         store.sizeLimit = AppSettings.shared.historySize
         applyActivationPolicy(AppSettings.shared.iconVisibility)
 

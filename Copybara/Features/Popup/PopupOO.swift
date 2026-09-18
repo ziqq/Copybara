@@ -14,6 +14,9 @@ final class PopupOO: ObservableObject {
     private let store: HistoryStore
     private let settings: AppSettings
     private var allItems: [ClipItemDO] = []
+    /// True for preview/screenshot instances so `onAppear` doesn't reload over
+    /// the injected sample data.
+    private(set) var isPreview = false
 
     init(store: HistoryStore, settings: AppSettings = .shared) {
         self.store = store
@@ -78,6 +81,17 @@ final class PopupOO: ObservableObject {
         store.clearAll()
         reload()
     }
+
+#if DEBUG
+    /// Builds an OO with fixed results, for SwiftUI previews and screenshots.
+    static func preview(_ items: [ClipItemDO]) -> PopupOO {
+        let oo = PopupOO(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
+        oo.isPreview = true
+        oo.allItems = items
+        oo.results = items
+        return oo
+    }
+#endif
 
     private func refilter() {
         results = ClipSearch.filter(allItems, query: query, mode: settings.searchMode)

@@ -10,6 +10,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-12%2B-black?logo=apple)
 
+<br>
+
+<img src="docs/images/popup.png" alt="Copybara search popup" width="760">
+
 </div>
 
 ---
