@@ -122,22 +122,37 @@ services; services never depend on screens.
 
 ### Models & support
 - **`ClipItemDO`** — `Identifiable` value type: `id`, `kind`, `preview`,
-  `createdAt`, `isPinned`, and a reference/handle to the payload.
-- **`ClipKind`** — enum: `.text`, `.rtf`, `.image`, `.file` (MVP uses `.text`).
-- **`FuzzyMatcher`** — small, dependency-free scoring/highlighting for search.
+  `createdAt`, `isPinned`, `appBundleID`, `copyCount`, and the `data` payload.
+- **`ClipKind`** — enum: `.text`, `.rtf`, `.image`, `.file` — all captured.
+- **`ClipCapture`** — a captured clip ready to store, produced by `PasteboardReader`.
+- **`FuzzyMatcher`** — small, dependency-free scoring for fuzzy search.
+- **`ClipSearch`** — pure sort (last/first/most-copied) + filter (fuzzy/exact/regex).
+- **`AppIconProvider`** / **`RelativeTime`** — cached source-app icon/name and
+  short/absolute timestamps for rows.
+- **`Hashing`** — SHA-256 helpers for content de-duplication.
 - **`CoreDataStack`** — Core Data container; `viewContext` for reads, a
   background context for writes.
 - **`Log`** — thin `os.Logger` wrapper.
 
+### Content capture & paste
+- **`PasteboardReader`** — extracts the richest representation on a change
+  (file URLs → image → RTF → plain text) into a `ClipCapture`, with a plain-text
+  preview and a stable content hash.
+- **`Paster`** — stages the native pasteboard types per kind (RTF/PNG/file URLs),
+  or plain text only for paste-without-formatting (⌥⇧↩).
+
 ## 5. Persistence
 
 - **Core Data** (baseline for macOS 12+). Model `Copybara.xcdatamodeld`, entity
-  `ClipEntity` (text, kind, createdAt, isPinned, appBundleID, payload/image blob).
-- Reads on `viewContext` (main queue); writes on a background context to keep the
-  monitor off the UI thread.
+  `ClipEntity` (text, kind, createdAt, isPinned, appBundleID, copyCount,
+  contentHash, and `data` as external binary storage for images/RTF/file paths).
+  New attributes land via lightweight migration.
+- Reads on `viewContext` (main queue); background writes for the monitor;
+  synchronous view-context writes for user actions (pin/delete/clear) so the popup
+  updates immediately.
 - Size cap enforced on insert: trim oldest **non-pinned** rows beyond the limit.
-- De-duplication: copying the same content again moves the existing row to the
-  top instead of creating a duplicate.
+- De-duplication: by `contentHash` (SHA-256) across kinds; a re-copy bumps the
+  existing row to the top and increments `copyCount`.
 
 ## 6. macOS version strategy (progressive enhancement)
 
@@ -173,20 +188,23 @@ Rule: **never** call a newer-OS API unconditionally. Gate it with `@available` /
 
 ```
 copybara/
-├─ Copybara.xcodeproj
+├─ project.yml        (XcodeGen — the .xcodeproj is generated, not committed)
 ├─ Copybara/
 │  ├─ App/            CopybaraApp.swift · AppDelegate.swift
-│  ├─ Services/       ClipboardMonitor · HistoryStore · HotKeyManager ·
-│  │                  Paster · StatusItemController · PopupWindow
+│  ├─ Services/       ClipboardMonitor · PasteboardReader · HistoryStore ·
+│  │                  HotKeyManager · Paster · StatusItemController ·
+│  │                  PopupWindow · PopupController · LaunchAtLoginManager
 │  │  └─ Privacy/     PasteboardFilter.swift
 │  ├─ Features/
-│  │  ├─ Popup/       PopupView · PopupOO · ClipRowView
+│  │  ├─ Popup/       PopupView · PopupOO · ClipRowView · PopupMetrics
 │  │  └─ Settings/    SettingsView · SettingsOO
-│  ├─ Models/         ClipItemDO.swift · ClipKind.swift
+│  ├─ Models/         ClipItemDO · ClipKind · ClipCapture
 │  ├─ Persistence/    Copybara.xcdatamodeld · CoreDataStack.swift
-│  ├─ Support/        FuzzyMatcher · AppSettings · Log
+│  ├─ Support/        FuzzyMatcher · ClipSearch · AppSettings ·
+│  │                  AppIconProvider · RelativeTime · Hashing · Log
 │  └─ Resources/      Assets.xcassets · Info.plist
-├─ CopybaraTests/     FuzzyMatcherTests · HistoryStoreTests · PasteboardFilterTests
+├─ CopybaraTests/     FuzzyMatcherTests · HistoryStoreTests ·
+│                     PasteboardFilterTests · ClipSearchTests
 └─ docs/              CONCEPT.md · ARCHITECTURE.md · ROADMAP.md
 ```
 
