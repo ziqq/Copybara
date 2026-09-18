@@ -19,28 +19,47 @@ final class HistoryStore {
 
     // MARK: - Writes
 
-    /// Inserts a text clip on a background context, de-duplicating against an
-    /// existing identical entry (bumped to the top instead of duplicated), then
-    /// enforces the size cap.
-    func insertText(_ text: String, appBundleID: String? = nil) {
+    /// Inserts a captured clip (any kind) on a background context.
+    func insert(_ capture: ClipCapture) {
         let context = stack.newBackgroundContext()
         context.perform {
-            self.performInsert(text: text, appBundleID: appBundleID, in: context)
+            self.performInsert(capture, in: context)
         }
     }
 
-    /// Synchronous insert used by tests; runs on the view context so a subsequent
-    /// `recentItems()` read observes it immediately.
+    /// Inserts a plain-text clip. Convenience over `insert(_:)`.
+    func insertText(_ text: String, appBundleID: String? = nil) {
+        insert(ClipCapture(kind: .text, text: text, data: nil, contentHash: nil, appBundleID: appBundleID))
+    }
+
+    /// Synchronous text insert used by tests; runs on the view context so a
+    /// subsequent `recentItems()` read observes it immediately.
     func insertTextSynchronously(_ text: String, appBundleID: String? = nil) {
         let context = stack.viewContext
         context.performAndWait {
-            self.performInsert(text: text, appBundleID: appBundleID, in: context)
+            self.performInsert(
+                ClipCapture(kind: .text, text: text, data: nil, contentHash: nil, appBundleID: appBundleID),
+                in: context
+            )
         }
     }
 
-    private func performInsert(text: String, appBundleID: String?, in context: NSManagedObjectContext) {
+    /// Synchronous capture insert used by tests.
+    func insertSynchronously(_ capture: ClipCapture) {
+        let context = stack.viewContext
+        context.performAndWait {
+            self.performInsert(capture, in: context)
+        }
+    }
+
+    private func performInsert(_ capture: ClipCapture, in context: NSManagedObjectContext) {
         let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
-        request.predicate = NSPredicate(format: "text == %@", text)
+        // De-duplicate by content hash when present, else by exact text.
+        if let hash = capture.contentHash {
+            request.predicate = NSPredicate(format: "contentHash == %@", hash)
+        } else {
+            request.predicate = NSPredicate(format: "contentHash == nil AND text == %@", capture.text)
+        }
         request.fetchLimit = 1
 
         if let existing = try? context.fetch(request).first {
@@ -50,11 +69,13 @@ final class HistoryStore {
         } else {
             let item = NSEntityDescription.insertNewObject(forEntityName: Self.entityName, into: context)
             item.setValue(UUID(), forKey: "id")
-            item.setValue(text, forKey: "text")
-            item.setValue(ClipKind.text.rawValue, forKey: "kind")
+            item.setValue(capture.text, forKey: "text")
+            item.setValue(capture.kind.rawValue, forKey: "kind")
+            item.setValue(capture.data, forKey: "data")
+            item.setValue(capture.contentHash, forKey: "contentHash")
             item.setValue(Date(), forKey: "createdAt")
             item.setValue(false, forKey: "isPinned")
-            item.setValue(appBundleID, forKey: "appBundleID")
+            item.setValue(capture.appBundleID, forKey: "appBundleID")
             item.setValue(1, forKey: "copyCount")
         }
 
@@ -149,7 +170,8 @@ final class HistoryStore {
             createdAt: object.value(forKey: "createdAt") as? Date ?? Date(),
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
             appBundleID: object.value(forKey: "appBundleID") as? String,
-            copyCount: object.value(forKey: "copyCount") as? Int ?? 1
+            copyCount: object.value(forKey: "copyCount") as? Int ?? 1,
+            data: object.value(forKey: "data") as? Data
         )
     }
 }

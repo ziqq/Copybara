@@ -15,6 +15,8 @@ struct ClipItemDO: Identifiable, Hashable {
     let appBundleID: String?
     /// How many times this exact content has been copied.
     let copyCount: Int
+    /// Payload for non-text kinds (RTF data, PNG data, archived file paths).
+    let data: Data?
 
     init(
         id: UUID = UUID(),
@@ -23,7 +25,8 @@ struct ClipItemDO: Identifiable, Hashable {
         createdAt: Date = Date(),
         isPinned: Bool = false,
         appBundleID: String? = nil,
-        copyCount: Int = 1
+        copyCount: Int = 1,
+        data: Data? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -32,5 +35,6 @@ struct ClipItemDO: Identifiable, Hashable {
         self.isPinned = isPinned
         self.appBundleID = appBundleID
         self.copyCount = copyCount
+        self.data = data
     }
 }

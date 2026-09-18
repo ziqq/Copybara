@@ -73,10 +73,8 @@ final class ClipboardMonitor {
             return
         }
 
-        guard let text = pasteboard.string(forType: .string),
-              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-
-        store.insertText(text, appBundleID: sourceBundleID)
-        Log.clipboard.debug("Recorded a clip (\(text.count, privacy: .public) chars)")
+        guard let capture = PasteboardReader.read(pasteboard, appBundleID: sourceBundleID) else { return }
+        store.insert(capture)
+        Log.clipboard.debug("Recorded a \(capture.kind.rawValue, privacy: .public) clip")
     }
 }

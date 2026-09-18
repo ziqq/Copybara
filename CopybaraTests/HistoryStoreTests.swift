@@ -89,6 +89,27 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(store.recentItems().map(\.preview), ["a"])
     }
 
+    func testCaptureInsertStoresPayloadAndDedupsByContentHash() {
+        let store = makeStore()
+        let payload = Data([0x01, 0x02, 0x03, 0x04])
+        let capture = ClipCapture(
+            kind: .image,
+            text: "Image 10×10",
+            data: payload,
+            contentHash: payload.sha256Hex,
+            appBundleID: nil
+        )
+
+        store.insertSynchronously(capture)
+        store.insertSynchronously(capture)
+
+        let items = store.recentItems()
+        XCTAssertEqual(items.count, 1, "same content hash must not duplicate")
+        XCTAssertEqual(items.first?.kind, .image)
+        XCTAssertEqual(items.first?.data, payload)
+        XCTAssertEqual(items.first?.copyCount, 2)
+    }
+
     func testClearAllRemovesEverythingIncludingPinned() {
         let store = makeStore()
         store.insertTextSynchronously("a")

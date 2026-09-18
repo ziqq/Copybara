@@ -191,6 +191,9 @@ final class PopupController {
             case (126, []): // ↑
                 self.oo.moveSelection(by: -1)
                 return nil
+            case (36, [.option, .shift]), (76, [.option, .shift]): // ⌥⇧↩ — paste plain
+                if let item = self.oo.selectedItem { self.commit(item, plain: true) }
+                return nil
             case (36, _), (76, _): // Return / Enter — paste
                 if let item = self.oo.selectedItem { self.commit(item) }
                 return nil
@@ -224,11 +227,9 @@ final class PopupController {
 
     // MARK: - Commit / paste
 
-    private func commit(_ item: ClipItemDO) {
-        // For text clips the preview carries the full text.
-        let text = item.preview
+    private func commit(_ item: ClipItemDO, plain: Bool = false) {
         hide()
-        paster.stage(text: text)
+        paster.stage(item: item, plain: plain)
 
         guard paster.ensureAccessibilityPermission() else {
             // Text is on the pasteboard; the user can paste it manually until the
