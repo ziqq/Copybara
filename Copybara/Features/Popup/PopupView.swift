@@ -34,6 +34,9 @@ struct PopupView: View {
 
     @FocusState private var searchFocused: Bool
     @State private var previewItem: ClipItemDO?
+    @State private var axTrusted: Bool = AXIsProcessTrusted()
+
+    private let axTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +58,10 @@ struct PopupView: View {
             }
         }
         .onChange(of: previewItem) { onHoverPreview($0) }
+        .onReceive(axTimer) { _ in
+            let trusted = AXIsProcessTrusted()
+            if trusted != axTrusted { axTrusted = trusted }
+        }
     }
 
     // MARK: - Search
@@ -119,7 +126,7 @@ struct PopupView: View {
     @ViewBuilder
     private var footer: some View {
         Group {
-            if AXIsProcessTrusted() {
+            if axTrusted {
                 raycastFooter
             } else {
                 accessibilityWarning

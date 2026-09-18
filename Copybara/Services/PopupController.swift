@@ -23,7 +23,7 @@ final class PopupController {
     private var previewHosting: NSHostingView<PreviewCard>?
     private var didPromptAccessibility = false
     private var moveObserver: NSObjectProtocol?
-    private var isProgrammaticMove = false
+    private var lastProgrammaticOrigin: NSPoint?
 
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
@@ -49,7 +49,7 @@ final class PopupController {
         moveObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.didMoveNotification, object: window, queue: .main
         ) { [weak self] _ in
-            self?.savePopupPosition()
+            Task { @MainActor in self?.savePopupPosition() }
         }
     }
 
@@ -194,13 +194,10 @@ final class PopupController {
     }
 
     private func positionWindow() {
-        // Programmatic moves must not be mistaken for a user drag (which persists).
-        isProgrammaticMove = true
-        defer { DispatchQueue.main.async { self.isProgrammaticMove = false } }
-
         let size = window.frame.size
         guard let screen = screenUnderCursor() ?? NSScreen.main else {
             window.center()
+            lastProgrammaticOrigin = window.frame.origin
             return
         }
         let visible = screen.visibleFrame
@@ -230,6 +227,7 @@ final class PopupController {
         }
 
         window.setFrameOrigin(origin)
+        lastProgrammaticOrigin = origin
     }
 
     /// Raycast-style default: horizontally centered, in the upper third.
@@ -253,7 +251,9 @@ final class PopupController {
     /// Persists the popup's top-left (snapped to a grid) when the user drags it,
     /// and switches to "remembered" positioning so it reopens where they left it.
     private func savePopupPosition() {
-        guard window.isVisible, !isProgrammaticMove else { return }
+        guard window.isVisible else { return }
+        // Ignore our own programmatic positioning; only persist real user drags.
+        if let last = lastProgrammaticOrigin, last == window.frame.origin { return }
         let snappedTop = snapToGrid(NSPoint(x: window.frame.minX, y: window.frame.maxY))
         AppSettings.shared.popupSavedTop = snappedTop
         if AppSettings.shared.popupPosition != .remembered {

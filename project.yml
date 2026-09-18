@@ -63,6 +63,8 @@ targets:
       base:
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Copybara.app/Contents/MacOS/Copybara"
+        # Tests only run on modern macOS; avoids XCTest "built for newer version" warnings.
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
 
 schemes:
   Copybara:

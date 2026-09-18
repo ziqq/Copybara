@@ -102,6 +102,13 @@ final class AppSettings {
         static let popupTopX = "popupTopX"
         static let popupTopY = "popupTopY"
         static let popupHasSavedTop = "popupHasSavedTop"
+        static let didMigrateHotkeyToV = "didMigrateHotkeyToV"
+    }
+
+    /// One-time flag: the old ⌘⇧C default was reset so the new ⌘⇧V default applies.
+    var didMigrateHotkeyToV: Bool {
+        get { defaults.bool(forKey: Keys.didMigrateHotkeyToV) }
+        set { defaults.set(newValue, forKey: Keys.didMigrateHotkeyToV) }
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
