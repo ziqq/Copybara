@@ -88,6 +88,8 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
 - [Concept](docs/CONCEPT.md) — what Copybara is and why.
 - [Architecture](docs/ARCHITECTURE.md) — modules, data flow, conventions.
 - [Roadmap](docs/ROADMAP.md) — milestones and scope.
+- [Release](docs/RELEASE.md) — signing, notarization, appcast.
+- [Monetization](docs/MONETIZATION.md) — funding strategy (planning).
 
 ## Building from source
 
