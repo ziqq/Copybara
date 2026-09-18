@@ -28,5 +28,13 @@
 	<string>© 2026 Anton Ustinoff</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>SUFeedURL</key>
+	<string>https://ziqq.github.io/Copybara/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<!-- Replace with the public EdDSA key printed by Sparkle's generate_keys.
+	     Until then, updates cannot be verified (see docs/RELEASE.md). -->
+	<key>SUPublicEDKey</key>
+	<string>REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY</string>
 </dict>
 </plist>

@@ -15,6 +15,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     var onOpenSettings: (() -> Void)?
     /// Invoked to skip recording the next copy (⌥⇧-click / menu).
     var onIgnoreNext: (() -> Void)?
+    /// Invoked to check for app updates.
+    var onCheckForUpdates: (() -> Void)?
 
     init(store: HistoryStore) {
         self.store = store
@@ -109,6 +111,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         settings.target = self
         menu.addItem(settings)
 
+        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
+
         let clear = NSMenuItem(title: "Clear", action: #selector(clearUnpinned), keyEquivalent: "\u{8}")
         clear.keyEquivalentModifierMask = [.option, .command]
         clear.target = self
@@ -134,6 +140,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func openPopup() { onPrimaryAction?() }
     @objc private func openSettings() { onOpenSettings?() }
+    @objc private func checkForUpdates() { onCheckForUpdates?() }
     @objc private func clearUnpinned() { store.clearUnpinned() }
     @objc private func clearAll() { store.clearAll() }
     @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }

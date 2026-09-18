@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var popupController = PopupController(store: store, paster: paster)
     private let hotKeyManager = HotKeyManager()
     private lazy var onboardingController = OnboardingController(paster: paster)
+    private lazy var updaterController = UpdaterController()
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -23,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onPrimaryAction = { [weak self] in self?.popupController.toggle() }
         controller.onOpenSettings = { [weak self] in self?.showSettings() }
         controller.onIgnoreNext = { [weak self] in self?.monitor.ignoreNextCopy() }
+        controller.onCheckForUpdates = { [weak self] in self?.updaterController.checkForUpdates() }
         statusItemController = controller
 
         popupController.anchorRectProvider = { [weak self] in
