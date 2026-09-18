@@ -66,6 +66,11 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [ ] Snippets/templates.
 - [ ] Multiple paste formats (plain vs rich).
 - [ ] Configurable ignore rules per app.
+- [ ] Diagnostics (backlog): on-device crash/hang reporting via MetricKit and,
+      for App Store builds, Xcode Organizer / App Store Connect (user-consented);
+      optional opt-in "Share diagnostics" export of the `os.Logger` log.
+      **No third-party telemetry and no product analytics** — clipboard contents
+      never leave the device.
 
 ## Explicitly out of scope
 - Cloud sync across devices.
