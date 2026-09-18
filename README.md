@@ -6,6 +6,10 @@
 
 *Like a capybara that quietly keeps everything you copy — calm, friendly, always there.*
 
+[![CI](https://github.com/ziqq/Copybara/actions/workflows/ci.yml/badge.svg)](https://github.com/ziqq/Copybara/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/macOS-12%2B-black?logo=apple)
+
 </div>
 
 ---
@@ -81,10 +85,38 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design and
 - [Architecture](docs/ARCHITECTURE.md) — modules, data flow, conventions.
 - [Roadmap](docs/ROADMAP.md) — milestones and scope.
 
+## Building from source
+
+Copybara uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the
+Xcode project from [`project.yml`](project.yml) (the `.xcodeproj` is not checked in).
+
+```bash
+brew install xcodegen
+git clone https://github.com/ziqq/Copybara.git
+cd Copybara
+xcodegen generate
+open Copybara.xcodeproj
+```
+
+Then pick your signing team in *Signing & Capabilities* and run. On first paste,
+grant Accessibility in *System Settings → Privacy & Security → Accessibility*.
+
+Run the tests from the command line:
+
+```bash
+xcodebuild -project Copybara.xcodeproj -scheme Copybara -destination 'platform=macOS' test
+```
+
 ## Status
 
-🚧 Early development — concept and documentation locked; implementation next.
+🚧 Active development — MVP works (capture, search, paste); v0.2 in progress.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+## Acknowledgements
+
+Inspired by [Maccy](https://maccy.app) by Alex Rodionov. Copybara is an
+independent implementation built from scratch, not a fork.
 
 ## License
 
-TBD.
+[MIT](LICENSE) © 2026 Anton Ustinoff
