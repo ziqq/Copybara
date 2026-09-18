@@ -46,3 +46,7 @@ rm -f "$DMG"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG"
 
 echo "Created $DMG"
+if [ -z "${DEVELOPMENT_TEAM:-}" ]; then
+  echo "Unsigned build: on other Macs, clear quarantine after copying to /Applications:"
+  echo "  xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
+fi
