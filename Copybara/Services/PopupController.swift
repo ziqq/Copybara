@@ -21,6 +21,7 @@ final class PopupController {
 
     private var previewPanel: NSPanel?
     private var previewHosting: NSHostingView<PreviewCard>?
+    private var didPromptAccessibility = false
 
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
@@ -291,15 +292,38 @@ final class PopupController {
         hide()
         paster.stage(item: item, plain: plain)
 
-        guard paster.ensureAccessibilityPermission() else {
-            // Text is on the pasteboard; the user can paste it manually until the
-            // permission is granted.
+        guard paster.hasAccessibilityPermission else {
+            // The item is already on the pasteboard; tell the user how to enable
+            // automatic paste instead of silently doing nothing.
             Log.paste.error("Committed to pasteboard only — Accessibility not granted")
+            handleMissingAccessibility()
             return
         }
 
         reactivatePreviousApp()
         pasteWhenTargetIsFrontmost()
+    }
+
+    private func handleMissingAccessibility() {
+        paster.ensureAccessibilityPermission() // registers Copybara in the Accessibility list
+
+        guard !didPromptAccessibility else { return }
+        didPromptAccessibility = true
+
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Enable Accessibility to paste automatically"
+        alert.informativeText = """
+        Your selected item is on the clipboard — press ⌘V to paste it now.
+
+        To paste automatically, enable Copybara in \
+        System Settings › Privacy & Security › Accessibility.
+        """
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "OK")
+        if alert.runModal() == .alertFirstButtonReturn {
+            OnboardingController.openAccessibilitySettings()
+        }
     }
 
     private func reactivatePreviousApp() {
