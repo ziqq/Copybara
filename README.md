@@ -158,9 +158,8 @@ Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
 
 If Copybara is useful to you, consider supporting its development:
 
-- [GitHub Sponsors](https://github.com/sponsors/ziqq)
-- Buy Me a Coffee — _TODO: add link_
-- Boosty — _TODO: add link_
+- [Buy me a coffee](https://www.buymeacoffee.com/ziqq)
+- [Subscribe through Boosty](https://boosty.to/ziqq)
 
 See [`docs/MONETIZATION.md`](docs/MONETIZATION.md) for the funding strategy.
 

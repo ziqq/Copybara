@@ -25,6 +25,7 @@ enum IconVisibility: String, CaseIterable, Identifiable {
 
 /// Where the search popup appears when opened.
 enum PopupPosition: String, CaseIterable, Identifiable {
+    case remembered
     case menuBarIcon
     case cursor
     case center
@@ -33,6 +34,7 @@ enum PopupPosition: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .remembered: return "Last position (drag to move)"
         case .menuBarIcon: return "Menu bar icon"
         case .cursor: return "Cursor"
         case .center: return "Screen center"
@@ -97,6 +99,9 @@ final class AppSettings {
         static let sortMode = "sortMode"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
         static let useLiquidGlass = "useLiquidGlass"
+        static let popupTopX = "popupTopX"
+        static let popupTopY = "popupTopY"
+        static let popupHasSavedTop = "popupHasSavedTop"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -114,10 +119,28 @@ final class AppSettings {
         set { defaults.set(newValue.rawValue, forKey: Keys.iconVisibility) }
     }
 
-    /// Where the search popup appears. Defaults to the menu bar icon.
+    /// Where the search popup appears. Defaults to remembering the last position.
     var popupPosition: PopupPosition {
-        get { PopupPosition(rawValue: defaults.string(forKey: Keys.popupPosition) ?? "") ?? .menuBarIcon }
+        get { PopupPosition(rawValue: defaults.string(forKey: Keys.popupPosition) ?? "") ?? .remembered }
         set { defaults.set(newValue.rawValue, forKey: Keys.popupPosition) }
+    }
+
+    /// The saved top-left of the popup (top edge fixed as the list grows), in
+    /// screen coordinates. `nil` until the user drags the popup.
+    var popupSavedTop: CGPoint? {
+        get {
+            guard defaults.bool(forKey: Keys.popupHasSavedTop) else { return nil }
+            return CGPoint(x: defaults.double(forKey: Keys.popupTopX), y: defaults.double(forKey: Keys.popupTopY))
+        }
+        set {
+            if let point = newValue {
+                defaults.set(true, forKey: Keys.popupHasSavedTop)
+                defaults.set(point.x, forKey: Keys.popupTopX)
+                defaults.set(point.y, forKey: Keys.popupTopY)
+            } else {
+                defaults.set(false, forKey: Keys.popupHasSavedTop)
+            }
+        }
     }
 
     /// Bundle identifiers of apps whose copies are never recorded.

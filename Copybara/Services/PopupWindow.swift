@@ -18,7 +18,8 @@ final class PopupWindow: NSPanel {
         becomesKeyOnlyIfNeeded = false
         level = .floating
         hidesOnDeactivate = true
-        isMovableByWindowBackground = false
+        isMovable = true
+        isMovableByWindowBackground = true // drag anywhere non-interactive to reposition
         isOpaque = false
         backgroundColor = .clear
         hasShadow = true

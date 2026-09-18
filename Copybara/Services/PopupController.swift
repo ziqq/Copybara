@@ -22,6 +22,8 @@ final class PopupController {
     private var previewPanel: NSPanel?
     private var previewHosting: NSHostingView<PreviewCard>?
     private var didPromptAccessibility = false
+    private var moveObserver: NSObjectProtocol?
+    private var isProgrammaticMove = false
 
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
@@ -42,6 +44,13 @@ final class PopupController {
                 DispatchQueue.main.async { self?.layoutWindow() }
             }
             .store(in: &cancellables)
+
+        // Remember where the user drags the popup (snapped to a grid).
+        moveObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didMoveNotification, object: window, queue: .main
+        ) { [weak self] _ in
+            self?.savePopupPosition()
+        }
     }
 
     /// Rebuilds the popup's content view for the current appearance setting:
@@ -184,6 +193,10 @@ final class PopupController {
     }
 
     private func positionWindow() {
+        // Programmatic moves must not be mistaken for a user drag (which persists).
+        isProgrammaticMove = true
+        defer { DispatchQueue.main.async { self.isProgrammaticMove = false } }
+
         let size = window.frame.size
         guard let screen = screenUnderCursor() ?? NSScreen.main else {
             window.center()
@@ -193,6 +206,13 @@ final class PopupController {
 
         let origin: NSPoint
         switch AppSettings.shared.popupPosition {
+        case .remembered:
+            if let top = AppSettings.shared.popupSavedTop {
+                // Keep the saved top edge fixed as the list grows downward.
+                origin = clampOrigin(NSPoint(x: top.x, y: top.y - size.height), size: size, in: visible)
+            } else {
+                origin = raycastOrigin(size: size, in: visible)
+            }
         case .center:
             origin = centerOrigin(size: size, in: visible)
         case .cursor:
@@ -209,6 +229,35 @@ final class PopupController {
         }
 
         window.setFrameOrigin(origin)
+    }
+
+    /// Raycast-style default: horizontally centered, in the upper third.
+    private func raycastOrigin(size: NSSize, in visible: NSRect) -> NSPoint {
+        let x = visible.midX - size.width / 2
+        let y = visible.maxY - size.height - visible.height * 0.16
+        return snapToGrid(NSPoint(x: x, y: y))
+    }
+
+    private func clampOrigin(_ point: NSPoint, size: NSSize, in visible: NSRect) -> NSPoint {
+        NSPoint(
+            x: clamp(point.x, min: visible.minX + 8, max: visible.maxX - size.width - 8),
+            y: clamp(point.y, min: visible.minY + 8, max: visible.maxY - size.height - 8)
+        )
+    }
+
+    private func snapToGrid(_ point: NSPoint, grid: CGFloat = 16) -> NSPoint {
+        NSPoint(x: (point.x / grid).rounded() * grid, y: (point.y / grid).rounded() * grid)
+    }
+
+    /// Persists the popup's top-left (snapped to a grid) when the user drags it,
+    /// and switches to "remembered" positioning so it reopens where they left it.
+    private func savePopupPosition() {
+        guard window.isVisible, !isProgrammaticMove else { return }
+        let snappedTop = snapToGrid(NSPoint(x: window.frame.minX, y: window.frame.maxY))
+        AppSettings.shared.popupSavedTop = snappedTop
+        if AppSettings.shared.popupPosition != .remembered {
+            AppSettings.shared.popupPosition = .remembered
+        }
     }
 
     /// Returns the status-item anchor rect only when it is plausibly valid — non
@@ -278,6 +327,14 @@ final class PopupController {
                 return nil
             case (126, []): // ↑
                 self.oo.moveSelection(by: -1)
+                self.refreshPreviewIfVisible()
+                return nil
+            case (125, .command): // ⌘↓ — jump to last
+                self.oo.selectLast()
+                self.refreshPreviewIfVisible()
+                return nil
+            case (126, .command): // ⌘↑ — jump to first
+                self.oo.selectFirst()
                 self.refreshPreviewIfVisible()
                 return nil
             case (124, []): // → — show preview for the selected item

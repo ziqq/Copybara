@@ -50,6 +50,18 @@ final class PopupOO: ObservableObject {
         selectedIndex = min(max(selectedIndex + delta, 0), results.count - 1)
     }
 
+    /// Jumps the selection to the first item.
+    func selectFirst() {
+        guard !results.isEmpty else { return }
+        selectedIndex = 0
+    }
+
+    /// Jumps the selection to the last item.
+    func selectLast() {
+        guard !results.isEmpty else { return }
+        selectedIndex = results.count - 1
+    }
+
     /// The item at a 1-based position (for ⌘1–9 quick selection), if present.
     func item(atNumber number: Int) -> ClipItemDO? {
         let index = number - 1
