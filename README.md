@@ -109,8 +109,10 @@ xcodebuild -project Copybara.xcodeproj -scheme Copybara -destination 'platform=m
 
 ## Status
 
-🚧 Active development — MVP works (capture, search, paste); v0.2 in progress.
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+✅ v0.2 feature-complete — capture (text/image/RTF/files), keyboard-driven search
+(fuzzy/exact/regex), paste (with a plain-text option), pin, delete, per-item
+quick-paste, privacy filters + app blocklist, and clear commands. Remaining work
+is polish and release (icon, onboarding, auto-update). See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Acknowledgements
 
