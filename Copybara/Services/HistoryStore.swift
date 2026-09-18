@@ -45,6 +45,8 @@ final class HistoryStore {
 
         if let existing = try? context.fetch(request).first {
             existing.setValue(Date(), forKey: "createdAt")
+            let count = existing.value(forKey: "copyCount") as? Int ?? 1
+            existing.setValue(count + 1, forKey: "copyCount")
         } else {
             let item = NSEntityDescription.insertNewObject(forEntityName: Self.entityName, into: context)
             item.setValue(UUID(), forKey: "id")
@@ -53,6 +55,7 @@ final class HistoryStore {
             item.setValue(Date(), forKey: "createdAt")
             item.setValue(false, forKey: "isPinned")
             item.setValue(appBundleID, forKey: "appBundleID")
+            item.setValue(1, forKey: "copyCount")
         }
 
         trim(in: context)
@@ -141,7 +144,8 @@ final class HistoryStore {
             preview: object.value(forKey: "text") as? String ?? "",
             createdAt: object.value(forKey: "createdAt") as? Date ?? Date(),
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
-            appBundleID: object.value(forKey: "appBundleID") as? String
+            appBundleID: object.value(forKey: "appBundleID") as? String,
+            copyCount: object.value(forKey: "copyCount") as? Int ?? 1
         )
     }
 }

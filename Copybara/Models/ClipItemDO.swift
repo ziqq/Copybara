@@ -13,6 +13,8 @@ struct ClipItemDO: Identifiable, Hashable {
     let isPinned: Bool
     /// Bundle identifier of the app the content was copied from, when known.
     let appBundleID: String?
+    /// How many times this exact content has been copied.
+    let copyCount: Int
 
     init(
         id: UUID = UUID(),
@@ -20,7 +22,8 @@ struct ClipItemDO: Identifiable, Hashable {
         preview: String,
         createdAt: Date = Date(),
         isPinned: Bool = false,
-        appBundleID: String? = nil
+        appBundleID: String? = nil,
+        copyCount: Int = 1
     ) {
         self.id = id
         self.kind = kind
@@ -28,5 +31,6 @@ struct ClipItemDO: Identifiable, Hashable {
         self.createdAt = createdAt
         self.isPinned = isPinned
         self.appBundleID = appBundleID
+        self.copyCount = copyCount
     }
 }

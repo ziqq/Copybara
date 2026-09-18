@@ -16,6 +16,12 @@ final class CoreDataStack {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
 
+        // Adding attributes (e.g. copyCount) is handled by lightweight migration.
+        if let description = container.persistentStoreDescriptions.first {
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
+        }
+
         container.loadPersistentStores { _, error in
             if let error = error {
                 Log.app.error("Core Data failed to load store: \(error.localizedDescription, privacy: .public)")

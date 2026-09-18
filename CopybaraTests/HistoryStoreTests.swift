@@ -55,6 +55,16 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertFalse(items.contains { $0.preview == "b" }, "oldest non-pinned is trimmed")
     }
 
+    func testDeduplicationIncrementsCopyCount() {
+        let store = makeStore()
+        store.insertTextSynchronously("a")
+        store.insertTextSynchronously("a")
+        store.insertTextSynchronously("a")
+
+        let item = try! XCTUnwrap(store.recentItems().first { $0.preview == "a" })
+        XCTAssertEqual(item.copyCount, 3)
+    }
+
     func testDeleteRemovesOnlyThatItem() {
         let store = makeStore()
         store.insertTextSynchronously("x")

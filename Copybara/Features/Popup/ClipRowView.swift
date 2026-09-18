@@ -1,18 +1,19 @@
 import SwiftUI
 
-/// A single clip row in the popup list.
+/// A single clip row in the popup list: source-app icon, the (match-highlighted)
+/// content, and trailing metadata (copy count, relative time, pin). Hovering
+/// shows a tooltip preview with the full content and details.
 struct ClipRowView: View {
     let item: ClipItemDO
     let isSelected: Bool
+    let query: String
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: iconName)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(isSelected ? Color.white : Color.secondary)
-                .frame(width: 18)
+            iconView
+                .frame(width: 18, height: 18)
 
-            Text(displayText)
+            highlightedText
                 .font(.system(size: 13))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -20,11 +21,7 @@ struct ClipRowView: View {
 
             Spacer(minLength: 8)
 
-            if item.isPinned {
-                Image(systemName: "pin.fill")
-                    .font(.system(size: 11))
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color.secondary)
-            }
+            trailing
         }
         .padding(.horizontal, 12)
         .frame(height: PopupMetrics.rowHeight - 4)
@@ -33,9 +30,25 @@ struct ClipRowView: View {
                 .fill(isSelected ? Color.accentColor : Color.clear)
         )
         .contentShape(Rectangle())
+        .help(tooltip)
     }
 
-    private var iconName: String {
+    // MARK: - Icon
+
+    @ViewBuilder
+    private var iconView: some View {
+        if let appIcon = AppIconProvider.icon(forBundleID: item.appBundleID) {
+            Image(nsImage: appIcon)
+                .resizable()
+                .interpolation(.high)
+        } else {
+            Image(systemName: kindIconName)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isSelected ? Color.white : Color.secondary)
+        }
+    }
+
+    private var kindIconName: String {
         switch item.kind {
         case .text: return "text.alignleft"
         case .rtf: return "doc.richtext"
@@ -44,11 +57,65 @@ struct ClipRowView: View {
         }
     }
 
-    /// Collapse whitespace/newlines so multi-line clips render as one tidy line.
+    // MARK: - Text + highlight
+
     private var displayText: String {
         item.preview
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\t", with: " ")
             .trimmingCharacters(in: .whitespaces)
+    }
+
+    private var highlightedText: Text {
+        let text = displayText
+        guard !query.isEmpty,
+              let range = text.range(of: query, options: .caseInsensitive) else {
+            return Text(text)
+        }
+        let prefix = String(text[text.startIndex..<range.lowerBound])
+        let match = String(text[range])
+        let suffix = String(text[range.upperBound...])
+        return Text(prefix)
+            + Text(match).fontWeight(.bold).foregroundColor(isSelected ? .white : .accentColor)
+            + Text(suffix)
+    }
+
+    // MARK: - Trailing metadata
+
+    private var trailing: some View {
+        HStack(spacing: 8) {
+            if item.copyCount > 1 {
+                Text("×\(item.copyCount)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(metaColor)
+            }
+            Text(RelativeTime.short(from: item.createdAt))
+                .font(.system(size: 11))
+                .foregroundStyle(metaColor)
+            if item.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 11))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color.secondary)
+            }
+        }
+    }
+
+    private var metaColor: Color {
+        isSelected ? Color.white.opacity(0.8) : Color.secondary
+    }
+
+    // MARK: - Tooltip
+
+    private var tooltip: String {
+        var lines = [item.preview]
+        var meta: [String] = []
+        if let app = AppIconProvider.name(forBundleID: item.appBundleID) {
+            meta.append("From \(app)")
+        }
+        meta.append(RelativeTime.absolute(from: item.createdAt))
+        if item.copyCount > 1 { meta.append("copied \(item.copyCount)×") }
+        lines.append("")
+        lines.append(meta.joined(separator: " · "))
+        return lines.joined(separator: "\n")
     }
 }

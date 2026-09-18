@@ -64,7 +64,7 @@ struct PopupView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
-                            ClipRowView(item: item, isSelected: index == oo.selectedIndex)
+                            ClipRowView(item: item, isSelected: index == oo.selectedIndex, query: oo.query)
                                 .onTapGesture { onCommit(item) }
                                 .id(item.id)
                         }
