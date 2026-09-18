@@ -162,6 +162,7 @@ services; services never depend on screens.
 | Menu bar | `MenuBarExtra` (13+) | `NSStatusItem` (works on 12). |
 | Persistence | `SwiftData` (14+) | Core Data. |
 | Launch at login | `SMAppService` (13+) | `SMAppService` under `if #available(macOS 13, *)`, else legacy login-item API. |
+| Appearance | Liquid Glass `.glassEffect` (26+) | `GlassSurface`/`GlassOrMaterial` apply glass on 26+ when enabled, else `NSVisualEffectView` / `.regularMaterial`. Toggle: `AppSettings.useLiquidGlass`. |
 | Misc SwiftUI modifiers | various | Guarded with `if #available`; no unconditional new-OS calls. |
 
 Rule: **never** call a newer-OS API unconditionally. Gate it with `@available` /
@@ -193,15 +194,17 @@ copybara/
 │  ├─ App/            CopybaraApp.swift · AppDelegate.swift
 │  ├─ Services/       ClipboardMonitor · PasteboardReader · HistoryStore ·
 │  │                  HotKeyManager · Paster · StatusItemController ·
-│  │                  PopupWindow · PopupController · LaunchAtLoginManager
+│  │                  PopupWindow · PopupController · LaunchAtLoginManager ·
+│  │                  OnboardingController · UpdaterController
 │  │  └─ Privacy/     PasteboardFilter.swift
 │  ├─ Features/
-│  │  ├─ Popup/       PopupView · PopupOO · ClipRowView · PopupMetrics
-│  │  └─ Settings/    SettingsView · SettingsOO
+│  │  ├─ Popup/       PopupView · PopupOO · ClipRowView · PreviewCard · PopupMetrics
+│  │  ├─ Settings/    SettingsView · SettingsOO
+│  │  └─ Onboarding/  OnboardingView
 │  ├─ Models/         ClipItemDO · ClipKind · ClipCapture
 │  ├─ Persistence/    Copybara.xcdatamodeld · CoreDataStack.swift
-│  ├─ Support/        FuzzyMatcher · ClipSearch · AppSettings ·
-│  │                  AppIconProvider · RelativeTime · Hashing · Log
+│  ├─ Support/        FuzzyMatcher · ClipSearch · AppSettings · AppIconProvider ·
+│  │                  RelativeTime · Hashing · GlassSurface · Log · ScreenshotRenderer
 │  └─ Resources/      Assets.xcassets · Info.plist
 ├─ CopybaraTests/     FuzzyMatcherTests · HistoryStoreTests ·
 │                     PasteboardFilterTests · ClipSearchTests

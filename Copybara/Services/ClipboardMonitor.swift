@@ -3,9 +3,9 @@ import AppKit
 /// Watches the general pasteboard for changes and records new text clips.
 ///
 /// `NSPasteboard` exposes no change notification, so the monitor polls
-/// `changeCount` on a timer (the same approach Maccy uses). The poll itself is
-/// cheap — it only compares an integer — and does real work only when the count
-/// actually changes.
+/// `changeCount` on a timer (the common approach for clipboard managers). The
+/// poll itself is cheap — it only compares an integer — and does real work only
+/// when the count actually changes.
 final class ClipboardMonitor {
     private let pasteboard: NSPasteboard
     private let store: HistoryStore

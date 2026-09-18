@@ -17,9 +17,9 @@ happens hundreds of times a day.
 
 ## The idea
 
-Copybara is a small, focused utility inspired by [Maccy](https://maccy.app). It
-does **one** thing: keep a searchable history of what you copy, and let you paste
-any of it back in a keystroke. It deliberately does *not* try to be a notes app,
+Copybara is a small, focused utility. It does **one** thing: keep a searchable
+history of what you copy, and let you paste any of it back in a keystroke. It
+deliberately does *not* try to be a notes app,
 a snippet IDE, or a sync service.
 
 ## Who it's for
@@ -79,9 +79,9 @@ quietly in the menu bar and surviving reboots via launch-at-login.
 capybara is a calm, friendly mascot that fits a quiet always-on utility, and it
 avoids the generic "clip/paste" naming everyone else uses.
 
-## Relationship to Maccy
+## Prior art
 
-Copybara is an independent implementation built from scratch. Maccy is the
-inspiration and the feature north-star, not a codebase we fork or copy. Where
-Maccy's behavior is good (change-count polling, concealed-type filtering,
-keyboard-driven paste), we adopt the *approach*, not the code.
+Copybara is an independent implementation built entirely from scratch — not a
+fork or copy of any existing app. Where established macOS clipboard managers have
+proven approaches (change-count polling, concealed-type filtering, keyboard-driven
+paste), we adopt the *approach*, not the code.
