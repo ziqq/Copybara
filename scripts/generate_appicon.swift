@@ -47,31 +47,57 @@ func renderIcon(size: CGFloat) -> Data {
     )
     ctx.restoreGState()
 
-    // Clipboard board (white).
-    let boardW = size * 0.44
-    let boardH = size * 0.54
-    let boardRect = CGRect(x: (size - boardW) / 2, y: (size - boardH) / 2 - size * 0.01, width: boardW, height: boardH)
-    ctx.setFillColor(NSColor.white.cgColor)
-    ctx.addPath(roundedRect(boardRect, size * 0.055))
-    ctx.fillPath()
+    // Capybara mascot.
+    let cx = size / 2
+    let tan = NSColor(srgbRed: 0.88, green: 0.70, blue: 0.49, alpha: 1)
+    let tanDark = NSColor(srgbRed: 0.79, green: 0.58, blue: 0.38, alpha: 1)
+    let earInner = NSColor(srgbRed: 0.58, green: 0.39, blue: 0.25, alpha: 1)
+    let dark = NSColor(srgbRed: 0.25, green: 0.15, blue: 0.09, alpha: 1)
 
-    // Clip at the top.
-    let clipW = boardW * 0.38
-    let clipH = boardH * 0.14
-    let clipRect = CGRect(x: (size - clipW) / 2, y: boardRect.maxY - clipH * 0.62, width: clipW, height: clipH)
-    ctx.setFillColor(accentDark.cgColor)
-    ctx.addPath(roundedRect(clipRect, clipH * 0.42))
-    ctx.fillPath()
-
-    // Three "lines of text".
-    ctx.setFillColor(NSColor(white: 0.80, alpha: 1).cgColor)
-    let lineH = boardH * 0.075
-    let lineW = boardW * 0.62
-    let lineX = boardRect.minX + (boardW - lineW) / 2
-    for index in 0..<3 {
-        let lineY = boardRect.minY + boardH * 0.56 - CGFloat(index) * (boardH * 0.19)
-        ctx.addPath(roundedRect(CGRect(x: lineX, y: lineY, width: lineW, height: lineH), lineH / 2))
+    func fillRoundRect(_ rect: CGRect, _ r: CGFloat, _ color: NSColor) {
+        ctx.setFillColor(color.cgColor)
+        ctx.addPath(roundedRect(rect, r))
         ctx.fillPath()
+    }
+    func fillEllipse(_ rect: CGRect, _ color: NSColor) {
+        ctx.setFillColor(color.cgColor)
+        ctx.fillEllipse(in: rect)
+    }
+
+    let headW = size * 0.58
+    let headH = size * 0.50
+    let headRect = CGRect(x: cx - headW / 2, y: size * 0.27, width: headW, height: headH)
+
+    // Ears (behind the head).
+    let earW = size * 0.17
+    let earH = size * 0.16
+    for sign in [-1.0, 1.0] as [CGFloat] {
+        let earRect = CGRect(x: cx + sign * size * 0.18 - earW / 2, y: headRect.maxY - earH * 0.45, width: earW, height: earH)
+        fillEllipse(earRect, tanDark)
+        let inW = earW * 0.5, inH = earH * 0.5
+        fillEllipse(CGRect(x: earRect.midX - inW / 2, y: earRect.midY - inH / 2, width: inW, height: inH), earInner)
+    }
+
+    // Head.
+    fillRoundRect(headRect, size * 0.21, tan)
+
+    // Eyes.
+    let eyeW = size * 0.058, eyeH = size * 0.075
+    let eyeY = headRect.midY + size * 0.05
+    for sign in [-1.0, 1.0] as [CGFloat] {
+        fillEllipse(CGRect(x: cx + sign * size * 0.125 - eyeW / 2, y: eyeY, width: eyeW, height: eyeH), dark)
+    }
+
+    // Muzzle.
+    let muzW = size * 0.38, muzH = size * 0.23
+    let muzRect = CGRect(x: cx - muzW / 2, y: headRect.minY + size * 0.02, width: muzW, height: muzH)
+    fillRoundRect(muzRect, size * 0.11, tanDark)
+
+    // Nostrils.
+    let noseW = size * 0.055, noseH = size * 0.06
+    let noseY = muzRect.maxY - noseH - size * 0.03
+    for sign in [-1.0, 1.0] as [CGFloat] {
+        fillEllipse(CGRect(x: cx + sign * size * 0.065 - noseW / 2, y: noseY, width: noseW, height: noseH), dark)
     }
 
     NSGraphicsContext.restoreGraphicsState()
