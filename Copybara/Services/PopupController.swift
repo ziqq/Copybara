@@ -176,18 +176,32 @@ final class PopupController {
         removeKeyMonitor()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            switch event.keyCode {
-            case 125: // ↓
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+
+            // ⌘1–9 — quick-paste the Nth item.
+            if flags == .command, let digit = Int(event.charactersIgnoringModifiers ?? ""), digit >= 1, digit <= 9 {
+                if let item = self.oo.item(atNumber: digit) { self.commit(item) }
+                return nil
+            }
+
+            switch (event.keyCode, flags) {
+            case (125, []): // ↓
                 self.oo.moveSelection(by: 1)
                 return nil
-            case 126: // ↑
+            case (126, []): // ↑
                 self.oo.moveSelection(by: -1)
                 return nil
-            case 36, 76: // Return / Enter
+            case (36, _), (76, _): // Return / Enter — paste
                 if let item = self.oo.selectedItem { self.commit(item) }
                 return nil
-            case 53: // Esc
+            case (53, _): // Esc
                 self.hide()
+                return nil
+            case (35, .option): // ⌥P — pin / unpin
+                self.oo.togglePinSelected()
+                return nil
+            case (51, .option): // ⌥⌫ — delete item
+                self.oo.deleteSelected()
                 return nil
             default:
                 return event

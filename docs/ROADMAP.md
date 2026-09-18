@@ -41,12 +41,17 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 > package, and tune popup positioning/animation.
 
 ## M2 — v0.2: parity with Maccy
-- [ ] Pin favorites (excluded from size-cap trimming).
+- [x] Per-item keyboard actions: pin/unpin (⌥P), delete (⌥⌫), quick-paste ⌘1–9.
+- [x] Pin favorites (excluded from size-cap trimming; sorted to the top).
+- [x] Popup position preference (menu bar icon / cursor / center).
+- [ ] Paste without formatting (⌥⇧Return) — needs RTF support first.
 - [ ] Images, RTF, and file references.
-- [ ] App blocklist + finer privacy controls.
-- [ ] Hover preview.
-- [ ] Settings screen (`SettingsView`/`SettingsOO`): history size, hotkey,
-      paste behavior, "Show icon in: Menu bar / Dock / Both".
+- [ ] App blocklist + finer privacy controls ("ignore next / all copies").
+- [ ] Hover preview (full content, source app, timestamp, copy count).
+- [ ] Row metadata: source-app icon, timestamp, copy count, match highlight.
+- [ ] Clear unpinned (⌥⌘⌫) vs clear all incl. pins (⇧⌥⌘⌫).
+- [x] Settings screen (`SettingsView`/`SettingsOO`): history size, hotkey,
+      icon visibility, popup position, launch at login.
 
 ## M3 — Polish & release
 - [ ] App icon + capybara mascot artwork.

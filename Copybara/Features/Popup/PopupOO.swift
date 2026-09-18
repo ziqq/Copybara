@@ -44,6 +44,26 @@ final class PopupOO: ObservableObject {
         selectedIndex = min(max(selectedIndex + delta, 0), results.count - 1)
     }
 
+    /// The item at a 1-based position (for ⌘1–9 quick selection), if present.
+    func item(atNumber number: Int) -> ClipItemDO? {
+        let index = number - 1
+        return results.indices.contains(index) ? results[index] : nil
+    }
+
+    /// Pins or unpins the selected item and reloads.
+    func togglePinSelected() {
+        guard let item = selectedItem else { return }
+        store.togglePin(id: item.id)
+        reload()
+    }
+
+    /// Deletes the selected item, keeping the selection near its old position.
+    func deleteSelected() {
+        guard let item = selectedItem else { return }
+        store.delete(id: item.id)
+        reload()
+    }
+
     private func refilter() {
         if query.isEmpty {
             results = allItems

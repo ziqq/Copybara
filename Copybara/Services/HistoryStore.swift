@@ -59,6 +59,35 @@ final class HistoryStore {
         try? context.save()
     }
 
+    /// Toggles the pinned state of a single item. Runs synchronously on the view
+    /// context so a subsequent `recentItems()` read reflects it immediately.
+    func togglePin(id: UUID) {
+        let context = stack.viewContext
+        context.performAndWait {
+            guard let object = object(with: id, in: context) else { return }
+            let pinned = object.value(forKey: "isPinned") as? Bool ?? false
+            object.setValue(!pinned, forKey: "isPinned")
+            try? context.save()
+        }
+    }
+
+    /// Deletes a single item by id.
+    func delete(id: UUID) {
+        let context = stack.viewContext
+        context.performAndWait {
+            guard let object = object(with: id, in: context) else { return }
+            context.delete(object)
+            try? context.save()
+        }
+    }
+
+    private func object(with id: UUID, in context: NSManagedObjectContext) -> NSManagedObject? {
+        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+        request.fetchLimit = 1
+        return try? context.fetch(request).first
+    }
+
     /// Removes every stored clip.
     func clearAll() {
         let context = stack.newBackgroundContext()

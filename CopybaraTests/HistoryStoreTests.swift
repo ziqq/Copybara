@@ -37,4 +37,33 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(items.count, 3)
         XCTAssertEqual(items.map(\.preview), ["item5", "item4", "item3"])
     }
+
+    func testPinnedItemSortsFirstAndSurvivesTrim() {
+        let store = makeStore(limit: 2)
+        store.insertTextSynchronously("a")
+        store.insertTextSynchronously("b")
+
+        let a = try! XCTUnwrap(store.recentItems().first { $0.preview == "a" })
+        store.togglePin(id: a.id)
+
+        store.insertTextSynchronously("c")
+        store.insertTextSynchronously("d") // pushes non-pinned past the cap
+
+        let items = store.recentItems()
+        XCTAssertEqual(items.first?.preview, "a", "pinned item sorts to the top")
+        XCTAssertTrue(items.contains { $0.preview == "a" && $0.isPinned })
+        XCTAssertFalse(items.contains { $0.preview == "b" }, "oldest non-pinned is trimmed")
+    }
+
+    func testDeleteRemovesOnlyThatItem() {
+        let store = makeStore()
+        store.insertTextSynchronously("x")
+        store.insertTextSynchronously("y")
+
+        let x = try! XCTUnwrap(store.recentItems().first { $0.preview == "x" })
+        store.delete(id: x.id)
+
+        let items = store.recentItems()
+        XCTAssertEqual(items.map(\.preview), ["y"])
+    }
 }
