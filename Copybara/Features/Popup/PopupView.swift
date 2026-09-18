@@ -9,6 +9,8 @@ import SwiftUI
 /// produce a compact popup rather than a tall empty box.
 struct PopupView: View {
     @ObservedObject var oo: PopupOO
+    /// Auto-focus the search field on appear (disabled for screenshots).
+    var autoFocus: Bool = true
     /// Invoked when the user commits an item (Return or click).
     var onCommit: (ClipItemDO) -> Void
 
@@ -25,8 +27,8 @@ struct PopupView: View {
         .frame(width: PopupMetrics.width,
                height: PopupMetrics.totalHeight(for: oo.results.count))
         .onAppear {
-            oo.reload()
-            searchFocused = true
+            if !oo.isPreview { oo.reload() }
+            if autoFocus { searchFocused = true }
         }
     }
 

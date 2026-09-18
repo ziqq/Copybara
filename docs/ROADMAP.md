@@ -60,7 +60,7 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] Sparkle auto-update wiring + DMG script + release docs.
       *(Needs the maintainer's signing keys, hosted appcast, and notarization —
       see `docs/RELEASE.md`.)*
-- [ ] README screenshots / demo GIF.
+- [x] README screenshot (rendered from the real UI via a headless DEBUG mode).
 
 ## Later (optional, opt-in)
 - [ ] Snippets/templates.
