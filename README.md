@@ -43,7 +43,7 @@ exactly one job well. That is the entire scope of Copybara.
 ### MVP (v0.1)
 - Background clipboard monitoring (text).
 - Local history with a configurable size limit.
-- Menu-bar icon + global hotkey to open (default <kbd>⌘</kbd><kbd>⇧</kbd><kbd>C</kbd>).
+- Menu-bar icon + global hotkey to open (default <kbd>⌘</kbd><kbd>⇧</kbd><kbd>V</kbd>).
 - Instant fuzzy search over history.
 - Arrow-key navigation, <kbd>Return</kbd> to paste into the active app.
 - Clear history; launch at login.

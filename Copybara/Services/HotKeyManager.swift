@@ -1,8 +1,9 @@
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
-    /// Global shortcut that toggles the search popup. Default: ⌘⇧C.
-    static let togglePopup = Self("togglePopup", default: .init(.c, modifiers: [.command, .shift]))
+    /// Global shortcut that toggles the search popup. Default: ⌘⇧V (V = paste,
+    /// like Windows' Win+V clipboard history).
+    static let togglePopup = Self("togglePopup", default: .init(.v, modifiers: [.command, .shift]))
 }
 
 /// Owns the global hotkey that toggles the search popup, backed by the

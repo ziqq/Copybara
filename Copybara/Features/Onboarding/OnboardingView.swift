@@ -22,7 +22,7 @@ struct OnboardingView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                row("keyboard", "Press ⌘⇧C, type to search, press ↩ to paste.")
+                row("keyboard", "Press ⌘⇧V, type to search, press ↩ to paste.")
                 row("lock.shield", "Everything stays on your Mac — no cloud, no accounts.")
                 row("hand.raised", "Passwords and secret clips are ignored automatically.")
             }

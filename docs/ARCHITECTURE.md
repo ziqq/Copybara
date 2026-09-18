@@ -69,7 +69,7 @@ services; services never depend on screens.
                             (drop secrets,        (dedup,
                              transient, blocked)   size cap)
 
-   global hotkey (⌘⇧C)
+   global hotkey (⌘⇧V)
              │
              ▼
       HotKeyManager ──▶ StatusItemController ──▶ PopupWindow (NSPanel)
@@ -105,7 +105,7 @@ services; services never depend on screens.
 - **`HistoryStore`** — Core Data–backed history: insert with de-duplication,
   fetch, delete, pin, and enforce the configured size cap.
 - **`HotKeyManager`** — thin wrapper over `KeyboardShortcuts`; owns the "toggle
-  popup" shortcut (default <kbd>⌘⇧C</kbd>).
+  popup" shortcut (default <kbd>⌘⇧V</kbd>).
 - **`StatusItemController`** — owns the `NSStatusItem` and shows/hides the popup.
 - **`PopupWindow`** — `NSPanel` subclass: borderless, non-activating key window
   that can become key so the search field receives keystrokes; hosts `PopupView`

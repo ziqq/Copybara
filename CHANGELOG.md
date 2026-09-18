@@ -18,7 +18,7 @@
 - **CHANGED**: Default popup position is now "Last position" (was the menu-bar icon).
 - **ADDED**: Menu-bar agent that records clipboard history locally (text, images,
   RTF, and file references) with SHA-256 de-duplication and a configurable size cap.
-- **ADDED**: Keyboard-driven search popup — global hotkey `⌘⇧C`, instant search
+- **ADDED**: Keyboard-driven search popup — global hotkey `⌘⇧V`, instant search
   (fuzzy / exact / regex), arrow navigation, paste on `↩`, paste-without-formatting
   (`⌥⇧↩`), and quick-paste `⌘1`–`⌘9`.
 - **ADDED**: Per-item actions — pin (`⌥P`), delete (`⌥⌫`), clear unpinned (`⌥⌘⌫`),
