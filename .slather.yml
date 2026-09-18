@@ -1,0 +1,8 @@
+coverage_service: cobertura_xml
+xcodeproj: Copybara.xcodeproj
+scheme: Copybara
+build_directory: .build/DerivedData
+output_directory: .build/coverage
+ignore:
+  - CopybaraTests/*
+  - "**/ScreenshotRenderer.swift"
