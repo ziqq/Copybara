@@ -1,3 +1,4 @@
+import ApplicationServices
 import SwiftUI
 
 /// The search popup: a focused search field over a scrollable list of clip
@@ -95,7 +96,22 @@ struct PopupView: View {
 
     // MARK: - Footer
 
+    @ViewBuilder
     private var footer: some View {
+        if AXIsProcessTrusted() {
+            hintsRow
+                .padding(.horizontal, 12)
+                .frame(height: PopupMetrics.footerHeight)
+        } else {
+            accessibilityWarning
+                .padding(.horizontal, 12)
+                .frame(height: PopupMetrics.footerHeight)
+                .contentShape(Rectangle())
+                .onTapGesture { OnboardingController.openAccessibilitySettings() }
+        }
+    }
+
+    private var hintsRow: some View {
         HStack(spacing: 12) {
             hint("↩", "Paste")
             hint("↑↓", nil)
@@ -108,8 +124,20 @@ struct PopupView: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal, 12)
-        .frame(height: PopupMetrics.footerHeight)
+    }
+
+    private var accessibilityWarning: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(.orange)
+            Text("Enable Accessibility so clicking pastes automatically")
+                .font(.system(size: 11))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func hint(_ keys: String, _ label: String?) -> some View {
