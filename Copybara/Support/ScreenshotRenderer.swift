@@ -94,7 +94,7 @@ enum ScreenshotRenderer {
 
                 VStack(spacing: 2) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        ClipRowView(item: item, isSelected: index == 0, query: "")
+                        ClipRowView(item: item, isSelected: index == 0, query: "", index: index)
                     }
                 }
                 .padding(6)

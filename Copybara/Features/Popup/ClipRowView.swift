@@ -7,6 +7,8 @@ struct ClipRowView: View {
     let item: ClipItemDO
     let isSelected: Bool
     let query: String
+    /// Row position; the first nine show a ⌘1–9 quick-paste hint.
+    var index: Int? = nil
 
     var body: some View {
         HStack(spacing: 10) {
@@ -89,6 +91,11 @@ struct ClipRowView: View {
 
     private var trailing: some View {
         HStack(spacing: 8) {
+            if let index, index < 9 {
+                Text("⌘\(index + 1)")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(isSelected ? Color.white.opacity(0.75) : Color.secondary.opacity(0.6))
+            }
             if item.copyCount > 1 {
                 Text("×\(item.copyCount)")
                     .font(.system(size: 11, weight: .medium))
