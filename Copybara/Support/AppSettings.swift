@@ -95,6 +95,7 @@ final class AppSettings {
         static let ignoreAllCopies = "ignoreAllCopies"
         static let searchMode = "searchMode"
         static let sortMode = "sortMode"
+        static let hasCompletedOnboarding = "hasCompletedOnboarding"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -140,5 +141,11 @@ final class AppSettings {
     var sortMode: SortMode {
         get { SortMode(rawValue: defaults.string(forKey: Keys.sortMode) ?? "") ?? .lastCopied }
         set { defaults.set(newValue.rawValue, forKey: Keys.sortMode) }
+    }
+
+    /// Whether the first-run welcome / permission screen has been dismissed.
+    var hasCompletedOnboarding: Bool {
+        get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
+        set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
     }
 }
