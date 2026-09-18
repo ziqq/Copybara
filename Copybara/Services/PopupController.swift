@@ -31,12 +31,7 @@ final class PopupController {
         self.paster = paster
         self.window = PopupWindow()
 
-        let root = PopupView(
-            oo: oo,
-            onCommit: { [weak self] item in self?.commit(item) },
-            onHoverPreview: { [weak self] item in self?.updatePreview(item) }
-        )
-        window.contentView = makeContentView(hosting: NSHostingView(rootView: root))
+        configureAppearance()
 
         // Keep the window sized to the current number of results. Deferred to the
         // next runloop tick so the resize never runs inside a SwiftUI layout pass
@@ -47,6 +42,22 @@ final class PopupController {
                 DispatchQueue.main.async { self?.layoutWindow() }
             }
             .store(in: &cancellables)
+    }
+
+    /// Rebuilds the popup's content view for the current appearance setting:
+    /// plain hosting (the view draws its own Liquid Glass) vs. a vibrant
+    /// `NSVisualEffectView` container. Called on init and each show, so toggling
+    /// the setting applies the next time the popup opens.
+    private func configureAppearance() {
+        let glass = LiquidGlass.isEnabled
+        let root = PopupView(
+            oo: oo,
+            useGlass: glass,
+            onCommit: { [weak self] item in self?.commit(item) },
+            onHoverPreview: { [weak self] item in self?.updatePreview(item) }
+        )
+        let hosting = NSHostingView(rootView: root)
+        window.contentView = glass ? hosting : makeContentView(hosting: hosting)
     }
 
     /// Builds a rounded, vibrant container that hosts the SwiftUI content.
@@ -82,6 +93,7 @@ final class PopupController {
 
     func show() {
         previousApp = NSWorkspace.shared.frontmostApplication
+        configureAppearance()
         oo.reset()
         layoutWindow()
         installKeyMonitor()

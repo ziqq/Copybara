@@ -45,6 +45,14 @@ struct SettingsView: View {
                         Text(position.title).tag(position)
                     }
                 }
+
+                Toggle("Liquid Glass", isOn: $oo.useLiquidGlass)
+                    .disabled(!oo.liquidGlassSupported)
+                if !oo.liquidGlassSupported {
+                    Text("Requires macOS 26 or later.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             Section(header: Text("Privacy")) {

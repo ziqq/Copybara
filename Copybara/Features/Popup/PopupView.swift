@@ -12,6 +12,9 @@ struct PopupView: View {
     @ObservedObject var oo: PopupOO
     /// Auto-focus the search field on appear (disabled for screenshots).
     var autoFocus: Bool = true
+    /// Draw the popup's own Liquid Glass surface (macOS 26). When false, the
+    /// hosting window supplies a vibrant material instead.
+    var useGlass: Bool = false
     /// Invoked when the user commits an item (Return or click).
     var onCommit: (ClipItemDO) -> Void
     /// Invoked with the hovered item (or nil) so the controller can show a
@@ -31,6 +34,7 @@ struct PopupView: View {
         }
         .frame(width: PopupMetrics.width,
                height: PopupMetrics.totalHeight(for: oo.results.count))
+        .modifier(GlassSurface(enabled: useGlass))
         .onAppear {
             if !oo.isPreview { oo.reload() }
             if autoFocus { searchFocused = true }
