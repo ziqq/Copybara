@@ -11,6 +11,11 @@
 
 
 ## Unreleased
+- **ADDED**: Raycast-style footer with an actions menu (`⌘K`) — Paste, Paste as
+  Plain Text, Pin/Unpin, Delete, and Clear History, each with its shortcut.
+- **CHANGED**: Default open shortcut is now `⌘⇧V` (was `⌘⇧C`), matching Windows' Win+V.
+- **FIXED**: Arrow keys stopped navigating the list (they carry function/numeric-pad
+  modifier flags); selection and `⌘↑`/`⌘↓` jumps work again alongside search focus.
 - **ADDED**: Draggable popup with a Raycast-style default position (centered, upper
   third); drag it anywhere to reposition — it snaps to a grid and reopens where you
   left it ("Last position" mode).
