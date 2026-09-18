@@ -29,7 +29,7 @@ cost, needed for notarization and the Mac App Store regardless of price. See
 
 ## Models considered
 
-### A. Donations (no paywall) — *Maccy's current model*
+### A. Donations (no paywall)
 Free everywhere; fund via GitHub Sponsors / "Buy Me a Coffee" / an in-app tip jar.
 - **Pros:** maximum adoption and goodwill; simplest; fits the ethos.
 - **Cons:** low, unpredictable revenue.

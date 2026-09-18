@@ -40,7 +40,7 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 > must be verified by running the app. Remaining M1 polish: adopt the `Defaults`
 > package, and tune popup positioning/animation.
 
-## M2 — v0.2: parity with Maccy
+## M2 — v0.2: power-user features
 - [x] Per-item keyboard actions: pin/unpin (⌥P), delete (⌥⌫), quick-paste ⌘1–9.
 - [x] Pin favorites (excluded from size-cap trimming; sorted to the top).
 - [x] Popup position preference (menu bar icon / cursor / center).

@@ -7,6 +7,7 @@
 *Like a capybara that quietly keeps everything you copy — calm, friendly, always there.*
 
 [![CI](https://github.com/ziqq/Copybara/actions/workflows/ci.yml/badge.svg)](https://github.com/ziqq/Copybara/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/ziqq/Copybara/branch/main/graph/badge.svg)](https://codecov.io/gh/ziqq/Copybara)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-12%2B-black?logo=apple)
 
@@ -22,8 +23,7 @@ Copybara lives in your menu bar and remembers your clipboard history. Hit a glob
 hotkey, type a few letters, press <kbd>Return</kbd> — it pastes straight into the app
 you were working in. Everything stays local. Nothing goes to the cloud.
 
-This is an independent, native reimagining of the idea behind
-[Maccy](https://maccy.app), built from scratch in Swift/SwiftUI.
+It's an independent, native clipboard manager built from scratch in Swift/SwiftUI.
 
 ## Why
 
@@ -48,12 +48,14 @@ exactly one job well. That is the entire scope of Copybara.
 - Arrow-key navigation, <kbd>Return</kbd> to paste into the active app.
 - Clear history; launch at login.
 
-### v0.2 — "full Maccy parity"
-- Pin favorite items.
-- Images, rich text (RTF), and file references.
-- Ignore passwords (`ConcealedType`), transient types, and app blocklist.
-- Hover preview and a proper settings screen.
-- "Show icon in: Menu bar / Dock / Both" toggle.
+### v0.2 — power-user features
+- Pin favorite items, delete individual clips, quick-paste with <kbd>⌘1</kbd>–<kbd>9</kbd>.
+- Images, rich text (RTF), and file references; paste-without-formatting (<kbd>⌥⇧↩</kbd>).
+- Ignore passwords (`ConcealedType`), transient types, and an app blocklist.
+- Side preview panel on hover / <kbd>→</kbd>, with source app, time, and copy count.
+- Search modes (fuzzy / exact / regex) and sorting.
+- **Liquid Glass** appearance on macOS 26 (toggleable), with a "Show icon in:
+  Menu bar / Dock / Both" and popup-position setting.
 
 ### Later (optional)
 - Snippets/templates, auto-update (Sparkle), multiple paste formats.
@@ -127,8 +129,18 @@ installs cleanly for others — see [`docs/RELEASE.md`](docs/RELEASE.md).
 Run the tests from the command line:
 
 ```bash
-xcodebuild -project Copybara.xcodeproj -scheme Copybara -destination 'platform=macOS' test
+xcodebuild -project Copybara.xcodeproj -scheme Copybara -destination 'platform=macOS' \
+  -enableCodeCoverage YES test
 ```
+
+## Coverage
+
+CI runs the unit tests with coverage and uploads it to
+[Codecov](https://codecov.io/gh/ziqq/Copybara) on every push.
+
+<a href="https://codecov.io/gh/ziqq/Copybara">
+  <img src="https://codecov.io/gh/ziqq/Copybara/branch/main/graphs/sunburst.svg" alt="Coverage sunburst" width="220">
+</a>
 
 ## Status
 
@@ -137,10 +149,20 @@ xcodebuild -project Copybara.xcodeproj -scheme Copybara -destination 'platform=m
 quick-paste, privacy filters + app blocklist, and clear commands. Remaining work
 is polish and release (icon, onboarding, auto-update). See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-## Acknowledgements
+## Contributing
 
-Inspired by [Maccy](https://maccy.app) by Alex Rodionov. Copybara is an
-independent implementation built from scratch, not a fork.
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
+[changelog](CHANGELOG.md).
+
+## Support
+
+If Copybara is useful to you, consider supporting its development:
+
+- [GitHub Sponsors](https://github.com/sponsors/ziqq)
+- Buy Me a Coffee — _TODO: add link_
+- Boosty — _TODO: add link_
+
+See [`docs/MONETIZATION.md`](docs/MONETIZATION.md) for the funding strategy.
 
 ## License
 
