@@ -12,6 +12,7 @@ struct ClipRowView: View {
         HStack(spacing: 10) {
             iconView
                 .frame(width: 18, height: 18)
+                .clipped()
 
             highlightedText
                 .font(.system(size: 13))
@@ -37,7 +38,12 @@ struct ClipRowView: View {
 
     @ViewBuilder
     private var iconView: some View {
-        if let appIcon = AppIconProvider.icon(forBundleID: item.appBundleID) {
+        if item.kind == .image, let data = item.data, let thumbnail = NSImage(data: data) {
+            Image(nsImage: thumbnail)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+        } else if let appIcon = AppIconProvider.icon(forBundleID: item.appBundleID) {
             Image(nsImage: appIcon)
                 .resizable()
                 .interpolation(.high)
@@ -107,7 +113,11 @@ struct ClipRowView: View {
     // MARK: - Tooltip
 
     private var tooltip: String {
-        var lines = [item.preview]
+        var body = item.preview
+        if item.kind == .file, let data = item.data, let paths = FilePayload.paths(from: data) {
+            body = paths.joined(separator: "\n")
+        }
+        var lines = [body]
         var meta: [String] = []
         if let app = AppIconProvider.name(forBundleID: item.appBundleID) {
             meta.append("From \(app)")

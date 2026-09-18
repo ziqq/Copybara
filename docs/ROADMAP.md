@@ -44,14 +44,15 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] Per-item keyboard actions: pin/unpin (⌥P), delete (⌥⌫), quick-paste ⌘1–9.
 - [x] Pin favorites (excluded from size-cap trimming; sorted to the top).
 - [x] Popup position preference (menu bar icon / cursor / center).
-- [ ] Paste without formatting (⌥⇧Return) — needs RTF support first.
+- [x] Images, RTF, and file references (richest representation captured & pasted).
+- [x] Paste without formatting (⌥⇧Return).
 - [x] Row metadata: source-app icon, timestamp, copy count, match highlight.
 - [x] Hover preview — tooltip with full content, source app, time, copy count.
 - [x] Clear unpinned (⌥⌘⌫) vs clear all incl. pins (⇧⌥⌘⌫).
 - [x] App blocklist + finer privacy controls ("ignore next / all copies").
-- [ ] Images, RTF, and file references.
 - [x] Settings screen (`SettingsView`/`SettingsOO`): history size, hotkey,
-      icon visibility, popup position, launch at login.
+      icon visibility, popup position, privacy, launch at login.
+- [ ] Search modes (fuzzy / exact / regex) + sorting.
 
 ## M3 — Polish & release
 - [ ] App icon + capybara mascot artwork.

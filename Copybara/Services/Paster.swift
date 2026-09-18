@@ -31,6 +31,34 @@ final class Paster {
         pasteboard.setString(text, forType: .string)
     }
 
+    /// Writes a stored item to the pasteboard in its native representation.
+    /// With `plain` true, only the plain-text form is written (strip formatting).
+    func stage(item: ClipItemDO, plain: Bool = false) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        switch item.kind {
+        case .text:
+            pasteboard.setString(item.preview, forType: .string)
+        case .rtf:
+            if !plain, let data = item.data {
+                pasteboard.setData(data, forType: .rtf)
+            }
+            pasteboard.setString(item.preview, forType: .string)
+        case .image:
+            if let data = item.data {
+                pasteboard.setData(data, forType: .png)
+            }
+        case .file:
+            if !plain, let data = item.data, let paths = FilePayload.paths(from: data) {
+                let urls = paths.map(URL.init(fileURLWithPath:)) as [NSURL]
+                pasteboard.writeObjects(urls)
+            } else {
+                pasteboard.setString(item.preview, forType: .string)
+            }
+        }
+    }
+
     /// Synthesizes ⌘V into whatever app is currently frontmost.
     /// Requires Accessibility permission; no-ops (with a log) otherwise.
     func pasteIntoFrontmostApp() {
