@@ -299,10 +299,7 @@ final class PopupController {
         }
 
         reactivatePreviousApp()
-        // Give the app a moment to become frontmost before sending ⌘V.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-            self?.paster.pasteIntoFrontmostApp()
-        }
+        pasteWhenTargetIsFrontmost()
     }
 
     private func reactivatePreviousApp() {
@@ -311,6 +308,24 @@ final class PopupController {
             previousApp.activate()
         } else {
             previousApp.activate(options: [.activateIgnoringOtherApps])
+        }
+    }
+
+    /// Waits (briefly) for the previously-frontmost app to actually regain focus
+    /// before synthesizing ⌘V, so paste lands in the right app even when it is
+    /// slow to activate. Falls back to pasting after ~0.5s regardless.
+    private func pasteWhenTargetIsFrontmost(attempt: Int = 0) {
+        let maxAttempts = 20 // ~0.5s at 25ms steps
+        let targetPID = previousApp?.processIdentifier
+        let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        let ready = targetPID == nil || frontPID == targetPID
+
+        if ready || attempt >= maxAttempts {
+            paster.pasteIntoFrontmostApp()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) { [weak self] in
+                self?.pasteWhenTargetIsFrontmost(attempt: attempt + 1)
+            }
         }
     }
 }
