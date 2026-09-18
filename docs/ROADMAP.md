@@ -52,7 +52,7 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] App blocklist + finer privacy controls ("ignore next / all copies").
 - [x] Settings screen (`SettingsView`/`SettingsOO`): history size, hotkey,
       icon visibility, popup position, privacy, launch at login.
-- [ ] Search modes (fuzzy / exact / regex) + sorting.
+- [x] Search modes (fuzzy / exact / regex) + sorting (last / first / most copied).
 
 ## M3 — Polish & release
 - [ ] App icon + capybara mascot artwork.
