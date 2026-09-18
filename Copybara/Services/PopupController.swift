@@ -104,6 +104,7 @@ final class PopupController {
             NSApp.activate(ignoringOtherApps: true)
         }
         window.makeKeyAndOrderFront(nil)
+        window.makeKey()
     }
 
     func hide() {
