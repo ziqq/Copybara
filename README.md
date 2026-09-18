@@ -105,6 +105,23 @@ open Copybara.xcodeproj
 Then pick your signing team in *Signing & Capabilities* and run. On first paste,
 grant Accessibility in *System Settings → Privacy & Security → Accessibility*.
 
+### No paid Apple Developer account?
+
+You don't need one to use Copybara yourself. Sign in Xcode with a **free Apple ID**
+(Personal Team) and run — it's signed locally and runs on your Mac indefinitely
+(the iOS 7-day limit doesn't apply to Mac apps you build locally).
+
+To build a DMG without signing, run `./scripts/build_dmg.sh` (no `DEVELOPMENT_TEAM`).
+It runs on your Mac; on **other** Macs, Gatekeeper blocks unsigned apps — open via
+right-click → *Open*, or clear the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Copybara.app
+```
+
+A paid account ($99/yr) is only needed to ship a **signed, notarized** DMG that
+installs cleanly for others — see [`docs/RELEASE.md`](docs/RELEASE.md).
+
 Run the tests from the command line:
 
 ```bash

@@ -1,8 +1,13 @@
 # Releasing Copybara
 
 Copybara ships as a signed, notarized DMG and updates itself with
-[Sparkle](https://sparkle-project.org). These steps need an Apple Developer
-account and are done by the maintainer.
+[Sparkle](https://sparkle-project.org). These steps need a **paid** Apple
+Developer account and are done by the maintainer.
+
+> Just want to run Copybara yourself? You don't need any of this — see
+> "No paid Apple Developer account?" in the [README](../README.md#no-paid-apple-developer-account).
+> A paid account is only required for a notarized DMG that installs cleanly for
+> other people.
 
 ## One-time setup
 
