@@ -31,7 +31,6 @@ struct ClipRowView: View {
                 .fill(isSelected ? Color.accentColor : Color.clear)
         )
         .contentShape(Rectangle())
-        .help(tooltip)
     }
 
     // MARK: - Icon
@@ -108,24 +107,5 @@ struct ClipRowView: View {
 
     private var metaColor: Color {
         isSelected ? Color.white.opacity(0.8) : Color.secondary
-    }
-
-    // MARK: - Tooltip
-
-    private var tooltip: String {
-        var body = item.preview
-        if item.kind == .file, let data = item.data, let paths = FilePayload.paths(from: data) {
-            body = paths.joined(separator: "\n")
-        }
-        var lines = [body]
-        var meta: [String] = []
-        if let app = AppIconProvider.name(forBundleID: item.appBundleID) {
-            meta.append("From \(app)")
-        }
-        meta.append(RelativeTime.absolute(from: item.createdAt))
-        if item.copyCount > 1 { meta.append("copied \(item.copyCount)×") }
-        lines.append("")
-        lines.append(meta.joined(separator: " · "))
-        return lines.joined(separator: "\n")
     }
 }

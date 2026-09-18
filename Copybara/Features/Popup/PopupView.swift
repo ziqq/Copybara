@@ -13,8 +13,12 @@ struct PopupView: View {
     var autoFocus: Bool = true
     /// Invoked when the user commits an item (Return or click).
     var onCommit: (ClipItemDO) -> Void
+    /// Invoked with the hovered item (or nil) so the controller can show a
+    /// side preview panel.
+    var onHoverPreview: (ClipItemDO?) -> Void = { _ in }
 
     @FocusState private var searchFocused: Bool
+    @State private var previewItem: ClipItemDO?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,6 +34,7 @@ struct PopupView: View {
             if !oo.isPreview { oo.reload() }
             if autoFocus { searchFocused = true }
         }
+        .onChange(of: previewItem) { onHoverPreview($0) }
     }
 
     // MARK: - Search
@@ -68,6 +73,9 @@ struct PopupView: View {
                         ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
                             ClipRowView(item: item, isSelected: index == oo.selectedIndex, query: oo.query)
                                 .onTapGesture { onCommit(item) }
+                                .onHover { hovering in
+                                    previewItem = hovering ? item : (previewItem?.id == item.id ? nil : previewItem)
+                                }
                                 .id(item.id)
                         }
                     }

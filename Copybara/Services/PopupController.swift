@@ -19,6 +19,9 @@ final class PopupController {
     private weak var previousApp: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
 
+    private var previewPanel: NSPanel?
+    private var previewHosting: NSHostingView<PreviewCard>?
+
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
 
@@ -27,9 +30,11 @@ final class PopupController {
         self.paster = paster
         self.window = PopupWindow()
 
-        let root = PopupView(oo: oo) { [weak self] item in
-            self?.commit(item)
-        }
+        let root = PopupView(
+            oo: oo,
+            onCommit: { [weak self] item in self?.commit(item) },
+            onHoverPreview: { [weak self] item in self?.updatePreview(item) }
+        )
         window.contentView = makeContentView(hosting: NSHostingView(rootView: root))
 
         // Keep the window sized to the current number of results.
@@ -86,7 +91,62 @@ final class PopupController {
 
     func hide() {
         removeKeyMonitor()
+        updatePreview(nil)
         window.orderOut(nil)
+    }
+
+    // MARK: - Side preview
+
+    private func updatePreview(_ item: ClipItemDO?) {
+        guard let item, window.isVisible else {
+            previewPanel?.orderOut(nil)
+            return
+        }
+
+        let panel = ensurePreviewPanel()
+        previewHosting?.rootView = PreviewCard(item: item)
+        if let hosting = previewHosting {
+            panel.setContentSize(hosting.fittingSize)
+        }
+        positionPreview(panel)
+        panel.order(.above, relativeTo: window.windowNumber)
+    }
+
+    private func ensurePreviewPanel() -> NSPanel {
+        if let previewPanel { return previewPanel }
+
+        let hosting = NSHostingView(rootView: PreviewCard(item: ClipItemDO(preview: "")))
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 120),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.hidesOnDeactivate = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = false
+        panel.contentView = hosting
+
+        previewHosting = hosting
+        previewPanel = panel
+        return panel
+    }
+
+    private func positionPreview(_ panel: NSPanel) {
+        let main = window.frame
+        let size = panel.frame.size
+        let gap: CGFloat = 8
+        let visible = (screenUnderCursor() ?? NSScreen.main)?.visibleFrame ?? main
+
+        var x = main.maxX + gap
+        if x + size.width > visible.maxX - 8 {
+            x = main.minX - size.width - gap // flip to the left when it won't fit
+        }
+        let y = main.maxY - size.height
+        panel.setFrameOrigin(NSPoint(x: x, y: clamp(y, min: visible.minY + 8, max: visible.maxY - size.height - 8)))
     }
 
     /// Sizes the window to the current results and re-anchors it under the icon.
