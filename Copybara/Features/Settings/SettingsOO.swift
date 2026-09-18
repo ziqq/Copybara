@@ -1,5 +1,7 @@
+import AppKit
 import Combine
 import Foundation
+import UniformTypeIdentifiers
 
 /// Observable Object backing the settings screen. Reads and writes through
 /// `AppSettings`, publishing changes for the SwiftUI form.
@@ -24,6 +26,12 @@ final class SettingsOO: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
     }
+    @Published var ignoreAllCopies: Bool {
+        didSet { settings.ignoreAllCopies = ignoreAllCopies }
+    }
+    @Published var blockedBundleIDs: [String] {
+        didSet { settings.blockedBundleIDs = blockedBundleIDs }
+    }
 
     /// Whether the OS supports toggling launch at login (macOS 13+).
     let launchAtLoginSupported = LaunchAtLoginManager.isSupported
@@ -36,5 +44,27 @@ final class SettingsOO: ObservableObject {
         self.iconVisibility = settings.iconVisibility
         self.popupPosition = settings.popupPosition
         self.launchAtLogin = LaunchAtLoginManager.isEnabled
+        self.ignoreAllCopies = settings.ignoreAllCopies
+        self.blockedBundleIDs = settings.blockedBundleIDs
+    }
+
+    /// Opens a file picker to add an app to the blocklist by its bundle id.
+    func addBlockedApp() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        guard panel.runModal() == .OK,
+              let url = panel.url,
+              let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
+        if !blockedBundleIDs.contains(bundleID) {
+            blockedBundleIDs.append(bundleID)
+        }
+    }
+
+    func removeBlockedApp(_ bundleID: String) {
+        blockedBundleIDs.removeAll { $0 == bundleID }
     }
 }

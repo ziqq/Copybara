@@ -13,6 +13,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     var onPrimaryAction: (() -> Void)?
     /// Invoked when the user chooses "Settings…".
     var onOpenSettings: (() -> Void)?
+    /// Invoked to skip recording the next copy (⌥⇧-click / menu).
+    var onIgnoreNext: (() -> Void)?
 
     init(store: HistoryStore) {
         self.store = store
@@ -31,21 +33,41 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Copybara")
         button.image?.isTemplate = true
-        button.toolTip = "Copybara"
         button.target = self
         button.action = #selector(handleClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        updateAppearance()
+    }
+
+    /// Dims the icon and updates the tooltip while copies are being ignored.
+    private func updateAppearance() {
+        guard let button = statusItem.button else { return }
+        let ignoring = AppSettings.shared.ignoreAllCopies
+        button.appearsDisabled = ignoring
+        button.toolTip = ignoring ? "Copybara — ignoring copies" : "Copybara"
     }
 
     // MARK: - Click handling
 
     @objc private func handleClick() {
-        let isRightClick = NSApp.currentEvent?.type == .rightMouseUp
-        if isRightClick {
+        guard let event = NSApp.currentEvent else { onPrimaryAction?(); return }
+        if event.type == .rightMouseUp {
             showContextMenu()
+            return
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags.contains(.option) && flags.contains(.shift) {
+            onIgnoreNext?() // ⌥⇧-click — ignore the next copy
+        } else if flags.contains(.option) {
+            toggleIgnoreAll() // ⌥-click — toggle ignoring all copies
         } else {
             onPrimaryAction?()
         }
+    }
+
+    private func toggleIgnoreAll() {
+        AppSettings.shared.ignoreAllCopies.toggle()
+        updateAppearance()
     }
 
     private func showContextMenu() {
@@ -69,6 +91,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let open = NSMenuItem(title: "Show Copybara", action: #selector(openPopup), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
+
+        menu.addItem(.separator())
+
+        let ignoreAll = NSMenuItem(title: "Ignore All Copies", action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
+        ignoreAll.target = self
+        ignoreAll.state = AppSettings.shared.ignoreAllCopies ? .on : .off
+        menu.addItem(ignoreAll)
+
+        let ignoreNext = NSMenuItem(title: "Ignore Next Copy", action: #selector(ignoreNextFromMenu), keyEquivalent: "")
+        ignoreNext.target = self
+        menu.addItem(ignoreNext)
 
         menu.addItem(.separator())
 
@@ -103,5 +136,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func openSettings() { onOpenSettings?() }
     @objc private func clearUnpinned() { store.clearUnpinned() }
     @objc private func clearAll() { store.clearAll() }
+    @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }
+    @objc private func ignoreNextFromMenu() { onIgnoreNext?() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

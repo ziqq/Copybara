@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = StatusItemController(store: store)
         controller.onPrimaryAction = { [weak self] in self?.popupController.toggle() }
         controller.onOpenSettings = { [weak self] in self?.showSettings() }
+        controller.onIgnoreNext = { [weak self] in self?.monitor.ignoreNextCopy() }
         statusItemController = controller
 
         popupController.anchorRectProvider = { [weak self] in

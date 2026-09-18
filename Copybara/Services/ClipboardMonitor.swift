@@ -9,20 +9,26 @@ import AppKit
 final class ClipboardMonitor {
     private let pasteboard: NSPasteboard
     private let store: HistoryStore
-    private let filter: PasteboardFilter
+    private let settings: AppSettings
 
     private var timer: Timer?
     private var lastChangeCount: Int
+    private var skipNextCopy = false
 
     init(
         store: HistoryStore,
-        filter: PasteboardFilter = PasteboardFilter(),
+        settings: AppSettings = .shared,
         pasteboard: NSPasteboard = .general
     ) {
         self.store = store
-        self.filter = filter
+        self.settings = settings
         self.pasteboard = pasteboard
         self.lastChangeCount = pasteboard.changeCount
+    }
+
+    /// Skips recording the very next copy (⌥⇧-click on the menu icon).
+    func ignoreNextCopy() {
+        skipNextCopy = true
     }
 
     /// Begins polling. Safe to call repeatedly; any existing timer is replaced.
@@ -48,9 +54,20 @@ final class ClipboardMonitor {
         guard current != lastChangeCount else { return }
         lastChangeCount = current
 
+        // One-shot skip (⌥⇧-click) — consume it even while ignoring everything.
+        if skipNextCopy {
+            skipNextCopy = false
+            Log.clipboard.debug("Ignored one copy on request")
+            return
+        }
+
+        // Global "ignore all copies" toggle.
+        if settings.ignoreAllCopies { return }
+
         let types = pasteboard.types ?? []
         let sourceBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
 
+        let filter = PasteboardFilter(blockedBundleIDs: Set(settings.blockedBundleIDs))
         guard filter.shouldStore(types: types, sourceBundleID: sourceBundleID) else {
             Log.clipboard.debug("Ignored a filtered pasteboard change")
             return
