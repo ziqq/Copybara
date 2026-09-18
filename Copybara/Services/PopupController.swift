@@ -38,10 +38,14 @@ final class PopupController {
         )
         window.contentView = makeContentView(hosting: NSHostingView(rootView: root))
 
-        // Keep the window sized to the current number of results.
+        // Keep the window sized to the current number of results. Deferred to the
+        // next runloop tick so the resize never runs inside a SwiftUI layout pass
+        // (which triggers "-layoutSubtreeIfNeeded ... already being laid out").
         oo.$results
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.layoutWindow() }
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.layoutWindow() }
+            }
             .store(in: &cancellables)
     }
 
@@ -113,11 +117,13 @@ final class PopupController {
 
         let panel = ensurePreviewPanel()
         previewHosting?.rootView = PreviewCard(item: item)
-        if let hosting = previewHosting {
+        // Defer sizing/positioning so fittingSize isn't forced during a layout pass.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.window.isVisible, let hosting = self.previewHosting else { return }
             panel.setContentSize(hosting.fittingSize)
+            self.positionPreview(panel)
+            panel.order(.above, relativeTo: self.window.windowNumber)
         }
-        positionPreview(panel)
-        panel.order(.above, relativeTo: window.windowNumber)
     }
 
     private func ensurePreviewPanel() -> NSPanel {
