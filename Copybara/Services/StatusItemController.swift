@@ -76,10 +76,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         settings.target = self
         menu.addItem(settings)
 
-        let clear = NSMenuItem(title: "Clear History", action: #selector(clearHistory), keyEquivalent: "")
+        let clear = NSMenuItem(title: "Clear", action: #selector(clearUnpinned), keyEquivalent: "\u{8}")
+        clear.keyEquivalentModifierMask = [.option, .command]
         clear.target = self
         clear.isEnabled = count > 0
         menu.addItem(clear)
+
+        let clearAll = NSMenuItem(title: "Clear All", action: #selector(clearAll), keyEquivalent: "\u{8}")
+        clearAll.keyEquivalentModifierMask = [.shift, .option, .command]
+        clearAll.target = self
+        clearAll.isEnabled = count > 0
+        menu.addItem(clearAll)
 
         menu.addItem(.separator())
 
@@ -94,6 +101,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func openPopup() { onPrimaryAction?() }
     @objc private func openSettings() { onOpenSettings?() }
-    @objc private func clearHistory() { store.clearAll() }
+    @objc private func clearUnpinned() { store.clearUnpinned() }
+    @objc private func clearAll() { store.clearAll() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

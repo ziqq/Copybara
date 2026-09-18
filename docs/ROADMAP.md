@@ -47,9 +47,9 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [ ] Paste without formatting (⌥⇧Return) — needs RTF support first.
 - [x] Row metadata: source-app icon, timestamp, copy count, match highlight.
 - [x] Hover preview — tooltip with full content, source app, time, copy count.
+- [x] Clear unpinned (⌥⌘⌫) vs clear all incl. pins (⇧⌥⌘⌫).
 - [ ] Images, RTF, and file references.
 - [ ] App blocklist + finer privacy controls ("ignore next / all copies").
-- [ ] Clear unpinned (⌥⌘⌫) vs clear all incl. pins (⇧⌥⌘⌫).
 - [x] Settings screen (`SettingsView`/`SettingsOO`): history size, hotkey,
       icon visibility, popup position, launch at login.
 

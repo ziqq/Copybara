@@ -64,6 +64,18 @@ final class PopupOO: ObservableObject {
         reload()
     }
 
+    /// Clears all non-pinned items and reloads.
+    func clearUnpinned() {
+        store.clearUnpinned()
+        reload()
+    }
+
+    /// Clears everything, including pinned items, and reloads.
+    func clearAll() {
+        store.clearAll()
+        reload()
+    }
+
     private func refilter() {
         if query.isEmpty {
             results = allItems
