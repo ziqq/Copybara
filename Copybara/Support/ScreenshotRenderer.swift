@@ -54,7 +54,7 @@ enum ScreenshotRenderer {
         FileHandle.standardError.write(Data("Wrote screenshot to \(path)\n".utf8))
     }
 
-    private static func sampleItems() -> [ClipItemDO] {
+    static func sampleItems() -> [ClipItemDO] {
         func ago(_ seconds: TimeInterval) -> Date { Date().addingTimeInterval(-seconds) }
         return [
             ClipItemDO(kind: .text, preview: "https://github.com/ziqq/Copybara",
