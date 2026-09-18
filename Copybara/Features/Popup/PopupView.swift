@@ -86,10 +86,12 @@ struct PopupView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack(spacing: 14) {
-            hint(key: "return", label: "Paste")
-            hint(key: "arrow.up.arrow.down", label: "Navigate")
-            hint(key: "escape", label: "Close")
+        HStack(spacing: 12) {
+            hint("↩", "Paste")
+            hint("↑↓", nil)
+            hint("⌥P", "Pin")
+            hint("⌥⌫", "Delete")
+            hint("esc", "Close")
             Spacer()
             Text("\(oo.results.count)")
                 .font(.system(size: 11, weight: .medium))
@@ -99,12 +101,14 @@ struct PopupView: View {
         .frame(height: PopupMetrics.footerHeight)
     }
 
-    private func hint(key: String, label: String) -> some View {
+    private func hint(_ keys: String, _ label: String?) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: key)
-                .font(.system(size: 10, weight: .semibold))
-            Text(label)
-                .font(.system(size: 11))
+            Text(keys)
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+            if let label {
+                Text(label)
+                    .font(.system(size: 11))
+            }
         }
         .foregroundStyle(.secondary)
     }
