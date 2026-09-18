@@ -24,6 +24,12 @@ struct SettingsView: View {
                     }
                 }
                 .pickerStyle(.segmented)
+
+                Picker("Open popup at", selection: $oo.popupPosition) {
+                    ForEach(PopupPosition.allCases) { position in
+                        Text(position.title).tag(position)
+                    }
+                }
             }
 
             Section(header: Text("Startup")) {

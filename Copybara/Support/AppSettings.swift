@@ -23,6 +23,23 @@ enum IconVisibility: String, CaseIterable, Identifiable {
     }
 }
 
+/// Where the search popup appears when opened.
+enum PopupPosition: String, CaseIterable, Identifiable {
+    case menuBarIcon
+    case cursor
+    case center
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .menuBarIcon: return "Menu bar icon"
+        case .cursor: return "Cursor"
+        case .center: return "Screen center"
+        }
+    }
+}
+
 /// Typed access to user preferences.
 ///
 /// Backed by `UserDefaults` for the M0 skeleton.
@@ -39,6 +56,7 @@ final class AppSettings {
     private enum Keys {
         static let historySize = "historySize"
         static let iconVisibility = "iconVisibility"
+        static let popupPosition = "popupPosition"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -54,5 +72,11 @@ final class AppSettings {
     var iconVisibility: IconVisibility {
         get { IconVisibility(rawValue: defaults.string(forKey: Keys.iconVisibility) ?? "") ?? .menuBar }
         set { defaults.set(newValue.rawValue, forKey: Keys.iconVisibility) }
+    }
+
+    /// Where the search popup appears. Defaults to the menu bar icon.
+    var popupPosition: PopupPosition {
+        get { PopupPosition(rawValue: defaults.string(forKey: Keys.popupPosition) ?? "") ?? .menuBarIcon }
+        set { defaults.set(newValue.rawValue, forKey: Keys.popupPosition) }
     }
 }

@@ -18,6 +18,9 @@ final class SettingsOO: ObservableObject {
             )
         }
     }
+    @Published var popupPosition: PopupPosition {
+        didSet { settings.popupPosition = popupPosition }
+    }
     @Published var launchAtLogin: Bool {
         didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
     }
@@ -31,6 +34,7 @@ final class SettingsOO: ObservableObject {
         self.settings = settings
         self.historySize = settings.historySize
         self.iconVisibility = settings.iconVisibility
+        self.popupPosition = settings.popupPosition
         self.launchAtLogin = LaunchAtLoginManager.isEnabled
     }
 }

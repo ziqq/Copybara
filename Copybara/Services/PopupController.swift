@@ -98,20 +98,76 @@ final class PopupController {
 
     private func positionWindow() {
         let size = window.frame.size
-        guard let anchor = anchorRectProvider?(),
-              let screen = NSScreen.main else {
+        guard let screen = screenUnderCursor() ?? NSScreen.main else {
             window.center()
             return
         }
+        let visible = screen.visibleFrame
 
+        let origin: NSPoint
+        switch AppSettings.shared.popupPosition {
+        case .center:
+            origin = centerOrigin(size: size, in: visible)
+        case .cursor:
+            origin = cursorOrigin(size: size, in: visible)
+        case .menuBarIcon:
+            if let anchor = validAnchorRect() {
+                origin = anchorOrigin(anchor: anchor, size: size, in: visible)
+            } else {
+                // The status icon couldn't be located (e.g. hidden in the menu-bar
+                // overflow), so fall back to the cursor rather than a bad corner.
+                Log.app.error("Status icon anchor unavailable — positioning popup at cursor")
+                origin = cursorOrigin(size: size, in: visible)
+            }
+        }
+
+        window.setFrameOrigin(origin)
+    }
+
+    /// Returns the status-item anchor rect only when it is plausibly valid — non
+    /// empty and intersecting a real screen. Guards against a zero/off-screen rect
+    /// dropping the popup into a corner.
+    private func validAnchorRect() -> NSRect? {
+        guard let anchor = anchorRectProvider?(),
+              anchor.width > 1, anchor.height > 1,
+              NSScreen.screens.contains(where: { $0.frame.intersects(anchor) })
+        else { return nil }
+        return anchor
+    }
+
+    private func anchorOrigin(anchor: NSRect, size: NSSize, in visible: NSRect) -> NSPoint {
         var x = anchor.midX - size.width / 2
         var y = anchor.minY - size.height - 6
-
-        let visible = screen.visibleFrame
-        x = min(max(x, visible.minX + 8), visible.maxX - size.width - 8)
+        x = clamp(x, min: visible.minX + 8, max: visible.maxX - size.width - 8)
         if y < visible.minY + 8 { y = anchor.maxY + 6 } // flip below → above if needed
+        return NSPoint(x: x, y: y)
+    }
 
-        window.setFrameOrigin(NSPoint(x: x, y: y))
+    private func cursorOrigin(size: NSSize, in visible: NSRect) -> NSPoint {
+        let mouse = NSEvent.mouseLocation
+        var x = mouse.x - size.width / 2
+        var y = mouse.y - size.height - 6 // just below the pointer
+        x = clamp(x, min: visible.minX + 8, max: visible.maxX - size.width - 8)
+        if y < visible.minY + 8 { y = mouse.y + 6 } // flip above the pointer if needed
+        y = min(y, visible.maxY - size.height - 8)
+        return NSPoint(x: x, y: y)
+    }
+
+    private func centerOrigin(size: NSSize, in visible: NSRect) -> NSPoint {
+        NSPoint(
+            x: visible.midX - size.width / 2,
+            y: visible.midY - size.height / 2
+        )
+    }
+
+    private func screenUnderCursor() -> NSScreen? {
+        let mouse = NSEvent.mouseLocation
+        return NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) }
+    }
+
+    private func clamp(_ value: CGFloat, min lower: CGFloat, max upper: CGFloat) -> CGFloat {
+        guard upper > lower else { return lower }
+        return Swift.min(Swift.max(value, lower), upper)
     }
 
     // MARK: - Keyboard
