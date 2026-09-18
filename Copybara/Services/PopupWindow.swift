@@ -10,11 +10,12 @@ final class PopupWindow: NSPanel {
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: PopupMetrics.width, height: 480),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
         isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = false
         level = .floating
         hidesOnDeactivate = true
         isMovableByWindowBackground = false

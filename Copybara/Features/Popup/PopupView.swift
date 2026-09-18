@@ -37,7 +37,11 @@ struct PopupView: View {
         .modifier(GlassSurface(enabled: useGlass))
         .onAppear {
             if !oo.isPreview { oo.reload() }
-            if autoFocus { searchFocused = true }
+            // Defer so the window is key before we request focus, otherwise the
+            // search field needs an extra click to accept typing.
+            if autoFocus {
+                DispatchQueue.main.async { searchFocused = true }
+            }
         }
         .onChange(of: previewItem) { onHoverPreview($0) }
     }

@@ -13,7 +13,9 @@ final class HotKeyManager {
 
     /// Registers the global shortcut handler.
     func register() {
-        KeyboardShortcuts.onKeyUp(for: .togglePopup) { [weak self] in
+        // onKeyDown fires as soon as the chord is pressed — snappier and more
+        // reliable for the first press than waiting for key-up.
+        KeyboardShortcuts.onKeyDown(for: .togglePopup) { [weak self] in
             self?.onToggle?()
         }
         Log.app.debug("Global shortcut registered for togglePopup")
