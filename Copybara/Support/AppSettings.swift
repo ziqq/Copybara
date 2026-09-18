@@ -96,6 +96,7 @@ final class AppSettings {
         static let searchMode = "searchMode"
         static let sortMode = "sortMode"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let useLiquidGlass = "useLiquidGlass"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -147,5 +148,12 @@ final class AppSettings {
     var hasCompletedOnboarding: Bool {
         get { defaults.bool(forKey: Keys.hasCompletedOnboarding) }
         set { defaults.set(newValue, forKey: Keys.hasCompletedOnboarding) }
+    }
+
+    /// Use the macOS 26 Liquid Glass material for the popup (falls back to the
+    /// standard vibrant material when off or on older systems). Defaults to on.
+    var useLiquidGlass: Bool {
+        get { defaults.object(forKey: Keys.useLiquidGlass) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Keys.useLiquidGlass) }
     }
 }

@@ -26,6 +26,9 @@ final class SettingsOO: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
     }
+    @Published var useLiquidGlass: Bool {
+        didSet { settings.useLiquidGlass = useLiquidGlass }
+    }
     @Published var searchMode: SearchMode {
         didSet { settings.searchMode = searchMode }
     }
@@ -41,6 +44,8 @@ final class SettingsOO: ObservableObject {
 
     /// Whether the OS supports toggling launch at login (macOS 13+).
     let launchAtLoginSupported = LaunchAtLoginManager.isSupported
+    /// Whether the OS supports Liquid Glass (macOS 26+).
+    let liquidGlassSupported = LiquidGlass.isSupported
 
     private let settings: AppSettings
 
@@ -49,6 +54,7 @@ final class SettingsOO: ObservableObject {
         self.historySize = settings.historySize
         self.iconVisibility = settings.iconVisibility
         self.popupPosition = settings.popupPosition
+        self.useLiquidGlass = settings.useLiquidGlass
         self.searchMode = settings.searchMode
         self.sortMode = settings.sortMode
         self.launchAtLogin = LaunchAtLoginManager.isEnabled

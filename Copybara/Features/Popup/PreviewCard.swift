@@ -13,8 +13,7 @@ struct PreviewCard: View {
         }
         .padding(12)
         .frame(width: 300, alignment: .leading)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .modifier(GlassOrMaterial(cornerRadius: 10))
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
