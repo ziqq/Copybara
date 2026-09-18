@@ -14,6 +14,13 @@ final class HotKeyManager {
 
     /// Registers the global shortcut handler.
     func register() {
+        // One-time migration: drop a previously stored ⌘⇧C so the new ⌘⇧V default
+        // takes effect (a stored value overrides the code default).
+        if !AppSettings.shared.didMigrateHotkeyToV {
+            KeyboardShortcuts.reset(.togglePopup)
+            AppSettings.shared.didMigrateHotkeyToV = true
+        }
+
         // onKeyDown fires as soon as the chord is pressed — snappier and more
         // reliable for the first press than waiting for key-up.
         KeyboardShortcuts.onKeyDown(for: .togglePopup) { [weak self] in
