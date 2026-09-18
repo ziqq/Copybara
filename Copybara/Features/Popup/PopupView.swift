@@ -99,6 +99,7 @@ struct PopupView: View {
         HStack(spacing: 12) {
             hint("↩", "Paste")
             hint("↑↓", nil)
+            hint("→", "Preview")
             hint("⌥P", "Pin")
             hint("⌥⌫", "Delete")
             hint("esc", "Close")
