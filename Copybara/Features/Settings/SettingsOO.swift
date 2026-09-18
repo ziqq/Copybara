@@ -26,6 +26,12 @@ final class SettingsOO: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
     }
+    @Published var searchMode: SearchMode {
+        didSet { settings.searchMode = searchMode }
+    }
+    @Published var sortMode: SortMode {
+        didSet { settings.sortMode = sortMode }
+    }
     @Published var ignoreAllCopies: Bool {
         didSet { settings.ignoreAllCopies = ignoreAllCopies }
     }
@@ -43,6 +49,8 @@ final class SettingsOO: ObservableObject {
         self.historySize = settings.historySize
         self.iconVisibility = settings.iconVisibility
         self.popupPosition = settings.popupPosition
+        self.searchMode = settings.searchMode
+        self.sortMode = settings.sortMode
         self.launchAtLogin = LaunchAtLoginManager.isEnabled
         self.ignoreAllCopies = settings.ignoreAllCopies
         self.blockedBundleIDs = settings.blockedBundleIDs

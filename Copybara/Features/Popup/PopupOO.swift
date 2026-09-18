@@ -12,10 +12,12 @@ final class PopupOO: ObservableObject {
     @Published var selectedIndex: Int = 0
 
     private let store: HistoryStore
+    private let settings: AppSettings
     private var allItems: [ClipItemDO] = []
 
-    init(store: HistoryStore) {
+    init(store: HistoryStore, settings: AppSettings = .shared) {
         self.store = store
+        self.settings = settings
     }
 
     /// The currently highlighted item, if any.
@@ -32,9 +34,10 @@ final class PopupOO: ObservableObject {
         reload()
     }
 
-    /// Reloads history from the store and re-applies the current filter.
+    /// Reloads history from the store, sorts by the current sort mode, and
+    /// re-applies the current filter.
     func reload() {
-        allItems = store.recentItems()
+        allItems = ClipSearch.sort(store.recentItems(), by: settings.sortMode)
         refilter()
     }
 
@@ -77,17 +80,7 @@ final class PopupOO: ObservableObject {
     }
 
     private func refilter() {
-        if query.isEmpty {
-            results = allItems
-        } else {
-            results = allItems
-                .compactMap { item -> (ClipItemDO, Int)? in
-                    guard let score = FuzzyMatcher.score(query, in: item.preview) else { return nil }
-                    return (item, score)
-                }
-                .sorted { $0.1 > $1.1 }
-                .map(\.0)
-        }
+        results = ClipSearch.filter(allItems, query: query, mode: settings.searchMode)
         selectedIndex = results.isEmpty ? 0 : min(selectedIndex, results.count - 1)
     }
 }

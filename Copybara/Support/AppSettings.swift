@@ -40,6 +40,40 @@ enum PopupPosition: String, CaseIterable, Identifiable {
     }
 }
 
+/// How the search field matches the query against clips.
+enum SearchMode: String, CaseIterable, Identifiable {
+    case fuzzy
+    case exact
+    case regex
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .fuzzy: return "Fuzzy"
+        case .exact: return "Exact"
+        case .regex: return "Regex"
+        }
+    }
+}
+
+/// How the history list is ordered (pinned items always come first).
+enum SortMode: String, CaseIterable, Identifiable {
+    case lastCopied
+    case firstCopied
+    case numberOfCopies
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .lastCopied: return "Last copied"
+        case .firstCopied: return "First copied"
+        case .numberOfCopies: return "Most copied"
+        }
+    }
+}
+
 /// Typed access to user preferences.
 ///
 /// Backed by `UserDefaults` for the M0 skeleton.
@@ -59,6 +93,8 @@ final class AppSettings {
         static let popupPosition = "popupPosition"
         static let blockedBundleIDs = "blockedBundleIDs"
         static let ignoreAllCopies = "ignoreAllCopies"
+        static let searchMode = "searchMode"
+        static let sortMode = "sortMode"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -92,5 +128,17 @@ final class AppSettings {
     var ignoreAllCopies: Bool {
         get { defaults.bool(forKey: Keys.ignoreAllCopies) }
         set { defaults.set(newValue, forKey: Keys.ignoreAllCopies) }
+    }
+
+    /// How the search field matches. Defaults to fuzzy.
+    var searchMode: SearchMode {
+        get { SearchMode(rawValue: defaults.string(forKey: Keys.searchMode) ?? "") ?? .fuzzy }
+        set { defaults.set(newValue.rawValue, forKey: Keys.searchMode) }
+    }
+
+    /// How the list is ordered. Defaults to last-copied.
+    var sortMode: SortMode {
+        get { SortMode(rawValue: defaults.string(forKey: Keys.sortMode) ?? "") ?? .lastCopied }
+        set { defaults.set(newValue.rawValue, forKey: Keys.sortMode) }
     }
 }

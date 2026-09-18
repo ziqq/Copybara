@@ -15,6 +15,20 @@ struct SettingsView: View {
                 Stepper(value: $oo.historySize, in: 10...1000, step: 10) {
                     Text("Keep \(oo.historySize) items")
                 }
+                Picker("Sort by", selection: $oo.sortMode) {
+                    ForEach(SortMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+            }
+
+            Section(header: Text("Search")) {
+                Picker("Match", selection: $oo.searchMode) {
+                    ForEach(SearchMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
             Section(header: Text("Appearance")) {
