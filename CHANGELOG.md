@@ -11,6 +11,11 @@
 
 
 ## Unreleased
+- **ADDED**: Draggable popup with a Raycast-style default position (centered, upper
+  third); drag it anywhere to reposition — it snaps to a grid and reopens where you
+  left it ("Last position" mode).
+- **ADDED**: Jump to the first / last item with `⌘↑` / `⌘↓`.
+- **CHANGED**: Default popup position is now "Last position" (was the menu-bar icon).
 - **ADDED**: Menu-bar agent that records clipboard history locally (text, images,
   RTF, and file references) with SHA-256 de-duplication and a configurable size cap.
 - **ADDED**: Keyboard-driven search popup — global hotkey `⌘⇧C`, instant search

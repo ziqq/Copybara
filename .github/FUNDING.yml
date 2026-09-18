@@ -1,7 +1,2 @@
-github: [ziqq]
-# Fill these in with your own links:
-# buy_me_a_coffee: your_handle
-# patreon: your_handle
-# custom:
-#   - https://boosty.to/your_handle
-#   - https://your-paypal-link
+# These are supported funding model platforms
+custom: ['https://www.buymeacoffee.com/ziqq', 'https://boosty.to/ziqq']
