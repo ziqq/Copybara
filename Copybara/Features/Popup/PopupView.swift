@@ -123,3 +123,18 @@ struct PopupView: View {
         .foregroundStyle(.secondary)
     }
 }
+
+#if DEBUG
+#Preview("Popup") {
+    PopupView(oo: .preview(ScreenshotRenderer.sampleItems()), autoFocus: false, onCommit: { _ in })
+        .background(Color(red: 0.14, green: 0.13, blue: 0.13))
+        .environment(\.colorScheme, .dark)
+        .padding(40)
+}
+
+#Preview("Clip preview card") {
+    PreviewCard(item: ScreenshotRenderer.sampleItems()[3])
+        .environment(\.colorScheme, .dark)
+        .padding(40)
+}
+#endif

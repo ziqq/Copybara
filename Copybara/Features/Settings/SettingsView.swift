@@ -102,3 +102,9 @@ struct SettingsView: View {
         .frame(width: 380)
     }
 }
+
+#if DEBUG
+#Preview("Settings") {
+    SettingsView()
+}
+#endif
