@@ -76,4 +76,27 @@ final class HistoryStoreTests: XCTestCase {
         let items = store.recentItems()
         XCTAssertEqual(items.map(\.preview), ["y"])
     }
+
+    func testClearUnpinnedKeepsPinnedItems() {
+        let store = makeStore()
+        store.insertTextSynchronously("a")
+        store.insertTextSynchronously("b")
+        let a = try! XCTUnwrap(store.recentItems().first { $0.preview == "a" })
+        store.togglePin(id: a.id)
+
+        store.clearUnpinned()
+
+        XCTAssertEqual(store.recentItems().map(\.preview), ["a"])
+    }
+
+    func testClearAllRemovesEverythingIncludingPinned() {
+        let store = makeStore()
+        store.insertTextSynchronously("a")
+        let a = try! XCTUnwrap(store.recentItems().first)
+        store.togglePin(id: a.id)
+
+        store.clearAll()
+
+        XCTAssertTrue(store.recentItems().isEmpty)
+    }
 }

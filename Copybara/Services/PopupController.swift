@@ -200,6 +200,12 @@ final class PopupController {
             case (35, .option): // ⌥P — pin / unpin
                 self.oo.togglePinSelected()
                 return nil
+            case (51, [.shift, .option, .command]): // ⇧⌥⌘⌫ — clear all incl. pins
+                self.oo.clearAll()
+                return nil
+            case (51, [.option, .command]): // ⌥⌘⌫ — clear unpinned
+                self.oo.clearUnpinned()
+                return nil
             case (51, .option): // ⌥⌫ — delete item
                 self.oo.deleteSelected()
                 return nil

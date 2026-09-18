@@ -91,20 +91,24 @@ final class HistoryStore {
         return try? context.fetch(request).first
     }
 
-    /// Removes every stored clip.
+    /// Removes every stored clip, including pinned ones.
     func clearAll() {
-        let context = stack.newBackgroundContext()
-        context.perform {
-            let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: Self.entityName)
-            let delete = NSBatchDeleteRequest(fetchRequest: fetch)
-            delete.resultType = .resultTypeObjectIDs
-            if let result = try? context.execute(delete) as? NSBatchDeleteResult,
-               let ids = result.result as? [NSManagedObjectID] {
-                NSManagedObjectContext.mergeChanges(
-                    fromRemoteContextSave: [NSDeletedObjectsKey: ids],
-                    into: [self.stack.viewContext]
-                )
-            }
+        deleteMatching(nil)
+    }
+
+    /// Removes every non-pinned clip, keeping pinned favorites.
+    func clearUnpinned() {
+        deleteMatching(NSPredicate(format: "isPinned == NO"))
+    }
+
+    private func deleteMatching(_ predicate: NSPredicate?) {
+        let context = stack.viewContext
+        context.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+            request.predicate = predicate
+            let objects = (try? context.fetch(request)) ?? []
+            objects.forEach(context.delete)
+            try? context.save()
         }
     }
 
