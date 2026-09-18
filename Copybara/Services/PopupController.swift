@@ -98,6 +98,13 @@ final class PopupController {
 
     // MARK: - Side preview
 
+    /// Keeps the preview in sync with the selection while it is on screen.
+    private func refreshPreviewIfVisible() {
+        if previewPanel?.isVisible == true {
+            updatePreview(oo.selectedItem)
+        }
+    }
+
     private func updatePreview(_ item: ClipItemDO?) {
         guard let item, window.isVisible else {
             previewPanel?.orderOut(nil)
@@ -248,9 +255,17 @@ final class PopupController {
             switch (event.keyCode, flags) {
             case (125, []): // ↓
                 self.oo.moveSelection(by: 1)
+                self.refreshPreviewIfVisible()
                 return nil
             case (126, []): // ↑
                 self.oo.moveSelection(by: -1)
+                self.refreshPreviewIfVisible()
+                return nil
+            case (124, []): // → — show preview for the selected item
+                self.updatePreview(self.oo.selectedItem)
+                return nil
+            case (123, []): // ← — hide preview
+                self.updatePreview(nil)
                 return nil
             case (36, [.option, .shift]), (76, [.option, .shift]): // ⌥⇧↩ — paste plain
                 if let item = self.oo.selectedItem { self.commit(item, plain: true) }
