@@ -17,9 +17,11 @@ final class HotKeyManager {
         // onKeyDown fires as soon as the chord is pressed — snappier and more
         // reliable for the first press than waiting for key-up.
         KeyboardShortcuts.onKeyDown(for: .togglePopup) { [weak self] in
+            Log.app.info("Toggle-popup shortcut fired")
             self?.onToggle?()
         }
-        Log.app.debug("Global shortcut registered for togglePopup")
+        let current = KeyboardShortcuts.getShortcut(for: .togglePopup)
+        Log.app.info("Global shortcut registered for togglePopup: \(String(describing: current), privacy: .public)")
     }
 
     /// Removes the global shortcut handler.

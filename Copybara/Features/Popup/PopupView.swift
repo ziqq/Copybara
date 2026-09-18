@@ -104,10 +104,11 @@ struct PopupView: View {
                 }
                 .frame(height: PopupMetrics.listHeight(for: oo.results.count))
                 .onChange(of: oo.selectedIndex) { _ in
+                    // Minimal scroll to keep the selection visible — no recentering
+                    // and no animation, so stepping through the list stays stable
+                    // (Raycast-style) instead of jittering.
                     guard let item = oo.selectedItem else { return }
-                    withAnimation(.easeOut(duration: 0.12)) {
-                        proxy.scrollTo(item.id, anchor: .center)
-                    }
+                    proxy.scrollTo(item.id)
                 }
             }
         }
