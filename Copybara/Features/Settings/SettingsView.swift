@@ -32,6 +32,30 @@ struct SettingsView: View {
                 }
             }
 
+            Section(header: Text("Privacy")) {
+                Toggle("Ignore all copies", isOn: $oo.ignoreAllCopies)
+
+                if oo.blockedBundleIDs.isEmpty {
+                    Text("No blocked apps. Copies from blocked apps are never recorded.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(oo.blockedBundleIDs, id: \.self) { bundleID in
+                        HStack {
+                            Text(AppIconProvider.name(forBundleID: bundleID) ?? bundleID)
+                            Spacer()
+                            Button {
+                                oo.removeBlockedApp(bundleID)
+                            } label: {
+                                Image(systemName: "minus.circle")
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                }
+                Button("Add App to Blocklist…") { oo.addBlockedApp() }
+            }
+
             Section(header: Text("Startup")) {
                 Toggle("Launch at login", isOn: $oo.launchAtLogin)
                     .disabled(!oo.launchAtLoginSupported)

@@ -57,6 +57,8 @@ final class AppSettings {
         static let historySize = "historySize"
         static let iconVisibility = "iconVisibility"
         static let popupPosition = "popupPosition"
+        static let blockedBundleIDs = "blockedBundleIDs"
+        static let ignoreAllCopies = "ignoreAllCopies"
     }
 
     /// Maximum number of non-pinned items to keep. Defaults to 200.
@@ -78,5 +80,17 @@ final class AppSettings {
     var popupPosition: PopupPosition {
         get { PopupPosition(rawValue: defaults.string(forKey: Keys.popupPosition) ?? "") ?? .menuBarIcon }
         set { defaults.set(newValue.rawValue, forKey: Keys.popupPosition) }
+    }
+
+    /// Bundle identifiers of apps whose copies are never recorded.
+    var blockedBundleIDs: [String] {
+        get { defaults.stringArray(forKey: Keys.blockedBundleIDs) ?? [] }
+        set { defaults.set(newValue, forKey: Keys.blockedBundleIDs) }
+    }
+
+    /// When enabled, no new copies are recorded at all.
+    var ignoreAllCopies: Bool {
+        get { defaults.bool(forKey: Keys.ignoreAllCopies) }
+        set { defaults.set(newValue, forKey: Keys.ignoreAllCopies) }
     }
 }
