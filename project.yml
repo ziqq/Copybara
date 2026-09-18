@@ -24,6 +24,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: "1.9.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
 
 targets:
   Copybara:
@@ -33,6 +36,7 @@ targets:
       - path: Copybara
     dependencies:
       - package: KeyboardShortcuts
+      - package: Sparkle
     settings:
       base:
         PRODUCT_NAME: Copybara
