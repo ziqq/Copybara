@@ -402,7 +402,7 @@ final class PopupController {
         case .pasteTransformed(let transform):
             guard let item = oo.selectedItem else { return }
             hide()
-            paster.stage(text: transform.apply(item.preview))
+            paster.stage(text: transform.apply(item.textToPaste))
             finishPaste()
         case .pin:
             oo.togglePinSelected()

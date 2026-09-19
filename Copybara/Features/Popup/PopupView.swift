@@ -201,7 +201,7 @@ struct PopupView: View {
 
     private var isTextSelected: Bool {
         guard let kind = oo.selectedItem?.kind else { return false }
-        return kind == .text || kind == .rtf
+        return kind == .text || kind == .rtf || kind == .snippet
     }
 
     private var actionsMenu: some View {

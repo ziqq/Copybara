@@ -57,6 +57,8 @@ enum ScreenshotRenderer {
     static func sampleItems() -> [ClipItemDO] {
         func ago(_ seconds: TimeInterval) -> Date { Date().addingTimeInterval(-seconds) }
         return [
+            ClipItemDO(kind: .snippet, preview: "Email signature", createdAt: ago(30),
+                       pasteText: "Best regards,\nAnton"),
             ClipItemDO(kind: .text, preview: "https://github.com/ziqq/Copybara",
                        createdAt: ago(75), appBundleID: "com.apple.Safari"),
             ClipItemDO(kind: .text, preview: "git commit -m \"feat(m2): search modes\"",

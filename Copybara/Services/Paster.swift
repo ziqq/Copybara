@@ -42,8 +42,8 @@ final class Paster {
         pasteboard.clearContents()
 
         switch item.kind {
-        case .text:
-            pasteboard.setString(item.preview, forType: .string)
+        case .text, .snippet:
+            pasteboard.setString(item.textToPaste, forType: .string)
         case .rtf:
             if !plain, let data = item.data {
                 pasteboard.setData(data, forType: .rtf)

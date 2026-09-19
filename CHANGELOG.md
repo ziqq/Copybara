@@ -11,6 +11,8 @@
 
 
 ## Unreleased
+- **ADDED**: Snippets — reusable text templates managed in Settings, always shown
+  in the popup and pasted like any clip.
 - **ADDED**: Filter results by content type (All / Text / Images / Files) — cycle
   with ⌘L; the active scope shows as a pill in the search field.
 - **ADDED**: Transform-on-paste from the ⌘K menu — Paste Trimmed / lowercased /

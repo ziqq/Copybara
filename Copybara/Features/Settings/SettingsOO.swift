@@ -44,6 +44,9 @@ final class SettingsOO: ObservableObject {
     @Published var blockedBundleIDs: [String] {
         didSet { settings.blockedBundleIDs = blockedBundleIDs }
     }
+    @Published var snippets: [Snippet] {
+        didSet { snippetStore.save(snippets) }
+    }
 
     /// Whether the OS supports toggling launch at login (macOS 13+).
     let launchAtLoginSupported = LaunchAtLoginManager.isSupported
@@ -51,9 +54,12 @@ final class SettingsOO: ObservableObject {
     let liquidGlassSupported = LiquidGlass.isSupported
 
     private let settings: AppSettings
+    private let snippetStore: SnippetStore
 
-    init(settings: AppSettings = .shared) {
+    init(settings: AppSettings = .shared, snippetStore: SnippetStore = .shared) {
         self.settings = settings
+        self.snippetStore = snippetStore
+        self.snippets = snippetStore.all()
         self.historySize = settings.historySize
         self.historyRetentionDays = settings.historyRetentionDays
         self.iconVisibility = settings.iconVisibility
@@ -84,5 +90,13 @@ final class SettingsOO: ObservableObject {
 
     func removeBlockedApp(_ bundleID: String) {
         blockedBundleIDs.removeAll { $0 == bundleID }
+    }
+
+    func addSnippet() {
+        snippets.append(Snippet(title: "", content: ""))
+    }
+
+    func deleteSnippets(at offsets: IndexSet) {
+        snippets.remove(atOffsets: offsets)
     }
 }

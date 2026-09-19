@@ -21,7 +21,7 @@ enum KindScope: String, CaseIterable, Identifiable {
     func matches(_ kind: ClipKind) -> Bool {
         switch self {
         case .all: return true
-        case .text: return kind == .text || kind == .rtf
+        case .text: return kind == .text || kind == .rtf || kind == .snippet
         case .image: return kind == .image
         case .file: return kind == .file
         }

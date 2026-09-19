@@ -18,14 +18,16 @@ final class PopupOO: ObservableObject {
 
     private let store: HistoryStore
     private let settings: AppSettings
+    private let snippets: SnippetStore
     private var allItems: [ClipItemDO] = []
     /// True for preview/screenshot instances so `onAppear` doesn't reload over
     /// the injected sample data.
     private(set) var isPreview = false
 
-    init(store: HistoryStore, settings: AppSettings = .shared) {
+    init(store: HistoryStore, settings: AppSettings = .shared, snippets: SnippetStore = .shared) {
         self.store = store
         self.settings = settings
+        self.snippets = snippets
     }
 
     /// The currently highlighted item, if any.
@@ -54,7 +56,8 @@ final class PopupOO: ObservableObject {
     /// Reloads history from the store, sorts by the current sort mode, and
     /// re-applies the current filter.
     func reload() {
-        allItems = ClipSearch.sort(store.recentItems(), by: settings.sortMode)
+        // Snippets are always available, shown above the sorted history.
+        allItems = snippets.asClipItems() + ClipSearch.sort(store.recentItems(), by: settings.sortMode)
         refilter()
     }
 
