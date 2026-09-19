@@ -8,6 +8,9 @@ final class PopupOO: ObservableObject {
     @Published var query: String = "" {
         didSet { refilter() }
     }
+    @Published var scope: KindScope = .all {
+        didSet { refilter() }
+    }
     @Published private(set) var results: [ClipItemDO] = []
     @Published var selectedIndex: Int = 0
     /// Whether the ⌘K actions menu is open.
@@ -35,9 +38,17 @@ final class PopupOO: ObservableObject {
     /// popup is about to be shown.
     func reset() {
         query = ""
+        scope = .all
         selectedIndex = 0
         showActions = false
         reload()
+    }
+
+    /// Cycles the content-type scope: All → Text → Images → Files → All.
+    func cycleScope() {
+        let all = KindScope.allCases
+        let next = (all.firstIndex(of: scope).map { $0 + 1 } ?? 0) % all.count
+        scope = all[next]
     }
 
     /// Reloads history from the store, sorts by the current sort mode, and
@@ -109,7 +120,7 @@ final class PopupOO: ObservableObject {
 #endif
 
     private func refilter() {
-        results = ClipSearch.filter(allItems, query: query, mode: settings.searchMode)
+        results = ClipSearch.filter(allItems, query: query, mode: settings.searchMode, scope: scope)
         selectedIndex = results.isEmpty ? 0 : min(selectedIndex, results.count - 1)
     }
 }

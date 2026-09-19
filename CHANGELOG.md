@@ -11,6 +11,8 @@
 
 
 ## Unreleased
+- **ADDED**: Filter results by content type (All / Text / Images / Files) — cycle
+  with ⌘L; the active scope shows as a pill in the search field.
 - **ADDED**: Transform-on-paste from the ⌘K menu — Paste Trimmed / lowercased /
   UPPERCASED for text clips.
 - **ADDED**: History retention — auto-remove non-pinned clips older than 7/30/90 days

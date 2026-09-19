@@ -76,6 +76,21 @@ struct PopupView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
                 .focused($searchFocused)
+
+            if oo.scope != .all {
+                Button { oo.scope = .all } label: {
+                    HStack(spacing: 4) {
+                        Text(oo.scope.title).font(.system(size: 11, weight: .medium))
+                        Image(systemName: "xmark.circle.fill").font(.system(size: 10))
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(Color.primary.opacity(0.08)))
+                }
+                .buttonStyle(.plain)
+                .help("Content type filter (⌘L to cycle)")
+            }
         }
         .padding(.horizontal, 14)
         .frame(height: PopupMetrics.searchHeight)

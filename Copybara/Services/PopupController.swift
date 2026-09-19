@@ -355,6 +355,9 @@ final class PopupController {
             case (40, .command): // ⌘K — toggle the actions menu
                 self.oo.showActions.toggle()
                 return nil
+            case (37, .command): // ⌘L — cycle the content-type filter
+                self.oo.cycleScope()
+                return nil
             case (53, _): // Esc — close the actions menu first, else hide the popup
                 if self.oo.showActions {
                     self.oo.showActions = false

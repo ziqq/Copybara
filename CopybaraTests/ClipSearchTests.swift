@@ -36,6 +36,32 @@ final class ClipSearchTests: XCTestCase {
         XCTAssertTrue(ClipSearch.filter(items, query: "[unterminated", mode: .regex).isEmpty)
     }
 
+    // MARK: - Scope
+
+    func testScopeFiltersByKind() {
+        let items = [
+            ClipItemDO(kind: .text, preview: "a note"),
+            ClipItemDO(kind: .rtf, preview: "rich note"),
+            ClipItemDO(kind: .image, preview: "Image 10×10"),
+            ClipItemDO(kind: .file, preview: "file.dmg")
+        ]
+        XCTAssertEqual(ClipSearch.filter(items, query: "", mode: .fuzzy, scope: .all).count, 4)
+        // Text scope includes rich text.
+        XCTAssertEqual(Set(ClipSearch.filter(items, query: "", mode: .fuzzy, scope: .text).map(\.preview)),
+                       ["a note", "rich note"])
+        XCTAssertEqual(ClipSearch.filter(items, query: "", mode: .fuzzy, scope: .image).map(\.preview), ["Image 10×10"])
+        XCTAssertEqual(ClipSearch.filter(items, query: "", mode: .fuzzy, scope: .file).map(\.preview), ["file.dmg"])
+    }
+
+    func testScopeAndQueryCombine() {
+        let items = [
+            ClipItemDO(kind: .text, preview: "hello"),
+            ClipItemDO(kind: .image, preview: "hello image")
+        ]
+        let result = ClipSearch.filter(items, query: "hello", mode: .exact, scope: .text)
+        XCTAssertEqual(result.map(\.preview), ["hello"])
+    }
+
     // MARK: - Sorting
 
     func testSortPinnedFirstThenLastCopied() {
