@@ -112,8 +112,10 @@ services; services never depend on screens.
   via `NSHostingView`.
 - **`Paster`** — places an item on the pasteboard and synthesizes
   <kbd>⌘V</kbd> with `CGEvent`; owns the Accessibility-permission check/prompt.
-- **`AppSettings`** — typed wrapper over [`Defaults`](https://github.com/sindresorhus/Defaults)
-  (history size, hotkey, paste behavior, icon visibility, blocklist).
+- **`AppSettings`** — typed wrapper over `UserDefaults` (history size, sort/search
+  mode, icon visibility, popup position, privacy, appearance).
+- **`UpdateChecker`** / **`UpdaterController`** — on-demand update check via the
+  GitHub Releases API, presenting the result as an alert.
 
 ### Screens (VOODO)
 - **Popup** — `PopupView`, `PopupOO`, `ClipRowView`. `PopupOO` holds the query,
@@ -195,7 +197,7 @@ copybara/
 │  ├─ Services/       ClipboardMonitor · PasteboardReader · HistoryStore ·
 │  │                  HotKeyManager · Paster · StatusItemController ·
 │  │                  PopupWindow · PopupController · LaunchAtLoginManager ·
-│  │                  OnboardingController · UpdaterController
+│  │                  OnboardingController · UpdateChecker · UpdaterController
 │  │  └─ Privacy/     PasteboardFilter.swift
 │  ├─ Features/
 │  │  ├─ Popup/       PopupView · PopupOO · ClipRowView · PreviewCard · PopupMetrics
@@ -235,8 +237,8 @@ copybara/
 Kept deliberately minimal:
 
 - [`KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) — global hotkey + rebinding UI.
-- [`Defaults`](https://github.com/sindresorhus/Defaults) — typed user settings.
 
-Everything else (pasteboard, Core Data, CGEvent, status item) uses the system
-frameworks directly. Sparkle (auto-update) and notarization are deferred to a
-release milestone.
+Everything else (pasteboard, Core Data, CGEvent, status item, settings via
+`UserDefaults`) uses the system frameworks directly. Updates are on-demand via the
+GitHub Releases API (`UpdateChecker`) — no Sparkle. Signing/notarization is
+optional (see `docs/RELEASE.md`).

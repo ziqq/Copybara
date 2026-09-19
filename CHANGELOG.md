@@ -7,10 +7,13 @@
 - [ ] Configurable per-app ignore/allow rules.
 - [ ] Diagnostics: on-device crash/hang reporting via MetricKit, opt-in log export
       (no third-party telemetry).
-- [ ] Signed, notarized DMG + live Sparkle appcast (needs a paid Apple Developer account).
+- [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
 ## Unreleased
+- **ADDED**: On-demand update check via GitHub Releases (menu → *Check for Updates…*)
+  and a tag-based release workflow that builds and publishes the DMG.
+- **ADDED**: ⌘1–9 quick-paste hints on the first nine rows.
 - **ADDED**: Raycast-style footer with an actions menu (`⌘K`) — Paste, Paste as
   Plain Text, Pin/Unpin, Delete, and Clear History, each with its shortcut.
 - **CHANGED**: Default open shortcut is now `⌘⇧V` (was `⌘⇧C`), matching Windows' Win+V.
@@ -38,8 +41,8 @@
   cursor / center), launch at login, and a Liquid Glass toggle.
 - **ADDED**: Liquid Glass appearance on macOS 26 (toggleable), with a vibrant
   material fallback on older systems.
-- **ADDED**: First-run onboarding for the Accessibility permission, a capybara app
-  icon, and Sparkle auto-update wiring.
+- **ADDED**: First-run onboarding for the Accessibility permission and a capybara
+  app icon.
 - **ADDED**: Continuous integration (build, tests, and coverage upload to Codecov),
   the MIT license, and documentation (concept, architecture, roadmap, release,
   monetization).
