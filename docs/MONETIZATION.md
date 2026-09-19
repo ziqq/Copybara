@@ -23,7 +23,7 @@ cost, needed for notarization and the Mac App Store regardless of price. See
 | Channel | Audience | Notes |
 |---|---|---|
 | Build from source (GitHub) | developers | free, always |
-| Notarized DMG + Sparkle (GitHub Releases) | power users | free; direct auto-updates |
+| DMG via GitHub Releases | power users | free; on-demand in-app update check |
 | Mac App Store | everyone | trust, discoverability, auto-updates, sandbox |
 | Direct download (Gumroad) | supporters | optional pay-what-you-want |
 
@@ -73,9 +73,9 @@ pin/delete, privacy filters, launch-at-login — i.e. everything today.
 1. **Phase 0 — now (free, pre-account):** open source, build-from-source, personal
    use. Add a `FUNDING.yml` / Sponsors button and a Buy-Me-a-Coffee link when
    ready. No code needed.
-2. **Phase 1 — first release (Model A):** pay the $99, ship a notarized DMG +
-   Sparkle and a free Mac App Store build. Keep it donation-funded. Measure
-   adoption.
+2. **Phase 1 — first release (Model A):** ship a DMG via GitHub Releases (the
+   tag-based workflow already exists) with the on-demand update check; optionally
+   pay the $99 to notarize and add a free Mac App Store build. Donation-funded.
 3. **Phase 2 — if there's traction (Model C):** add a one-time **Pro** IAP with
    the first 1–2 Pro features (iCloud sync is the flagship). Introduce a small
    licensing layer (StoreKit 2) and Pro feature flags.

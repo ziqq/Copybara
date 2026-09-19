@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without the v prefix, e.g. 0.2.0'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # full history for the changelog
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Resolve version and tag
+        id: meta
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            TAG="v${VERSION}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
+            echo "::error::Version '${VERSION}' is not semver"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build DMG
+        env:
+          COPYBARA_VERSION: ${{ steps.meta.outputs.version }}
+        run: ./scripts/build_dmg.sh
+
+      - name: Package
+        id: package
+        run: |
+          NAME="Copybara-${{ steps.meta.outputs.version }}.dmg"
+          mv build/Copybara.dmg "$NAME"
+          shasum -a 256 "$NAME" > SHA256SUMS.txt
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(shasum -a 256 "$NAME" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Release notes
+        run: |
+          TAG="${{ steps.meta.outputs.tag }}"
+          PREV=$(git tag --sort=-v:refname | grep -v "^${TAG}$" | head -1 || true)
+          if [ -n "$PREV" ]; then RANGE="${PREV}..HEAD"; HEADING="Changes since ${PREV}"; else RANGE=""; HEADING="First release"; fi
+          {
+            echo "A fast, keyboard-first, privacy-respecting clipboard manager for macOS."
+            echo
+            echo "## Install"
+            echo
+            echo '```bash'
+            echo "# Open the DMG, drag Copybara to /Applications, then:"
+            echo "xattr -dr com.apple.quarantine /Applications/Copybara.app"
+            echo '```'
+            echo
+            echo "The build is unsigned (no paid Apple Developer account yet), so"
+            echo "Gatekeeper needs the quarantine flag cleared. Grant Accessibility on"
+            echo "first paste. Requires macOS 12+."
+            echo
+            echo "## ${HEADING}"
+            echo
+            git log --no-merges --pretty='- %s (%h)' ${RANGE} | head -100
+            echo
+            echo "## Checksum"
+            echo
+            echo '```'
+            echo "SHA-256  ${{ steps.package.outputs.sha }}"
+            echo "         ${{ steps.package.outputs.name }}"
+            echo '```'
+          } > NOTES.md
+          cat NOTES.md
+
+      - name: Tag (manual runs)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.meta.outputs.tag }}" -m "Copybara ${{ steps.meta.outputs.version }}"
+          git push origin "${{ steps.meta.outputs.tag }}"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            "${{ steps.package.outputs.name }}" \
+            SHA256SUMS.txt \
+            --title "Copybara ${{ steps.meta.outputs.version }}" \
+            --notes-file NOTES.md

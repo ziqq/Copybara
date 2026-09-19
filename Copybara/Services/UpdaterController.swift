@@ -1,25 +1,44 @@
-import Sparkle
+import AppKit
 
-/// Wraps Sparkle's standard updater so the rest of the app can trigger an update
-/// check without importing Sparkle directly.
-///
-/// The updater reads `SUFeedURL` and `SUPublicEDKey` from Info.plist. Until a real
-/// appcast is hosted and a public key is set (see docs/RELEASE.md), automatic and
-/// manual checks simply fail to find an update.
+/// Runs an on-demand update check and presents the result. Backed by
+/// `UpdateChecker` (GitHub Releases) — no Sparkle, no background polling.
 @MainActor
 final class UpdaterController {
-    private let controller: SPUStandardUpdaterController
-
-    init() {
-        controller = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+    func checkForUpdates() {
+        Task { [weak self] in
+            let outcome = await UpdateChecker.check()
+            self?.present(outcome)
+        }
     }
 
-    /// Triggers a user-initiated update check (shows Sparkle's UI).
-    func checkForUpdates() {
-        controller.checkForUpdates(nil)
+    private func present(_ outcome: UpdateChecker.Outcome) {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+
+        switch outcome {
+        case .upToDate(let current):
+            alert.messageText = "You're up to date"
+            alert.informativeText = "Copybara \(current) is the latest version."
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+
+        case .available(let release):
+            alert.messageText = "Update available"
+            alert.informativeText = "Copybara \(release.version) is available — you have \(UpdateChecker.current())."
+            alert.addButton(withTitle: "Download")
+            alert.addButton(withTitle: "Later")
+            if alert.runModal() == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(release.downloadURL ?? release.url)
+            }
+
+        case .failed(let message):
+            alert.messageText = "Couldn't check for updates"
+            alert.informativeText = message
+            alert.addButton(withTitle: "Open Releases")
+            alert.addButton(withTitle: "OK")
+            if alert.runModal() == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(UpdateChecker.releasesPage)
+            }
+        }
     }
 }

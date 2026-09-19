@@ -24,6 +24,12 @@ else
   SIGN_ARGS=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
 fi
 
+# Optional version override (e.g. from a release tag).
+VERSION_ARGS=()
+if [ -n "${COPYBARA_VERSION:-}" ]; then
+  VERSION_ARGS=(MARKETING_VERSION="$COPYBARA_VERSION")
+fi
+
 rm -rf "$BUILD_DIR"
 xcodebuild \
   -project "$APP_NAME.xcodeproj" \
@@ -31,6 +37,7 @@ xcodebuild \
   -configuration Release \
   -derivedDataPath "$BUILD_DIR/DerivedData" \
   "${SIGN_ARGS[@]}" \
+  "${VERSION_ARGS[@]}" \
   build
 
 APP_PATH="$BUILD_DIR/DerivedData/Build/Products/Release/$APP_NAME.app"

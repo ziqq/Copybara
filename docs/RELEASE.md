@@ -1,53 +1,48 @@
 # Releasing Copybara
 
-Copybara ships as a signed, notarized DMG and updates itself with
-[Sparkle](https://sparkle-project.org). These steps need a **paid** Apple
-Developer account and are done by the maintainer.
+Copybara is distributed as a DMG via **GitHub Releases**. The app checks for
+updates on demand through the GitHub Releases API (menu → *Check for Updates…*) —
+no Sparkle, appcast, or signing keys required. A paid Apple Developer account is
+optional (only needed to ship a signed, notarized DMG that installs without the
+Gatekeeper quarantine step).
 
-> Just want to run Copybara yourself? You don't need any of this — see
-> "No paid Apple Developer account?" in the [README](../README.md#no-paid-apple-developer-account).
-> A paid account is only required for a notarized DMG that installs cleanly for
-> other people.
+## Cut a release
 
-## One-time setup
+1. Update the changelogs: move the `## Unreleased` entries under a new version
+   heading in [`CHANGELOG.md`](../CHANGELOG.md) and [`CHANGELOG.ru.md`](../CHANGELOG.ru.md).
+2. Tag and push:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+   (Or run the **Release** workflow manually via *workflow_dispatch* with the
+   version — it creates the tag for you.)
 
-### 1. Sparkle signing keys
-Sparkle verifies updates with an EdDSA key pair. Generate it once:
+The **Release** workflow (`.github/workflows/release.yml`) then:
+- builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag),
+- computes `SHA256SUMS.txt`,
+- generates notes from the commit log since the previous tag,
+- publishes a GitHub Release with the DMG + checksum.
+
+Users get *Check for Updates…* → it compares the latest release tag to the
+running version and points them at the download.
+
+## Signing (optional, needs a paid account)
+
+The DMG is **unsigned/ad-hoc** by default, so users clear the quarantine flag:
 
 ```bash
-# generate_keys ships inside the resolved Sparkle package artifact.
-find ~/Library/Developer/Xcode/DerivedData -name generate_keys -path '*Sparkle*' | head -1
+xattr -dr com.apple.quarantine /Applications/Copybara.app
 ```
 
-Run `generate_keys`; it stores the **private** key in your login Keychain and
-prints the **public** key. Put the public key in `Copybara/Resources/Info.plist`
-under `SUPublicEDKey` (replacing the placeholder). Never commit the private key.
+To ship a clean, notarized DMG, build signed and notarize:
 
-### 2. Appcast hosting
-Host `appcast.xml` and the DMGs somewhere stable. The default `SUFeedURL` is
-`https://ziqq.github.io/Copybara/appcast.xml` (GitHub Pages). Change it in
-`Info.plist` if you host elsewhere.
+```bash
+DEVELOPMENT_TEAM=YOURTEAMID ./scripts/build_dmg.sh
+xcrun notarytool submit build/Copybara.dmg \
+  --apple-id "you@example.com" --team-id "YOURTEAMID" \
+  --password "app-specific-password" --wait
+xcrun stapler staple build/Copybara.dmg
+```
 
-## Each release
-
-1. Bump `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml`.
-2. Build the DMG (signed):
-   ```bash
-   DEVELOPMENT_TEAM=YOURTEAMID ./scripts/build_dmg.sh
-   ```
-3. Notarize and staple:
-   ```bash
-   xcrun notarytool submit build/Copybara.dmg \
-     --apple-id "you@example.com" --team-id "YOURTEAMID" \
-     --password "app-specific-password" --wait
-   xcrun stapler staple build/Copybara.dmg
-   ```
-4. Sign the update and regenerate the appcast (Sparkle tools):
-   ```bash
-   sign_update build/Copybara.dmg        # prints the edSignature
-   generate_appcast /path/to/dmgs        # writes appcast.xml
-   ```
-5. Publish the DMG (e.g. a GitHub Release) and the updated `appcast.xml`.
-
-Existing users get the update automatically; **Check for Updates…** in the
-menu triggers a manual check.
+Then attach the notarized DMG to the release.

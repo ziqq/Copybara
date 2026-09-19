@@ -57,9 +57,8 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 ## M3 — Polish & release
 - [x] App icon (generated; capybara mascot artwork still welcome).
 - [x] Onboarding for the Accessibility permission + Settings permission status.
-- [x] Sparkle auto-update wiring + DMG script + release docs.
-      *(Needs the maintainer's signing keys, hosted appcast, and notarization —
-      see `docs/RELEASE.md`.)*
+- [x] On-demand update check via GitHub Releases + DMG script + tag-based release
+      workflow (`.github/workflows/release.yml`) — see `docs/RELEASE.md`.
 - [x] README screenshot (rendered from the real UI via a headless DEBUG mode).
 
 ## Later (optional, opt-in)
