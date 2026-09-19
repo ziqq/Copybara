@@ -358,6 +358,9 @@ final class PopupController {
             case (37, .command): // ⌘L — cycle the content-type filter
                 self.oo.cycleScope()
                 return nil
+            case (8, .command): // ⌘C — copy the selected item without pasting
+                self.perform(.copy)
+                return nil
             case (53, _): // Esc — close the actions menu first, else hide the popup
                 if self.oo.showActions {
                     self.oo.showActions = false
@@ -402,8 +405,12 @@ final class PopupController {
         case .pasteTransformed(let transform):
             guard let item = oo.selectedItem else { return }
             hide()
-            paster.stage(text: transform.apply(item.textToPaste))
+            paster.stage(text: transform.apply(expanded(item.textToPaste)))
             finishPaste()
+        case .copy:
+            guard let item = oo.selectedItem else { return }
+            hide()
+            stage(item)
         case .pin:
             oo.togglePinSelected()
         case .delete:
@@ -415,8 +422,22 @@ final class PopupController {
 
     private func commit(_ item: ClipItemDO, plain: Bool = false) {
         hide()
-        paster.stage(item: item, plain: plain)
+        stage(item, plain: plain)
         finishPaste()
+    }
+
+    /// Stages an item to the pasteboard, expanding snippet placeholders.
+    private func stage(_ item: ClipItemDO, plain: Bool = false) {
+        if item.kind == .snippet {
+            paster.stage(text: expanded(item.textToPaste))
+        } else {
+            paster.stage(item: item, plain: plain)
+        }
+    }
+
+    /// Expands `${…}` placeholders against the current clipboard.
+    private func expanded(_ text: String) -> String {
+        SnippetExpander.expand(text, clipboard: NSPasteboard.general.string(forType: .string) ?? "")
     }
 
     /// Shared paste tail: requires Accessibility, then re-activates the previous

@@ -62,18 +62,20 @@ struct SettingsView: View {
             }
 
             Section(header: Text("Snippets")) {
-                if oo.snippets.isEmpty {
-                    Text("Reusable text templates, always shown in the popup.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                Text("Reusable text templates, always shown in the popup. Placeholders: ${date}, ${time}, ${datetime}, ${clipboard}, ${uuid}.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 ForEach($oo.snippets) { $snippet in
                     VStack(alignment: .leading, spacing: 4) {
                         TextField("Title", text: $snippet.title)
                             .font(.system(size: 12, weight: .medium))
-                        TextField("Content to paste", text: $snippet.content)
+                        TextEditor(text: $snippet.content)
                             .font(.system(size: 12))
-                            .foregroundColor(.secondary)
+                            .frame(minHeight: 44, maxHeight: 90)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(Color.secondary.opacity(0.25), lineWidth: 1)
+                            )
                     }
                     .padding(.vertical, 2)
                 }

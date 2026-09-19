@@ -11,6 +11,10 @@
 
 
 ## Unreleased
+- **ADDED**: Snippet placeholders — `${date}`, `${time}`, `${datetime}`,
+  `${clipboard}`, `${uuid}`, expanded at paste time; multi-line snippet editor.
+- **ADDED**: Copy without pasting — `⌘C` in the popup (and the ⌘K menu) puts the
+  selected item on the clipboard and closes.
 - **ADDED**: Snippets — reusable text templates managed in Settings, always shown
   in the popup and pasted like any clip.
 - **ADDED**: Filter results by content type (All / Text / Images / Files) — cycle
