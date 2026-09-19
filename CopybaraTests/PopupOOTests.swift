@@ -7,7 +7,8 @@ final class PopupOOTests: XCTestCase {
         let store = HistoryStore(stack: CoreDataStack(inMemory: true))
         for text in texts { store.insertTextSynchronously(text) }
         let settings = AppSettings(defaults: UserDefaults(suiteName: "oo-\(UUID().uuidString)")!)
-        let oo = PopupOO(store: store, settings: settings)
+        let snippets = SnippetStore(defaults: UserDefaults(suiteName: "oo-snip-\(UUID().uuidString)")!)
+        let oo = PopupOO(store: store, settings: settings, snippets: snippets)
         oo.reload()
         return oo
     }

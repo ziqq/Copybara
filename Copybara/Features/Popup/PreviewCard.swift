@@ -63,8 +63,8 @@ struct PreviewCard: View {
                     }
                 }
             }
-        case .text, .rtf:
-            Text(item.preview)
+        case .text, .rtf, .snippet:
+            Text(item.textToPaste)
                 .font(.system(size: 12))
                 .lineLimit(12)
                 .fixedSize(horizontal: false, vertical: true)

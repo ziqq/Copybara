@@ -9,4 +9,6 @@ enum ClipKind: String, Codable, CaseIterable {
     case rtf
     case image
     case file
+    /// A user-authored snippet (not captured from the pasteboard).
+    case snippet
 }

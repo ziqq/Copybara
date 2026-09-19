@@ -61,6 +61,7 @@ struct ClipRowView: View {
         case .rtf: return "doc.richtext"
         case .image: return "photo"
         case .file: return "doc"
+        case .snippet: return "bolt.fill"
         }
     }
 

@@ -125,7 +125,9 @@ services; services never depend on screens.
 ### Models & support
 - **`ClipItemDO`** — `Identifiable` value type: `id`, `kind`, `preview`,
   `createdAt`, `isPinned`, `appBundleID`, `copyCount`, and the `data` payload.
-- **`ClipKind`** — enum: `.text`, `.rtf`, `.image`, `.file` — all captured.
+- **`ClipKind`** — enum: `.text`, `.rtf`, `.image`, `.file` (captured), `.snippet` (authored).
+- **`Snippet`** / **`SnippetStore`** — user-authored reusable templates (JSON in
+  `UserDefaults`), surfaced in the popup as pasteable clip items.
 - **`ClipCapture`** — a captured clip ready to store, produced by `PasteboardReader`.
 - **`FuzzyMatcher`** — small, dependency-free scoring for fuzzy search.
 - **`ClipSearch`** — pure sort (last/first/most-copied) + filter (fuzzy/exact/regex).

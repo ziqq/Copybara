@@ -61,6 +61,26 @@ struct SettingsView: View {
                 }
             }
 
+            Section(header: Text("Snippets")) {
+                if oo.snippets.isEmpty {
+                    Text("Reusable text templates, always shown in the popup.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                ForEach($oo.snippets) { $snippet in
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("Title", text: $snippet.title)
+                            .font(.system(size: 12, weight: .medium))
+                        TextField("Content to paste", text: $snippet.content)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                }
+                .onDelete { oo.deleteSnippets(at: $0) }
+                Button("Add Snippet") { oo.addSnippet() }
+            }
+
             Section(header: Text("Privacy")) {
                 Toggle("Ignore all copies", isOn: $oo.ignoreAllCopies)
 

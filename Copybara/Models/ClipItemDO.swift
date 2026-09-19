@@ -17,6 +17,12 @@ struct ClipItemDO: Identifiable, Hashable {
     let copyCount: Int
     /// Payload for non-text kinds (RTF data, PNG data, archived file paths).
     let data: Data?
+    /// Text to paste when it differs from `preview` (e.g. a snippet whose row
+    /// shows a title but pastes its content). Falls back to `preview`.
+    let pasteText: String?
+
+    /// The text placed on the pasteboard for text-like kinds.
+    var textToPaste: String { pasteText ?? preview }
 
     init(
         id: UUID = UUID(),
@@ -26,7 +32,8 @@ struct ClipItemDO: Identifiable, Hashable {
         isPinned: Bool = false,
         appBundleID: String? = nil,
         copyCount: Int = 1,
-        data: Data? = nil
+        data: Data? = nil,
+        pasteText: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -36,5 +43,6 @@ struct ClipItemDO: Identifiable, Hashable {
         self.appBundleID = appBundleID
         self.copyCount = copyCount
         self.data = data
+        self.pasteText = pasteText
     }
 }
