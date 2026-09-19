@@ -6,6 +6,7 @@ enum PopupAction {
     case paste
     case pastePlain
     case pasteTransformed(TextTransform)
+    case copy
     case pin
     case delete
     case clearAll
@@ -208,6 +209,7 @@ struct PopupView: View {
         VStack(alignment: .leading, spacing: 2) {
             actionRow("Paste", keys: "↩", action: .paste)
             actionRow("Paste as Plain Text", keys: "⌥⇧↩", action: .pastePlain)
+            actionRow("Copy", keys: "⌘C", action: .copy)
             if isTextSelected {
                 ForEach(TextTransform.allCases) { transform in
                     actionRow(transform.title, keys: nil, action: .pasteTransformed(transform))
