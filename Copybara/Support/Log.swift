@@ -6,7 +6,7 @@ import OSLog
 /// default levels — only sizes and coarse events — to respect the local-only
 /// privacy principle.
 enum Log {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.ziqq.copybara"
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "dev.ustinoff.copybara"
 
     static let app = Logger(subsystem: subsystem, category: "app")
     static let clipboard = Logger(subsystem: subsystem, category: "clipboard")
