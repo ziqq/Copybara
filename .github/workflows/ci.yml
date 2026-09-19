@@ -82,11 +82,13 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: success()
-        uses: codecov/codecov-action@v5
-        with:
-          files: .build/coverage/cobertura.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: ziqq/Copybara
-          flags: macos
-          fail_ci_if_error: false
-          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: |
+          # Codecov CLI via curl — no Node-based action (avoids the Node 20 warning).
+          curl -Os https://cli.codecov.io/latest/macos/codecov
+          chmod +x codecov
+          ./codecov upload-process \
+            --slug ziqq/Copybara \
+            --file .build/coverage/cobertura.xml \
+            --flag macos || echo "Codecov upload skipped/failed (non-fatal)"
