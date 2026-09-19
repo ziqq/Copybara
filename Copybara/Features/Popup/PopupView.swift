@@ -5,6 +5,7 @@ import SwiftUI
 enum PopupAction {
     case paste
     case pastePlain
+    case pasteTransformed(TextTransform)
     case pin
     case delete
     case clearAll
@@ -183,10 +184,20 @@ struct PopupView: View {
 
     // MARK: - Actions menu (⌘K)
 
+    private var isTextSelected: Bool {
+        guard let kind = oo.selectedItem?.kind else { return false }
+        return kind == .text || kind == .rtf
+    }
+
     private var actionsMenu: some View {
         VStack(alignment: .leading, spacing: 2) {
             actionRow("Paste", keys: "↩", action: .paste)
             actionRow("Paste as Plain Text", keys: "⌥⇧↩", action: .pastePlain)
+            if isTextSelected {
+                ForEach(TextTransform.allCases) { transform in
+                    actionRow(transform.title, keys: nil, action: .pasteTransformed(transform))
+                }
+            }
             Divider()
             actionRow(oo.selectedItem?.isPinned == true ? "Unpin" : "Pin", keys: "⌥P", action: .pin)
             actionRow("Delete", keys: "⌥⌫", action: .delete)

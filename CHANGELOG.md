@@ -11,6 +11,8 @@
 
 
 ## Unreleased
+- **ADDED**: Transform-on-paste from the ⌘K menu — Paste Trimmed / lowercased /
+  UPPERCASED for text clips.
 - **ADDED**: History retention — auto-remove non-pinned clips older than 7/30/90 days
   (or keep forever), configurable in Settings.
 - **ADDED**: On-demand update check via GitHub Releases (menu → *Check for Updates…*)
