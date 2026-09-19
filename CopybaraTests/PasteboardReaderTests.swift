@@ -60,7 +60,7 @@ final class PasteboardReaderTests: XCTestCase {
         XCTAssertNil(PasteboardReader.read(makePasteboard(), appBundleID: nil))
     }
 
-    func testFilePayloadRoundTrip() {
+    func testFilePayloadRoundTrip() throws {
         let paths = ["/tmp/a.txt", "/tmp/b.png"]
         let data = try XCTUnwrap(FilePayload.archive(paths))
         XCTAssertEqual(FilePayload.paths(from: data), paths)
