@@ -10,6 +10,12 @@ import AppKit
 /// re-activate the target app (which lost focus to Copybara's popup) *between*
 /// putting the text on the pasteboard and sending ⌘V.
 final class Paster {
+    private let pasteboard: NSPasteboard
+
+    init(pasteboard: NSPasteboard = .general) {
+        self.pasteboard = pasteboard
+    }
+
     /// Whether the app currently holds the Accessibility permission.
     var hasAccessibilityPermission: Bool { AXIsProcessTrusted() }
 
@@ -24,9 +30,8 @@ final class Paster {
         return AXIsProcessTrustedWithOptions(options)
     }
 
-    /// Writes `text` to the general pasteboard without pasting.
+    /// Writes `text` to the pasteboard without pasting.
     func stage(text: String) {
-        let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
     }
@@ -34,7 +39,6 @@ final class Paster {
     /// Writes a stored item to the pasteboard in its native representation.
     /// With `plain` true, only the plain-text form is written (strip formatting).
     func stage(item: ClipItemDO, plain: Bool = false) {
-        let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
         switch item.kind {

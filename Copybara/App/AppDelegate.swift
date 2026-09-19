@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 #endif
 
         store.sizeLimit = AppSettings.shared.historySize
+        store.pruneExpired(olderThan: AppSettings.shared.historyRetentionDays)
         applyActivationPolicy(AppSettings.shared.iconVisibility)
 
         let controller = StatusItemController(store: store)
