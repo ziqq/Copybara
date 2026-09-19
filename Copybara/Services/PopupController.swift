@@ -396,6 +396,11 @@ final class PopupController {
             if let item = oo.selectedItem { commit(item) }
         case .pastePlain:
             if let item = oo.selectedItem { commit(item, plain: true) }
+        case .pasteTransformed(let transform):
+            guard let item = oo.selectedItem else { return }
+            hide()
+            paster.stage(text: transform.apply(item.preview))
+            finishPaste()
         case .pin:
             oo.togglePinSelected()
         case .delete:
@@ -408,15 +413,19 @@ final class PopupController {
     private func commit(_ item: ClipItemDO, plain: Bool = false) {
         hide()
         paster.stage(item: item, plain: plain)
+        finishPaste()
+    }
 
+    /// Shared paste tail: requires Accessibility, then re-activates the previous
+    /// app and synthesizes ⌘V. The content is already on the pasteboard.
+    private func finishPaste() {
         guard paster.hasAccessibilityPermission else {
-            // The item is already on the pasteboard; tell the user how to enable
-            // automatic paste instead of silently doing nothing.
+            // Content is on the pasteboard; tell the user how to enable automatic
+            // paste instead of silently doing nothing.
             Log.paste.error("Committed to pasteboard only — Accessibility not granted")
             handleMissingAccessibility()
             return
         }
-
         reactivatePreviousApp()
         pasteWhenTargetIsFrontmost()
     }
