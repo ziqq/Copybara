@@ -46,6 +46,23 @@ final class PopupOOTests: XCTestCase {
         XCTAssertNil(oo.item(atNumber: 4))
     }
 
+    func testCycleScope() {
+        let oo = makeOO(["a"])
+        XCTAssertEqual(oo.scope, .all)
+        oo.cycleScope(); XCTAssertEqual(oo.scope, .text)
+        oo.cycleScope(); XCTAssertEqual(oo.scope, .image)
+        oo.cycleScope(); XCTAssertEqual(oo.scope, .file)
+        oo.cycleScope(); XCTAssertEqual(oo.scope, .all)
+    }
+
+    func testScopeFiltersResults() {
+        let oo = makeOO(["plain one", "plain two"]) // all text
+        oo.scope = .image
+        XCTAssertTrue(oo.results.isEmpty)
+        oo.scope = .text
+        XCTAssertEqual(oo.results.count, 2)
+    }
+
     func testTogglePinThenDeleteSelected() {
         let oo = makeOO(["a", "b"]) // results: b, a; selection at b
         oo.togglePinSelected()
