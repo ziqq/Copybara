@@ -11,6 +11,8 @@
 
 
 ## Unreleased
+- **ADDED**: History retention — auto-remove non-pinned clips older than 7/30/90 days
+  (or keep forever), configurable in Settings.
 - **ADDED**: On-demand update check via GitHub Releases (menu → *Check for Updates…*)
   and a tag-based release workflow that builds and publishes the DMG.
 - **ADDED**: ⌘1–9 quick-paste hints on the first nine rows.

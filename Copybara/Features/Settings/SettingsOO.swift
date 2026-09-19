@@ -10,6 +10,9 @@ final class SettingsOO: ObservableObject {
     @Published var historySize: Int {
         didSet { settings.historySize = historySize }
     }
+    @Published var historyRetentionDays: Int {
+        didSet { settings.historyRetentionDays = historyRetentionDays }
+    }
     @Published var iconVisibility: IconVisibility {
         didSet {
             settings.iconVisibility = iconVisibility
@@ -52,6 +55,7 @@ final class SettingsOO: ObservableObject {
     init(settings: AppSettings = .shared) {
         self.settings = settings
         self.historySize = settings.historySize
+        self.historyRetentionDays = settings.historyRetentionDays
         self.iconVisibility = settings.iconVisibility
         self.popupPosition = settings.popupPosition
         self.useLiquidGlass = settings.useLiquidGlass

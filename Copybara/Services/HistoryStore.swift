@@ -112,6 +112,14 @@ final class HistoryStore {
         return try? context.fetch(request).first
     }
 
+    /// Removes non-pinned clips older than `days` (0 = keep forever). Pinned
+    /// favorites are never expired.
+    func pruneExpired(olderThan days: Int, now: Date = Date()) {
+        guard days > 0 else { return }
+        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        deleteMatching(NSPredicate(format: "isPinned == NO AND createdAt < %@", cutoff as NSDate))
+    }
+
     /// Removes every stored clip, including pinned ones.
     func clearAll() {
         deleteMatching(nil)

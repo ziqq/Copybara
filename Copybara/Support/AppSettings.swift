@@ -91,6 +91,7 @@ final class AppSettings {
 
     private enum Keys {
         static let historySize = "historySize"
+        static let historyRetentionDays = "historyRetentionDays"
         static let iconVisibility = "iconVisibility"
         static let popupPosition = "popupPosition"
         static let blockedBundleIDs = "blockedBundleIDs"
@@ -118,6 +119,12 @@ final class AppSettings {
             return stored == 0 ? 200 : stored
         }
         set { defaults.set(newValue, forKey: Keys.historySize) }
+    }
+
+    /// Remove non-pinned clips older than this many days. 0 = keep forever (default).
+    var historyRetentionDays: Int {
+        get { defaults.integer(forKey: Keys.historyRetentionDays) }
+        set { defaults.set(newValue, forKey: Keys.historyRetentionDays) }
     }
 
     /// Where the app icon is shown. Defaults to the menu bar.

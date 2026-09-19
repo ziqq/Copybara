@@ -110,6 +110,28 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(items.first?.copyCount, 2)
     }
 
+    func testPruneExpiredRemovesOldUnpinnedButKeepsPinned() {
+        let store = makeStore()
+        store.insertTextSynchronously("old")
+        store.insertTextSynchronously("keepMePinned")
+        let pinned = try! XCTUnwrap(store.recentItems().first { $0.preview == "keepMePinned" })
+        store.togglePin(id: pinned.id)
+
+        // Treat "now" as 2 days ahead so both items are older than 1 day.
+        store.pruneExpired(olderThan: 1, now: Date().addingTimeInterval(2 * 86_400))
+
+        let items = store.recentItems().map(\.preview)
+        XCTAssertFalse(items.contains("old"))
+        XCTAssertTrue(items.contains("keepMePinned"))
+    }
+
+    func testPruneExpiredZeroKeepsEverything() {
+        let store = makeStore()
+        store.insertTextSynchronously("a")
+        store.pruneExpired(olderThan: 0, now: Date().addingTimeInterval(999 * 86_400))
+        XCTAssertEqual(store.recentItems().count, 1)
+    }
+
     func testClearAllRemovesEverythingIncludingPinned() {
         let store = makeStore()
         store.insertTextSynchronously("a")

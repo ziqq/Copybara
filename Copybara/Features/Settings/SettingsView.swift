@@ -21,6 +21,12 @@ struct SettingsView: View {
                         Text(mode.title).tag(mode)
                     }
                 }
+                Picker("Keep for", selection: $oo.historyRetentionDays) {
+                    Text("Forever").tag(0)
+                    Text("7 days").tag(7)
+                    Text("30 days").tag(30)
+                    Text("90 days").tag(90)
+                }
             }
 
             Section(header: Text("Search")) {
