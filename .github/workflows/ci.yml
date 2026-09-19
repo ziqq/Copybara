@@ -12,8 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
-  pull-requests: write
 
 jobs:
   build-test:
@@ -50,14 +48,32 @@ jobs:
             clean test \
             | xcbeautify --report junit --report-path .build/reports
 
-      - name: Publish test report
-        uses: dorny/test-reporter@v2
+      - name: Test report summary
         if: success() || failure()
-        with:
-          name: Test report
-          path: .build/reports/junit.xml
-          reporter: java-junit
-          fail-on-error: false
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          total = failed = skipped = 0
+          fails = []
+          for path in glob.glob(".build/reports/junit.xml"):
+              root = ET.parse(path).getroot()
+              for suite in root.iter("testsuite"):
+                  total += int(suite.get("tests", 0))
+                  failed += int(suite.get("failures", 0)) + int(suite.get("errors", 0))
+                  skipped += int(suite.get("skipped", 0))
+                  for case in suite.iter("testcase"):
+                      if case.find("failure") is not None or case.find("error") is not None:
+                          fails.append(f'{case.get("classname","")}.{case.get("name","")}')
+          passed = total - failed - skipped
+          print("## 🧪 Test report\n")
+          print("| Total | ✅ Passed | ❌ Failed | ⏭️ Skipped |")
+          print("| ---: | ---: | ---: | ---: |")
+          print(f"| {total} | {passed} | {failed} | {skipped} |")
+          if fails:
+              print("\n**Failures**\n")
+              for name in fails:
+                  print(f"- `{name}`")
+          PY
 
       - name: Generate coverage report
         if: success()

@@ -7,7 +7,7 @@
 *Like a capybara that quietly keeps everything you copy — calm, friendly, always there.*
 
 [![CI](https://github.com/ziqq/Copybara/actions/workflows/ci.yml/badge.svg)](https://github.com/ziqq/Copybara/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/ziqq/Copybara/branch/main/graph/badge.svg)](https://codecov.io/gh/ziqq/Copybara)
+[![codecov](https://codecov.io/gh/ziqq/Copybara/graph/badge.svg?token=ME9X8CFF9K)](https://codecov.io/gh/ziqq/Copybara)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-12%2B-black?logo=apple)
 
@@ -140,7 +140,7 @@ CI runs the unit tests with coverage and uploads it to
 [Codecov](https://codecov.io/gh/ziqq/Copybara) on every push.
 
 <a href="https://codecov.io/gh/ziqq/Copybara">
-  <img src="https://codecov.io/gh/ziqq/Copybara/branch/main/graphs/sunburst.svg" alt="Coverage sunburst" width="220">
+  <img src="https://codecov.io/gh/ziqq/Copybara/graphs/sunburst.svg?token=ME9X8CFF9K" alt="Coverage sunburst" width="220">
 </a>
 
 ## Status
