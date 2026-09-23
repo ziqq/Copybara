@@ -81,14 +81,23 @@ final class Paster {
 
     private func synthesizeCommandV() {
         let source = CGEventSource(stateID: .combinedSessionState)
-        let vKeyCode: CGKeyCode = 9 // ANSI 'v'
+        // Don't let keys the user is still physically holding (e.g. ⌘ from ⌘1
+        // or ⇧ from the hotkey) leak into the synthesized chord.
+        source?.setLocalEventsFilterDuringSuppressionState(
+            [.permitLocalMouseEvents, .permitSystemDefinedEvents],
+            state: .eventSuppressionStateSuppressionInterval
+        )
+        let vKeyCode: CGKeyCode = 9 // ANSI 'v' — layout-independent key position
+        // Chromium/Electron apps (Claude, Discord, VS Code, Telegram…) check the
+        // device-dependent "left ⌘" bit, not just the generic Command mask.
+        let flags = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue | 0x000008)
 
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true)
-        keyDown?.flags = .maskCommand
+        keyDown?.flags = flags
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
-        keyUp?.flags = .maskCommand
+        keyUp?.flags = flags
 
-        keyDown?.post(tap: .cghidEventTap)
-        keyUp?.post(tap: .cghidEventTap)
+        keyDown?.post(tap: .cgSessionEventTap)
+        keyUp?.post(tap: .cgSessionEventTap)
     }
 }
