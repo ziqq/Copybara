@@ -1,0 +1,7 @@
+// Code signing. The team is not committed: put your own in Config/Local.xcconfig
+// (git-ignored), e.g. `DEVELOPMENT_TEAM = XXXXXXXXXX`. A stable signing identity
+// keeps the Accessibility permission across rebuilds; ad-hoc builds lose it.
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"
