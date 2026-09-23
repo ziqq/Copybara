@@ -16,7 +16,9 @@ final class PopupController {
     private let window: PopupWindow
 
     private var keyMonitor: Any?
-    private weak var previousApp: NSRunningApplication?
+    /// The app to paste into. Held strongly: `frontmostApplication` hands back a
+    /// fresh instance nobody else retains, so a weak reference is nil at once.
+    private var previousApp: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
 
     private var previewPanel: NSPanel?
@@ -126,7 +128,12 @@ final class PopupController {
     // MARK: - Show / hide
 
     func show() {
-        previousApp = NSWorkspace.shared.frontmostApplication
+        // Re-opening while Copybara is already frontmost (e.g. from Settings) must
+        // keep the real target rather than pasting into Copybara itself.
+        if let front = NSWorkspace.shared.frontmostApplication,
+           front.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+            previousApp = front
+        }
         configureAppearance()
         oo.reset()
         layoutWindow()
@@ -479,31 +486,22 @@ final class PopupController {
         pasteWhenTargetIsFrontmost()
     }
 
+    /// Content is already on the pasteboard. Show the system's own permission
+    /// prompt once per launch (it deep-links to the right pane); a second,
+    /// custom alert on top of it only stacked two dialogs. The popup footer
+    /// keeps pointing at the setting afterwards.
     private func handleMissingAccessibility() {
-        paster.ensureAccessibilityPermission() // registers Copybara in the Accessibility list
-
         guard !didPromptAccessibility else { return }
         didPromptAccessibility = true
-
-        NSApp.activate(ignoringOtherApps: true)
-        let alert = NSAlert()
-        alert.messageText = "Enable Accessibility to paste automatically"
-        alert.informativeText = """
-        Your selected item is on the clipboard — press ⌘V to paste it now.
-
-        To paste automatically, enable Copybara in \
-        System Settings › Privacy & Security › Accessibility.
-        """
-        alert.addButton(withTitle: "Open Settings")
-        alert.addButton(withTitle: "OK")
-        if alert.runModal() == .alertFirstButtonReturn {
-            OnboardingController.openAccessibilitySettings()
-        }
+        paster.ensureAccessibilityPermission()
     }
 
     private func reactivatePreviousApp() {
         guard let previousApp else { return }
         if #available(macOS 14.0, *) {
+            // Cooperative activation: the active app must hand focus over, or
+            // the target's `activate()` request is ignored.
+            NSApp.yieldActivation(to: previousApp)
             previousApp.activate()
         } else {
             previousApp.activate(options: [.activateIgnoringOtherApps])
@@ -519,8 +517,20 @@ final class PopupController {
         let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
         let ready = targetPID == nil || frontPID == targetPID
 
+        if !ready && attempt == maxAttempts / 2 {
+            // Activation was refused; stepping aside hands focus back to the
+            // previous app the way ⌘H would.
+            NSApp.hide(nil)
+        }
+
         if ready || attempt >= maxAttempts {
-            paster.pasteIntoFrontmostApp()
+            if !ready { Log.paste.error("Target app did not regain focus; pasting anyway") }
+            // Becoming frontmost precedes the target's window turning key, so give
+            // it a moment; otherwise ⌘V lands before there is a focused field.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+                self?.paster.pasteIntoFrontmostApp()
+                Log.paste.info("Synthesized ⌘V into \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?", privacy: .public)")
+            }
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) { [weak self] in
                 self?.pasteWhenTargetIsFrontmost(attempt: attempt + 1)
