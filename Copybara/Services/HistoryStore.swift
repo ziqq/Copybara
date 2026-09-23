@@ -141,6 +141,16 @@ final class HistoryStore {
         }
     }
 
+    /// Drops the oldest non-pinned clips beyond `sizeLimit` (after the limit is
+    /// lowered in Settings; inserts trim on their own).
+    func trimToLimit() {
+        let context = stack.viewContext
+        context.performAndWait {
+            trim(in: context)
+            try? context.save()
+        }
+    }
+
     // MARK: - Reads
 
     /// Fetches items ordered pinned-first, then newest-first.

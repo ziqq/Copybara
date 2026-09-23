@@ -142,4 +142,12 @@ final class HistoryStoreTests: XCTestCase {
 
         XCTAssertTrue(store.recentItems().isEmpty)
     }
+
+    func testTrimToLimitAppliesLoweredLimit() {
+        let store = makeStore(limit: 10)
+        for text in ["a", "b", "c", "d"] { store.insertTextSynchronously(text) }
+        store.sizeLimit = 2
+        store.trimToLimit()
+        XCTAssertEqual(store.recentItems().map(\.preview), ["d", "c"])
+    }
 }

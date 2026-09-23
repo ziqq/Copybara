@@ -5,6 +5,7 @@ import SwiftUI
 /// The preferences window, shown via the standard Settings scene.
 struct SettingsView: View {
     @StateObject private var oo = SettingsOO()
+    private let refreshTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Form {
@@ -121,10 +122,9 @@ struct SettingsView: View {
                 HStack {
                     Text("Accessibility")
                     Spacer()
-                    let granted = AXIsProcessTrusted()
-                    Text(granted ? "Granted" : "Not granted")
+                    Text(oo.accessibilityGranted ? "Granted" : "Not granted")
                         .font(.caption)
-                        .foregroundColor(granted ? .secondary : .orange)
+                        .foregroundColor(oo.accessibilityGranted ? .secondary : .orange)
                 }
                 Text("Needed to paste into the app you were using.")
                     .font(.caption)
@@ -135,7 +135,8 @@ struct SettingsView: View {
             }
         }
         .padding(20)
-        .frame(width: 380)
+        .frame(width: 420)
+        .onReceive(refreshTimer) { _ in oo.refreshExternalState() }
     }
 }
 

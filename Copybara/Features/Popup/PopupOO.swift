@@ -57,7 +57,7 @@ final class PopupOO: ObservableObject {
     /// re-applies the current filter.
     func reload() {
         // Snippets are always available, shown above the sorted history.
-        allItems = snippets.asClipItems() + ClipSearch.sort(store.recentItems(), by: settings.sortMode)
+        allItems = snippets.asClipItems() + ClipSearch.sort(store.recentItems(limit: 100_000), by: settings.sortMode)
         refilter()
     }
 

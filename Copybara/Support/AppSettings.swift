@@ -4,6 +4,9 @@ extension Notification.Name {
     /// Posted when the icon-visibility preference changes, so the app can update
     /// its activation policy live. `userInfo["value"]` carries the raw value.
     static let copybaraIconVisibilityChanged = Notification.Name("copybaraIconVisibilityChanged")
+    /// Posted when a preference that running services cache (history size,
+    /// retention, ignore-all-copies) changes, so they re-apply it live.
+    static let copybaraSettingsChanged = Notification.Name("copybaraSettingsChanged")
 }
 
 /// Where Copybara displays its icon.
