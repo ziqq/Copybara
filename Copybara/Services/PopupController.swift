@@ -67,7 +67,31 @@ final class PopupController {
             onAction: { [weak self] action in self?.perform(action) }
         )
         let hosting = NSHostingView(rootView: root)
-        window.contentView = glass ? hosting : makeContentView(hosting: hosting)
+        window.contentView = glass ? makeGlassContentView(hosting: hosting) : makeContentView(hosting: hosting)
+        window.invalidateShadow()
+    }
+
+    /// Clips the hosting view to the popup's rounded shape so no square window
+    /// corners (background or shadow) show around the Liquid Glass surface.
+    private func makeGlassContentView(hosting: NSHostingView<PopupView>) -> NSView {
+        let container = NSView()
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.clear.cgColor
+        container.layer?.cornerRadius = PopupMetrics.cornerRadius
+        container.layer?.cornerCurve = .continuous
+        container.layer?.masksToBounds = true
+
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        hosting.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(hosting)
+        NSLayoutConstraint.activate([
+            hosting.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            hosting.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            hosting.topAnchor.constraint(equalTo: container.topAnchor),
+            hosting.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        return container
     }
 
     /// Builds a rounded, vibrant container that hosts the SwiftUI content.
@@ -190,6 +214,7 @@ final class PopupController {
     private func layoutWindow() {
         let height = PopupMetrics.totalHeight(for: oo.results.count)
         window.setContentSize(NSSize(width: PopupMetrics.width, height: height))
+        window.invalidateShadow() // the shadow follows the rounded shape at the new size
         positionWindow()
     }
 
