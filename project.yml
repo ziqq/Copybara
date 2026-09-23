@@ -17,8 +17,6 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.0"
-    DEVELOPMENT_TEAM: ""
-    CODE_SIGN_STYLE: Automatic
 
 packages:
   KeyboardShortcuts:
@@ -29,6 +27,9 @@ targets:
   Copybara:
     type: application
     platform: macOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     sources:
       - path: Copybara
     dependencies:
@@ -51,12 +52,16 @@ targets:
   CopybaraTests:
     type: bundle.unit-test
     platform: macOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
     sources:
       - path: CopybaraTests
     dependencies:
       - target: Copybara
     settings:
       base:
+        GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Copybara.app/Contents/MacOS/Copybara"
         # Tests only run on modern macOS; avoids XCTest "built for newer version" warnings.
