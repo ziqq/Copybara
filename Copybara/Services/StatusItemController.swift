@@ -42,7 +42,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     /// Dims the icon and updates the tooltip while copies are being ignored.
-    private func updateAppearance() {
+    func updateAppearance() {
         guard let button = statusItem.button else { return }
         let ignoring = AppSettings.shared.ignoreAllCopies
         button.appearsDisabled = ignoring

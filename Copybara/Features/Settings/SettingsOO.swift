@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Combine
 import Foundation
 import UniformTypeIdentifiers
@@ -8,10 +9,16 @@ import UniformTypeIdentifiers
 @MainActor
 final class SettingsOO: ObservableObject {
     @Published var historySize: Int {
-        didSet { settings.historySize = historySize }
+        didSet {
+            settings.historySize = historySize
+            notifyServices()
+        }
     }
     @Published var historyRetentionDays: Int {
-        didSet { settings.historyRetentionDays = historyRetentionDays }
+        didSet {
+            settings.historyRetentionDays = historyRetentionDays
+            notifyServices()
+        }
     }
     @Published var iconVisibility: IconVisibility {
         didSet {
@@ -27,7 +34,15 @@ final class SettingsOO: ObservableObject {
         didSet { settings.popupPosition = popupPosition }
     }
     @Published var launchAtLogin: Bool {
-        didSet { LaunchAtLoginManager.setEnabled(launchAtLogin) }
+        didSet {
+            guard launchAtLogin != LaunchAtLoginManager.isEnabled else { return }
+            LaunchAtLoginManager.setEnabled(launchAtLogin)
+            // Reflect what the system actually did (registration can fail).
+            let actual = LaunchAtLoginManager.isEnabled
+            if actual != launchAtLogin {
+                DispatchQueue.main.async { self.launchAtLogin = actual }
+            }
+        }
     }
     @Published var useLiquidGlass: Bool {
         didSet { settings.useLiquidGlass = useLiquidGlass }
@@ -39,7 +54,10 @@ final class SettingsOO: ObservableObject {
         didSet { settings.sortMode = sortMode }
     }
     @Published var ignoreAllCopies: Bool {
-        didSet { settings.ignoreAllCopies = ignoreAllCopies }
+        didSet {
+            settings.ignoreAllCopies = ignoreAllCopies
+            notifyServices()
+        }
     }
     @Published var blockedBundleIDs: [String] {
         didSet { settings.blockedBundleIDs = blockedBundleIDs }
@@ -47,6 +65,8 @@ final class SettingsOO: ObservableObject {
     @Published var snippets: [Snippet] {
         didSet { snippetStore.save(snippets) }
     }
+    /// Whether Copybara currently holds the Accessibility permission.
+    @Published private(set) var accessibilityGranted = AXIsProcessTrusted()
 
     /// Whether the OS supports toggling launch at login (macOS 13+).
     let launchAtLoginSupported = LaunchAtLoginManager.isSupported
@@ -70,6 +90,18 @@ final class SettingsOO: ObservableObject {
         self.launchAtLogin = LaunchAtLoginManager.isEnabled
         self.ignoreAllCopies = settings.ignoreAllCopies
         self.blockedBundleIDs = settings.blockedBundleIDs
+    }
+
+    /// Re-reads state that can change outside the form (System Settings, the
+    /// status-item menu) while the window is open.
+    func refreshExternalState() {
+        let granted = AXIsProcessTrusted()
+        if granted != accessibilityGranted { accessibilityGranted = granted }
+        if settings.ignoreAllCopies != ignoreAllCopies { ignoreAllCopies = settings.ignoreAllCopies }
+    }
+
+    private func notifyServices() {
+        NotificationCenter.default.post(name: .copybaraSettingsChanged, object: nil)
     }
 
     /// Opens a file picker to add an app to the blocklist by its bundle id.

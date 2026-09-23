@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKeyManager = HotKeyManager()
     private lazy var onboardingController = OnboardingController(paster: paster)
     private lazy var updaterController = UpdaterController()
+    private let settingsWindowController = SettingsWindowController()
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -51,6 +52,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: .copybaraIconVisibilityChanged,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(settingsChanged(_:)),
+            name: .copybaraSettingsChanged,
+            object: nil
+        )
 
         onboardingController.showIfNeeded()
 
@@ -74,14 +81,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         applyActivationPolicy(visibility)
     }
 
+    /// Re-applies preferences that services cache, so changes take effect
+    /// without a relaunch.
+    @objc private func settingsChanged(_ note: Notification) {
+        let settings = AppSettings.shared
+        store.sizeLimit = settings.historySize
+        store.trimToLimit()
+        store.pruneExpired(olderThan: settings.historyRetentionDays)
+        statusItemController?.updateAppearance()
+    }
+
     // MARK: - Settings
 
     private func showSettings() {
-        NSApp.activate(ignoringOtherApps: true)
-        if #available(macOS 13, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        } else {
-            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
-        }
+        // Not `showSettingsWindow:` — on macOS 14+ that selector no longer opens
+        // the SwiftUI Settings scene (it only logs "Please use SettingsLink").
+        settingsWindowController.show()
     }
 }
