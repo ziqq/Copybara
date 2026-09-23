@@ -85,9 +85,17 @@ final class PopupOO: ObservableObject {
         return results.indices.contains(index) ? results[index] : nil
     }
 
+    /// Moves the selection to `item` (e.g. before running a row's context-menu
+    /// action), if it is among the current results.
+    func select(_ item: ClipItemDO) {
+        if let index = results.firstIndex(where: { $0.id == item.id }) {
+            selectedIndex = index
+        }
+    }
+
     /// Pins or unpins the selected item and reloads.
     func togglePinSelected() {
-        guard let item = selectedItem else { return }
+        guard let item = selectedItem, item.kind != .snippet else { return }
         store.togglePin(id: item.id)
         reload()
     }
@@ -95,7 +103,16 @@ final class PopupOO: ObservableObject {
     /// Deletes the selected item, keeping the selection near its old position.
     func deleteSelected() {
         guard let item = selectedItem else { return }
-        store.delete(id: item.id)
+        delete(item)
+    }
+
+    /// Deletes one item: a history clip, or a snippet (which lives in its own store).
+    func delete(_ item: ClipItemDO) {
+        if item.kind == .snippet {
+            snippets.delete(id: item.id)
+        } else {
+            store.delete(id: item.id)
+        }
         reload()
     }
 

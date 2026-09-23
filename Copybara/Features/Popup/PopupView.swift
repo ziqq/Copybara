@@ -115,8 +115,15 @@ struct PopupView: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
-                            ClipRowView(item: item, isSelected: index == oo.selectedIndex, query: oo.query, index: index)
+                            ClipRowView(
+                                item: item,
+                                isSelected: index == oo.selectedIndex,
+                                query: oo.query,
+                                index: index,
+                                onDelete: { oo.delete(item) }
+                            )
                                 .onTapGesture { onCommit(item) }
+                                .contextMenu { rowMenu(for: item) }
                                 .onHover { hovering in
                                     previewItem = hovering ? item : (previewItem?.id == item.id ? nil : previewItem)
                                 }
@@ -142,24 +149,26 @@ struct PopupView: View {
 
     @ViewBuilder
     private var footer: some View {
-        Group {
-            if axTrusted {
-                raycastFooter
-            } else {
-                accessibilityWarning
-                    .contentShape(Rectangle())
-                    .onTapGesture { OnboardingController.openAccessibilitySettings() }
-            }
-        }
-        .padding(.horizontal, 12)
+        raycastFooter
+            .padding(.horizontal, 12)
         .frame(height: PopupMetrics.footerHeight)
     }
 
     private var raycastFooter: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 16, height: 16)
+            // The warning takes the icon's place instead of the whole footer, so
+            // Paste and the ⌘K actions (Delete, Pin…) stay reachable.
+            if axTrusted {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 16, height: 16)
+            } else {
+                Button { OnboardingController.openAccessibilitySettings() } label: {
+                    accessibilityWarning
+                }
+                .buttonStyle(.plain)
+                .help("Open System Settings › Privacy & Security › Accessibility")
+            }
 
             Spacer()
 
@@ -216,7 +225,9 @@ struct PopupView: View {
                 }
             }
             Divider()
-            actionRow(oo.selectedItem?.isPinned == true ? "Unpin" : "Pin", keys: "⌥P", action: .pin)
+            if oo.selectedItem?.kind != .snippet {
+                actionRow(oo.selectedItem?.isPinned == true ? "Unpin" : "Pin", keys: "⌥P", action: .pin)
+            }
             actionRow("Delete", keys: "⌥⌫", action: .delete)
             Divider()
             actionRow("Clear History", keys: nil, action: .clearAll)
@@ -247,13 +258,35 @@ struct PopupView: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 11))
                 .foregroundStyle(.orange)
-            Text("Enable Accessibility so clicking pastes automatically")
+            Text("Enable Accessibility to paste automatically")
                 .font(.system(size: 11))
-            Spacer()
+                .lineLimit(1)
             Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.secondary)
         }
+        .contentShape(Rectangle())
+    }
+
+    // MARK: - Row context menu
+
+    /// Right-click menu for a row; acts on that row, not the keyboard selection.
+    @ViewBuilder
+    private func rowMenu(for item: ClipItemDO) -> some View {
+        Button("Paste") { onCommit(item) }
+        Button("Paste as Plain Text") { run(.pastePlain, on: item) }
+        Button("Copy") { run(.copy, on: item) }
+        if item.kind != .snippet {
+            Divider()
+            Button(item.isPinned ? "Unpin" : "Pin") { run(.pin, on: item) }
+        }
+        Divider()
+        Button("Delete") { oo.delete(item) }
+    }
+
+    private func run(_ action: PopupAction, on item: ClipItemDO) {
+        oo.select(item)
+        onAction(action)
     }
 
 }

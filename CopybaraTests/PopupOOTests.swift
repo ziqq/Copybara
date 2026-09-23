@@ -71,4 +71,33 @@ final class PopupOOTests: XCTestCase {
         oo.deleteSelected()
         XCTAssertFalse(oo.results.contains { $0.preview == "b" })
     }
+
+    func testDeleteRowByItemIgnoresSelection() {
+        let oo = makeOO(["a", "b", "c"])
+        let target = oo.results[2]
+        oo.delete(target)
+        XCTAssertEqual(oo.results.map(\.preview), ["c", "b"])
+        XCTAssertEqual(oo.selectedIndex, 0)
+    }
+
+    func testDeleteSnippetRemovesItFromSnippetStore() {
+        let store = HistoryStore(stack: CoreDataStack(inMemory: true))
+        let settings = AppSettings(defaults: UserDefaults(suiteName: "oo-\(UUID().uuidString)")!)
+        let snippets = SnippetStore(defaults: UserDefaults(suiteName: "oo-snip-\(UUID().uuidString)")!)
+        snippets.add(Snippet(title: "sig", content: "Best, A."))
+        let oo = PopupOO(store: store, settings: settings, snippets: snippets)
+        oo.reload()
+        XCTAssertEqual(oo.results.first?.kind, .snippet)
+
+        oo.deleteSelected()
+
+        XCTAssertTrue(snippets.all().isEmpty)
+        XCTAssertTrue(oo.results.isEmpty)
+    }
+
+    func testSelectMovesSelectionToItem() {
+        let oo = makeOO(["a", "b", "c"])
+        oo.select(oo.results[2])
+        XCTAssertEqual(oo.selectedIndex, 2)
+    }
 }

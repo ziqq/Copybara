@@ -9,6 +9,10 @@ struct ClipRowView: View {
     let query: String
     /// Row position; the first nine show a ⌘1–9 quick-paste hint.
     var index: Int? = nil
+    /// When set, hovering the row reveals a delete button.
+    var onDelete: (() -> Void)? = nil
+
+    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -33,6 +37,7 @@ struct ClipRowView: View {
                 .fill(isSelected ? Color.accentColor : Color.clear)
         )
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
     }
 
     // MARK: - Icon
@@ -109,6 +114,15 @@ struct ClipRowView: View {
                 Image(systemName: "pin.fill")
                     .font(.system(size: 11))
                     .foregroundStyle(isSelected ? Color.white.opacity(0.85) : Color.secondary)
+            }
+            if let onDelete, isHovered {
+                Button(action: onDelete) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(isSelected ? Color.white.opacity(0.9) : Color.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Delete (⌥⌫)")
             }
         }
     }
