@@ -7,7 +7,7 @@ import Foundation
 struct ClipItemDO: Identifiable, Hashable {
     let id: UUID
     let kind: ClipKind
-    /// A short, single-line preview of the content for the list row.
+    /// The clip's text content (full text for text clips), used for search and paste.
     let preview: String
     let createdAt: Date
     let isPinned: Bool
@@ -16,6 +16,7 @@ struct ClipItemDO: Identifiable, Hashable {
     /// How many times this exact content has been copied.
     let copyCount: Int
     /// Payload for non-text kinds (RTF data, PNG data, archived file paths).
+    /// `nil` in list snapshots, which skip payloads; see `HistoryStore.payload(id:)`.
     let data: Data?
     /// Text to paste when it differs from `preview` (e.g. a snippet whose row
     /// shows a title but pastes its content). Falls back to `preview`.
@@ -44,5 +45,39 @@ struct ClipItemDO: Identifiable, Hashable {
         self.copyCount = copyCount
         self.data = data
         self.pasteText = pasteText
+    }
+
+    /// Kinds whose paste/preview needs the binary payload, not just `preview`.
+    var needsPayload: Bool { kind == .rtf || kind == .image || kind == .file }
+
+    /// This item with its payload attached (copies every other field).
+    func with(data: Data?) -> ClipItemDO {
+        ClipItemDO(
+            id: id, kind: kind, preview: preview, createdAt: createdAt, isPinned: isPinned,
+            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
+        )
+    }
+
+    /// `preview` flattened to one short line for the list row. Reads at most a
+    /// bounded prefix, so rendering a row never walks (or lays out) a
+    /// multi-kilobyte clip. Computed on demand: only visible rows need it, and
+    /// precomputing it for a 100k-clip history dominated load time.
+    var rowText: String { Self.singleLine(preview) }
+
+    private static func singleLine(_ text: String, limit: Int = 300) -> String {
+        var line = ""
+        line.reserveCapacity(min(text.utf8.count, limit))
+        var count = 0
+        for character in text {
+            if count == limit { break }
+            if character.isNewline || character == "\t" {
+                if !line.isEmpty, line.last != " " { line.append(" ") }
+            } else if character != " " || !line.isEmpty {
+                line.append(character)
+            }
+            count += 1
+        }
+        while line.last == " " { line.removeLast() }
+        return line
     }
 }

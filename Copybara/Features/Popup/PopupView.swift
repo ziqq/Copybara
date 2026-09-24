@@ -120,7 +120,10 @@ struct PopupView: View {
                                 isSelected: index == oo.selectedIndex,
                                 query: oo.query,
                                 index: index,
-                                onDelete: { oo.delete(item) }
+                                onDelete: { oo.delete(item) },
+                                loadThumbnail: { [oo] in
+                                    await oo.thumbnail(for: $0, maxPixel: ClipRowView.thumbnailPixels)
+                                }
                             )
                                 .onTapGesture { onCommit(item) }
                                 .contextMenu { rowMenu(for: item) }
