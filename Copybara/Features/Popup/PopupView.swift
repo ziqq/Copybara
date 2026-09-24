@@ -52,7 +52,6 @@ struct PopupView: View {
                height: PopupMetrics.totalHeight(for: oo.results.count))
         .modifier(GlassSurface(enabled: useGlass))
         .onAppear {
-            if !oo.isPreview { oo.reload() }
             // Defer so the window is key before we request focus, otherwise the
             // search field needs an extra click to accept typing.
             if autoFocus {
@@ -114,7 +113,7 @@ struct PopupView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(spacing: 2) {
-                        ForEach(Array(oo.results.enumerated()), id: \.element.id) { index, item in
+                        ForEach(Array(oo.visibleResults.enumerated()), id: \.element.id) { index, item in
                             ClipRowView(
                                 item: item,
                                 isSelected: index == oo.selectedIndex,
@@ -126,6 +125,7 @@ struct PopupView: View {
                                 }
                             )
                                 .onTapGesture { onCommit(item) }
+                                .onAppear { oo.rowAppeared(at: index) }
                                 .contextMenu { rowMenu(for: item) }
                                 .onHover { hovering in
                                     previewItem = hovering ? item : (previewItem?.id == item.id ? nil : previewItem)

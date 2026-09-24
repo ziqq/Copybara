@@ -46,34 +46,59 @@ enum ClipSearch {
         }
     }
 
+    /// Whether results for `query` are always a subset of those for `previous`,
+    /// so a search can narrow the previous results instead of rescanning all
+    /// clips. True while typing forward in fuzzy/exact mode (not regex).
+    static func narrows(_ query: String, from previous: String, mode: SearchMode) -> Bool {
+        mode != .regex && !previous.isEmpty && query.count > previous.count && query.hasPrefix(previous)
+    }
+
     /// Filters items by `query` using the chosen match mode. An empty query
     /// returns the input unchanged; fuzzy mode re-orders by relevance; an invalid
     /// regex returns no results.
     static func filter(_ items: [ClipItemDO], query: String, mode: SearchMode, scope: KindScope = .all) -> [ClipItemDO] {
+        search(items, query: query, mode: mode, scope: scope).ranked
+    }
+
+    /// The outcome of a search: `matches` keeps the input order (the base for
+    /// narrowing the next, longer query); `ranked` is what the popup shows.
+    struct Result {
+        var matches: [ClipItemDO]
+        var ranked: [ClipItemDO]
+    }
+
+    static func search(_ items: [ClipItemDO], query: String, mode: SearchMode, scope: KindScope = .all) -> Result {
         let items = scope == .all ? items : items.filter { scope.matches($0.kind) }
-        guard !query.isEmpty else { return items }
+        guard !query.isEmpty else { return Result(matches: items, ranked: items) }
 
         switch mode {
         case .fuzzy:
-            return items
-                .compactMap { item -> (ClipItemDO, Int)? in
-                    guard let score = FuzzyMatcher.score(query, in: item.preview) else { return nil }
-                    return (item, score)
-                }
-                .sorted { $0.1 > $1.1 }
-                .map(\.0)
+            let pattern = FuzzyMatcher.Pattern(query)
+            var matches: [ClipItemDO] = []
+            var scores: [Int] = []
+            for item in items {
+                guard let score = pattern.score(in: item.preview) else { continue }
+                matches.append(item)
+                scores.append(score)
+            }
+            // Stable, so equal scores keep the history order.
+            let order = matches.indices.sorted { scores[$0] != scores[$1] ? scores[$0] > scores[$1] : $0 < $1 }
+            return Result(matches: matches, ranked: order.map { matches[$0] })
 
         case .exact:
-            return items.filter { $0.preview.range(of: query, options: .caseInsensitive) != nil }
+            let pattern = FuzzyMatcher.Pattern(query)
+            let matches = items.filter { pattern.isContained(in: $0.preview) }
+            return Result(matches: matches, ranked: matches)
 
         case .regex:
             guard let regex = try? NSRegularExpression(pattern: query, options: [.caseInsensitive]) else {
-                return []
+                return Result(matches: [], ranked: [])
             }
-            return items.filter { item in
+            let matches = items.filter { item in
                 let range = NSRange(item.preview.startIndex..., in: item.preview)
                 return regex.firstMatch(in: item.preview, options: [], range: range) != nil
             }
+            return Result(matches: matches, ranked: matches)
         }
     }
 }

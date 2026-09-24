@@ -21,4 +21,16 @@ final class FuzzyMatcherTests: XCTestCase {
         XCTAssertNotNil(scattered)
         XCTAssertGreaterThan(consecutive!, scattered!)
     }
+
+    func testPatternSubstringIsCaseInsensitiveAndRestartsAfterPartialMatch() {
+        XCTAssertTrue(FuzzyMatcher.Pattern("LLO").isContained(in: "hello"))
+        XCTAssertTrue(FuzzyMatcher.Pattern("aab").isContained(in: "aaab"))
+        XCTAssertTrue(FuzzyMatcher.Pattern("ПРИВЕТ").isContained(in: "ну привет"))
+        XCTAssertFalse(FuzzyMatcher.Pattern("hlo").isContained(in: "hello"))
+        XCTAssertTrue(FuzzyMatcher.Pattern("straße").isContained(in: "STRASSE STRAßE"))
+    }
+
+    func testCyrillicFuzzyMatch() {
+        XCTAssertTrue(FuzzyMatcher.matches("првт", in: "Привет, мир"))
+    }
 }

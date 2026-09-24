@@ -79,6 +79,8 @@ final class HistoryStore {
             item.setValue(1, forKey: "copyCount")
         }
 
+        // Save first: `fetchOffset` in `trim` only applies to persisted rows.
+        try? context.save()
         trim(in: context)
         try? context.save()
     }
@@ -146,6 +148,7 @@ final class HistoryStore {
     func trimToLimit() {
         let context = stack.viewContext
         context.performAndWait {
+            try? context.save()
             trim(in: context)
             try? context.save()
         }
@@ -158,16 +161,62 @@ final class HistoryStore {
     /// With `includePayloads` false, binary payloads (images, RTF, file lists)
     /// are left on disk — the popup lists hundreds of clips but only needs the
     /// payload for the few it shows or pastes (`payload(id:)`).
-    func recentItems(limit: Int = 200, includePayloads: Bool = true) -> [ClipItemDO] {
+    /// A `limit` of 0 means no limit.
+    ///
+    /// `sort` orders the unpinned clips (pinned ones always come first); it is
+    /// applied in SQLite so a first page is already the right top of the list.
+    func recentItems(limit: Int = 200, includePayloads: Bool = true, sort mode: SortMode = .lastCopied) -> [ClipItemDO] {
+        let sort = [NSSortDescriptor(key: "isPinned", ascending: false)] + Self.sortDescriptors(for: mode)
+        guard includePayloads else { return listRows(limit: limit, sort: sort) }
+
         let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
-        request.sortDescriptors = [
-            NSSortDescriptor(key: "isPinned", ascending: false),
-            NSSortDescriptor(key: "createdAt", ascending: false)
-        ]
+        request.sortDescriptors = sort
         request.fetchLimit = limit
 
         let objects = (try? stack.viewContext.fetch(request)) ?? []
-        return objects.map { Self.makeDataObject(from: $0, includePayload: includePayloads) }
+        return objects.map { Self.makeDataObject(from: $0) }
+    }
+
+    private static func sortDescriptors(for mode: SortMode) -> [NSSortDescriptor] {
+        switch mode {
+        case .lastCopied:
+            return [NSSortDescriptor(key: "createdAt", ascending: false)]
+        case .firstCopied:
+            return [NSSortDescriptor(key: "createdAt", ascending: true)]
+        case .numberOfCopies:
+            return [
+                NSSortDescriptor(key: "copyCount", ascending: false),
+                NSSortDescriptor(key: "createdAt", ascending: false)
+            ]
+        }
+    }
+
+    /// Payload-free rows as plain dictionaries: no managed objects, faults or
+    /// row cache. Runs on its own private context, so it is safe to call from a
+    /// background thread (the popup loads a large history off the main thread).
+    private func listRows(limit: Int, sort: [NSSortDescriptor]) -> [ClipItemDO] {
+        let request = NSFetchRequest<NSDictionary>(entityName: Self.entityName)
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = ["id", "kind", "text", "createdAt", "isPinned", "appBundleID", "copyCount"]
+        request.sortDescriptors = sort
+        request.fetchLimit = limit
+
+        let context = stack.newBackgroundContext()
+        var rows: [NSDictionary] = []
+        context.performAndWait {
+            rows = (try? context.fetch(request)) ?? []
+        }
+        return rows.map { row in
+            ClipItemDO(
+                id: row["id"] as? UUID ?? UUID(),
+                kind: ClipKind(rawValue: row["kind"] as? String ?? "text") ?? .text,
+                preview: row["text"] as? String ?? "",
+                createdAt: row["createdAt"] as? Date ?? Date(),
+                isPinned: row["isPinned"] as? Bool ?? false,
+                appBundleID: row["appBundleID"] as? String,
+                copyCount: row["copyCount"] as? Int ?? 1
+            )
+        }
     }
 
     /// The binary payload of one clip. Uses its own context, so it is safe to
@@ -189,19 +238,23 @@ final class HistoryStore {
 
     // MARK: - Helpers
 
+    /// Deletes non-pinned clips beyond `sizeLimit`. Fetches only the IDs past the
+    /// limit (SQLite skips the rest), instead of every clip on every copy. The
+    /// context must be saved first: `fetchOffset` ignores unsaved inserts.
     private func trim(in context: NSManagedObjectContext) {
-        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        let request = NSFetchRequest<NSManagedObjectID>(entityName: Self.entityName)
+        request.resultType = .managedObjectIDResultType
         request.predicate = NSPredicate(format: "isPinned == NO")
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+        request.fetchOffset = sizeLimit
 
-        let objects = (try? context.fetch(request)) ?? []
-        guard objects.count > sizeLimit else { return }
-        for stale in objects[sizeLimit...] {
-            context.delete(stale)
+        let staleIDs = (try? context.fetch(request)) ?? []
+        for id in staleIDs {
+            context.delete(context.object(with: id))
         }
     }
 
-    private static func makeDataObject(from object: NSManagedObject, includePayload: Bool = true) -> ClipItemDO {
+    private static func makeDataObject(from object: NSManagedObject) -> ClipItemDO {
         ClipItemDO(
             id: object.value(forKey: "id") as? UUID ?? UUID(),
             kind: ClipKind(rawValue: object.value(forKey: "kind") as? String ?? "text") ?? .text,
@@ -210,7 +263,7 @@ final class HistoryStore {
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
             appBundleID: object.value(forKey: "appBundleID") as? String,
             copyCount: object.value(forKey: "copyCount") as? Int ?? 1,
-            data: includePayload ? object.value(forKey: "data") as? Data : nil
+            data: object.value(forKey: "data") as? Data
         )
     }
 }
