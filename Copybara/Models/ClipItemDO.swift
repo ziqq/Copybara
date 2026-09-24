@@ -58,6 +58,14 @@ struct ClipItemDO: Identifiable, Hashable {
         )
     }
 
+    /// This item with a different pinned state (copies every other field).
+    func with(isPinned: Bool) -> ClipItemDO {
+        ClipItemDO(
+            id: id, kind: kind, preview: preview, createdAt: createdAt, isPinned: isPinned,
+            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
+        )
+    }
+
     /// `preview` flattened to one short line for the list row. Reads at most a
     /// bounded prefix, so rendering a row never walks (or lays out) a
     /// multi-kilobyte clip. Computed on demand: only visible rows need it, and

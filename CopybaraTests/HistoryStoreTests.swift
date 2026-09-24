@@ -150,4 +150,21 @@ final class HistoryStoreTests: XCTestCase {
         store.trimToLimit()
         XCTAssertEqual(store.recentItems().map(\.preview), ["d", "c"])
     }
+
+    func testListSnapshotSortsInStoreAndOmitsPayloads() {
+        let store = makeStore()
+        store.insertSynchronously(ClipCapture(kind: .image, text: "img", data: Data([1, 2]), contentHash: "h", appBundleID: nil))
+        store.insertTextSynchronously("a")
+        store.insertTextSynchronously("b")
+        store.insertTextSynchronously("a") // copyCount 2, now newest
+
+        let list = store.recentItems(limit: 10, includePayloads: false)
+        XCTAssertEqual(list.map(\.preview), ["a", "b", "img"])
+        XCTAssertNil(list.last?.data)
+        XCTAssertEqual(store.payload(id: list.last!.id), Data([1, 2]))
+
+        XCTAssertEqual(store.recentItems(limit: 10, includePayloads: false, sort: .firstCopied).map(\.preview), ["img", "b", "a"])
+        XCTAssertEqual(store.recentItems(limit: 10, includePayloads: false, sort: .numberOfCopies).first?.preview, "a")
+        XCTAssertEqual(store.count(), 3)
+    }
 }

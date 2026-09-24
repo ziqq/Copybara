@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class PopupOOTests: XCTestCase {
     private func makeOO(_ texts: [String]) -> PopupOO {
-        let store = HistoryStore(stack: CoreDataStack(inMemory: true))
+        let store = HistoryStore(stack: CoreDataStack(inMemory: true), sizeLimit: 1_000)
         for text in texts { store.insertTextSynchronously(text) }
         let settings = AppSettings(defaults: UserDefaults(suiteName: "oo-\(UUID().uuidString)")!)
         let snippets = SnippetStore(defaults: UserDefaults(suiteName: "oo-snip-\(UUID().uuidString)")!)
@@ -99,5 +99,45 @@ final class PopupOOTests: XCTestCase {
         let oo = makeOO(["a", "b", "c"])
         oo.select(oo.results[2])
         XCTAssertEqual(oo.selectedIndex, 2)
+    }
+
+    func testTypingForwardMatchesFreshSearch() {
+        let oo = makeOO(["copybara", "cup", "clip", "copy that", "zebra"])
+        oo.query = "c"; oo.query = "co"; oo.query = "cop"
+        let typed = oo.results.map(\.preview)
+        let fresh = makeOO(["copybara", "cup", "clip", "copy that", "zebra"])
+        fresh.query = "cop"
+        XCTAssertEqual(typed, fresh.results.map(\.preview))
+    }
+
+    func testDeleteKeepsCurrentFilterWithoutReload() {
+        let oo = makeOO(["apple", "apricot", "banana"])
+        oo.query = "ap"
+        XCTAssertEqual(oo.results.count, 2)
+        oo.deleteSelected()
+        XCTAssertEqual(oo.results.count, 1)
+        oo.query = "a" // shortening re-searches everything still loaded
+        XCTAssertEqual(Set(oo.results.map(\.preview)).count, 2)
+    }
+
+    func testTogglePinMovesItemToTopAndKeepsItSelected() {
+        let oo = makeOO(["a", "b", "c"]) // c, b, a
+        oo.selectLast()
+        oo.togglePinSelected()
+        XCTAssertEqual(oo.results.first?.preview, "a")
+        XCTAssertEqual(oo.selectedItem?.preview, "a")
+    }
+
+    func testListWindowGrowsAsSelectionApproachesEnd() {
+        let oo = makeOO((0..<(PopupOO.pageSize + 50)).map { "item \($0)" })
+        // Beyond the first page, the rest of the history loads in the background.
+        let deadline = Date().addingTimeInterval(5)
+        while oo.results.count < PopupOO.pageSize + 50, Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        }
+        XCTAssertEqual(oo.results.count, PopupOO.pageSize + 50)
+        XCTAssertEqual(oo.visibleResults.count, PopupOO.pageSize)
+        oo.selectLast()
+        XCTAssertGreaterThan(oo.visibleResults.count, PopupOO.pageSize)
     }
 }

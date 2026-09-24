@@ -81,4 +81,26 @@ final class ClipSearchTests: XCTestCase {
         let sorted = ClipSearch.sort(items, by: .numberOfCopies)
         XCTAssertEqual(sorted.map(\.preview), ["b", "c", "a"])
     }
+
+    func testNarrowingPreviousMatchesEqualsFullSearch() {
+        let items = ["copybara", "cup of tea", "clip", "copy that", "cop", "zebra"].map { ClipItemDO(preview: $0) }
+        for mode in [SearchMode.fuzzy, .exact] {
+            let first = ClipSearch.search(items, query: "co", mode: mode)
+            XCTAssertTrue(ClipSearch.narrows("cop", from: "co", mode: mode))
+            let narrowed = ClipSearch.search(first.matches, query: "cop", mode: mode)
+            XCTAssertEqual(narrowed.ranked, ClipSearch.search(items, query: "cop", mode: mode).ranked)
+        }
+    }
+
+    func testNarrowingIsNotUsedForRegexOrEditedQueries() {
+        XCTAssertFalse(ClipSearch.narrows("co.", from: "co", mode: .regex))
+        XCTAssertFalse(ClipSearch.narrows("cp", from: "co", mode: .fuzzy))
+        XCTAssertFalse(ClipSearch.narrows("c", from: "co", mode: .fuzzy))
+        XCTAssertFalse(ClipSearch.narrows("co", from: "", mode: .fuzzy))
+    }
+
+    func testFuzzyTiesKeepHistoryOrder() {
+        let items = ["ab one", "ab two", "ab three"].map { ClipItemDO(preview: $0) }
+        XCTAssertEqual(ClipSearch.filter(items, query: "ab", mode: .fuzzy).map(\.preview), ["ab one", "ab two", "ab three"])
+    }
 }
