@@ -19,10 +19,17 @@ Gatekeeper quarantine step).
    version — it creates the tag for you.)
 
 The **Release** workflow (`.github/workflows/release.yml`) then:
-- builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag),
-- computes `SHA256SUMS.txt`,
-- generates notes from the commit log since the previous tag,
+- builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag)
+  as `build/Copybara-<version>.dmg`, then mounts it read-only to check the app,
+  the `Applications` link and (for signed builds) the code signature,
+- computes `SHA256SUMS.txt` (by bare file name: `shasum -a 256 -c` works next
+  to the download),
+- generates notes: DMG install steps first, a file / size / SHA-256 table, the
+  build-from-source fallback, the commit log since the previous tag,
 - publishes a GitHub Release with the DMG + checksum.
+
+*Check for Updates…* links to the release's `.dmg` asset, so keep that
+extension if the packaging changes.
 
 Users get *Check for Updates…* → it compares the latest release tag to the
 running version and points them at the download.
@@ -39,10 +46,10 @@ To ship a clean, notarized DMG, build signed and notarize:
 
 ```bash
 DEVELOPMENT_TEAM=YOURTEAMID ./scripts/build_dmg.sh
-xcrun notarytool submit build/Copybara.dmg \
+xcrun notarytool submit build/Copybara-<version>.dmg \
   --apple-id "you@example.com" --team-id "YOURTEAMID" \
   --password "app-specific-password" --wait
-xcrun stapler staple build/Copybara.dmg
+xcrun stapler staple build/Copybara-<version>.dmg
 ```
 
 Then attach the notarized DMG to the release.
