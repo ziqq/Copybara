@@ -61,11 +61,17 @@ jobs:
       - name: Package
         id: package
         run: |
+          # build_dmg.sh already names the file with the version.
           NAME="Copybara-${{ steps.meta.outputs.version }}.dmg"
-          mv build/Copybara.dmg "$NAME"
-          shasum -a 256 "$NAME" > SHA256SUMS.txt
+          DMG="build/${NAME}"
+          [ -f "$DMG" ] || { echo "::error::${DMG} not found"; exit 1; }
+          # Sums by bare file name, so they verify next to the downloaded asset.
+          (cd build && shasum -a 256 "$NAME") > SHA256SUMS.txt
+          BYTES=$(stat -f%z "$DMG")
           echo "name=${NAME}" >> "$GITHUB_OUTPUT"
-          echo "sha=$(shasum -a 256 "$NAME" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "path=${DMG}" >> "$GITHUB_OUTPUT"
+          echo "sha=$(cut -d' ' -f1 SHA256SUMS.txt)" >> "$GITHUB_OUTPUT"
+          echo "size=$(awk -v b="$BYTES" 'BEGIN { printf "%.1f MB", b / 1048576 }')" >> "$GITHUB_OUTPUT"
 
       - name: Release notes
         run: |
@@ -77,14 +83,23 @@ jobs:
             echo
             echo "## Install"
             echo
+            echo "1. Download **${{ steps.package.outputs.name }}** and open it."
+            echo "2. Drag **Copybara** onto **Applications**."
+            echo "3. Clear the quarantine flag (the build is unsigned — no paid Apple"
+            echo "   Developer account yet — so Gatekeeper blocks it otherwise):"
+            echo
             echo '```bash'
-            echo "# Open the DMG, drag Copybara to /Applications, then:"
             echo "xattr -dr com.apple.quarantine /Applications/Copybara.app"
             echo '```'
             echo
-            echo "The build is unsigned (no paid Apple Developer account yet), so"
-            echo "Gatekeeper needs the quarantine flag cleared. Grant Accessibility on"
-            echo "first paste. Requires macOS 12+."
+            echo "4. Launch it and grant Accessibility on the first paste. Requires macOS 12+."
+            echo
+            echo "| File | Size | SHA-256 |"
+            echo "|---|---|---|"
+            echo "| ${{ steps.package.outputs.name }} | ${{ steps.package.outputs.size }} | \`${{ steps.package.outputs.sha }}\` |"
+            echo
+            echo "**Alternative — build from source:** clone the repo, \`brew install xcodegen\`,"
+            echo "then \`./scripts/build_dmg.sh\` (writes \`build/Copybara-<version>.dmg\`)."
             echo
             echo "## ${HEADING}"
             echo
@@ -92,9 +107,10 @@ jobs:
             echo
             echo "## Checksum"
             echo
+            echo 'Verify with `shasum -a 256 -c SHA256SUMS.txt` next to the download.'
+            echo
             echo '```'
-            echo "SHA-256  ${{ steps.package.outputs.sha }}"
-            echo "         ${{ steps.package.outputs.name }}"
+            cat SHA256SUMS.txt
             echo '```'
           } > NOTES.md
           cat NOTES.md
@@ -112,7 +128,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ steps.meta.outputs.tag }}" \
-            "${{ steps.package.outputs.name }}" \
+            "${{ steps.package.outputs.path }}" \
             SHA256SUMS.txt \
             --title "Copybara ${{ steps.meta.outputs.version }}" \
             --notes-file NOTES.md

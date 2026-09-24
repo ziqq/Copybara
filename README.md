@@ -116,7 +116,13 @@ You don't need one to use Copybara yourself. Sign in Xcode with a **free Apple I
 (Personal Team) and run — it's signed locally and runs on your Mac indefinitely
 (the iOS 7-day limit doesn't apply to Mac apps you build locally).
 
+To keep the Accessibility permission across rebuilds, put your team in a
+git-ignored `Config/Local.xcconfig` (`DEVELOPMENT_TEAM = XXXXXXXXXX`); ad-hoc
+builds lose it on every rebuild.
+
 To build a DMG without signing, run `./scripts/build_dmg.sh` (no `DEVELOPMENT_TEAM`).
+It writes `build/Copybara-<version>.dmg` and checks the image after creating it
+(app present, `Applications` link, signature intact for signed builds).
 It runs on your Mac; on **other** Macs, Gatekeeper blocks unsigned apps — open via
 right-click → *Open*, or clear the quarantine flag:
 
