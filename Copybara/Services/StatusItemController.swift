@@ -81,7 +81,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
 
-        let count = store.recentItems(limit: 100_000).count
+        let count = store.count()
         let header = NSMenuItem(
             title: "Copybara — \(count) \(count == 1 ? "item" : "items")",
             action: nil,

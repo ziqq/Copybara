@@ -11,8 +11,14 @@ struct ClipRowView: View {
     var index: Int? = nil
     /// When set, hovering the row reveals a delete button.
     var onDelete: (() -> Void)? = nil
+    /// Loads the thumbnail for image clips (payloads aren't in list snapshots).
+    var loadThumbnail: ((ClipItemDO) async -> NSImage?)? = nil
 
     @State private var isHovered = false
+    @State private var thumbnail: NSImage?
+
+    /// Pixel size for row thumbnails: 18pt at 2x.
+    static let thumbnailPixels = 36
 
     var body: some View {
         HStack(spacing: 10) {
@@ -44,11 +50,20 @@ struct ClipRowView: View {
 
     @ViewBuilder
     private var iconView: some View {
-        if item.kind == .image, let data = item.data, let thumbnail = NSImage(data: data) {
-            Image(nsImage: thumbnail)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+        if item.kind == .image {
+            if let image = thumbnail ?? immediateThumbnail {
+                Image(nsImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+            } else {
+                Image(systemName: "photo")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                    .task(id: item.id) {
+                        thumbnail = await loadThumbnail?(item)
+                    }
+            }
         } else if let appIcon = AppIconProvider.icon(forBundleID: item.appBundleID) {
             Image(nsImage: appIcon)
                 .resizable()
@@ -58,6 +73,15 @@ struct ClipRowView: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(isSelected ? Color.white : Color.secondary)
         }
+    }
+
+    /// A thumbnail available without waiting: already cached, or decodable from
+    /// a payload the item carries (previews and screenshots).
+    private var immediateThumbnail: NSImage? {
+        let cache = ThumbnailCache.shared
+        if let hit = cache.cached(id: item.id, maxPixel: Self.thumbnailPixels) { return hit }
+        guard let data = item.data else { return nil }
+        return cache.image(id: item.id, maxPixel: Self.thumbnailPixels, data: data)
     }
 
     private var kindIconName: String {
@@ -72,15 +96,8 @@ struct ClipRowView: View {
 
     // MARK: - Text + highlight
 
-    private var displayText: String {
-        item.preview
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\t", with: " ")
-            .trimmingCharacters(in: .whitespaces)
-    }
-
     private var highlightedText: Text {
-        let text = displayText
+        let text = item.rowText
         guard !query.isEmpty,
               let range = text.range(of: query, options: .caseInsensitive) else {
             return Text(text)

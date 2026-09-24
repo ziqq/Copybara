@@ -170,7 +170,7 @@ final class PopupController {
         }
 
         let panel = ensurePreviewPanel()
-        previewHosting?.rootView = PreviewCard(item: item)
+        previewHosting?.rootView = PreviewCard(item: oo.withPayload(item))
         // Defer sizing/positioning so fittingSize isn't forced during a layout pass.
         DispatchQueue.main.async { [weak self] in
             guard let self, self.window.isVisible, let hosting = self.previewHosting else { return }
@@ -463,7 +463,7 @@ final class PopupController {
         if item.kind == .snippet {
             paster.stage(text: expanded(item.textToPaste))
         } else {
-            paster.stage(item: item, plain: plain)
+            paster.stage(item: oo.withPayload(item), plain: plain)
         }
     }
 

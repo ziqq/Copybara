@@ -44,7 +44,8 @@ struct PreviewCard: View {
     private var content: some View {
         switch item.kind {
         case .image:
-            if let data = item.data, let image = NSImage(data: data) {
+            if let data = item.data,
+               let image = ThumbnailCache.shared.image(id: item.id, maxPixel: 600, data: data) {
                 Image(nsImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)

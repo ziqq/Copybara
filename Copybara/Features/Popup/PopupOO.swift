@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -57,8 +58,29 @@ final class PopupOO: ObservableObject {
     /// re-applies the current filter.
     func reload() {
         // Snippets are always available, shown above the sorted history.
-        allItems = snippets.asClipItems() + ClipSearch.sort(store.recentItems(limit: 100_000), by: settings.sortMode)
+        allItems = snippets.asClipItems() + ClipSearch.sort(
+            store.recentItems(limit: 100_000, includePayloads: false),
+            by: settings.sortMode
+        )
         refilter()
+    }
+
+    /// `item` with its binary payload loaded, for pasting or the preview card.
+    /// List snapshots omit payloads to keep reloads cheap.
+    func withPayload(_ item: ClipItemDO) -> ClipItemDO {
+        guard item.needsPayload, item.data == nil else { return item }
+        return item.with(data: store.payload(id: item.id))
+    }
+
+    /// A small thumbnail for an image clip, decoded off the main thread and cached.
+    nonisolated func thumbnail(for item: ClipItemDO, maxPixel: Int) async -> NSImage? {
+        let cache = ThumbnailCache.shared
+        if let hit = cache.cached(id: item.id, maxPixel: maxPixel) { return hit }
+        let store = self.store
+        return await Task.detached(priority: .userInitiated) {
+            guard let data = item.data ?? store.payload(id: item.id) else { return nil }
+            return cache.image(id: item.id, maxPixel: maxPixel, data: data)
+        }.value
     }
 
     /// Moves the selection by `delta`, clamped to the current results.

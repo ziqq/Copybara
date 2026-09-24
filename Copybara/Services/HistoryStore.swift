@@ -154,7 +154,11 @@ final class HistoryStore {
     // MARK: - Reads
 
     /// Fetches items ordered pinned-first, then newest-first.
-    func recentItems(limit: Int = 200) -> [ClipItemDO] {
+    ///
+    /// With `includePayloads` false, binary payloads (images, RTF, file lists)
+    /// are left on disk — the popup lists hundreds of clips but only needs the
+    /// payload for the few it shows or pastes (`payload(id:)`).
+    func recentItems(limit: Int = 200, includePayloads: Bool = true) -> [ClipItemDO] {
         let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
         request.sortDescriptors = [
             NSSortDescriptor(key: "isPinned", ascending: false),
@@ -163,7 +167,24 @@ final class HistoryStore {
         request.fetchLimit = limit
 
         let objects = (try? stack.viewContext.fetch(request)) ?? []
-        return objects.map(Self.makeDataObject)
+        return objects.map { Self.makeDataObject(from: $0, includePayload: includePayloads) }
+    }
+
+    /// The binary payload of one clip. Uses its own context, so it is safe to
+    /// call off the main thread (e.g. to build thumbnails in the background).
+    func payload(id: UUID) -> Data? {
+        let context = stack.newBackgroundContext()
+        var data: Data?
+        context.performAndWait {
+            data = object(with: id, in: context)?.value(forKey: "data") as? Data
+        }
+        return data
+    }
+
+    /// Number of stored clips, without materializing them.
+    func count() -> Int {
+        let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+        return (try? stack.viewContext.count(for: request)) ?? 0
     }
 
     // MARK: - Helpers
@@ -180,7 +201,7 @@ final class HistoryStore {
         }
     }
 
-    private static func makeDataObject(from object: NSManagedObject) -> ClipItemDO {
+    private static func makeDataObject(from object: NSManagedObject, includePayload: Bool = true) -> ClipItemDO {
         ClipItemDO(
             id: object.value(forKey: "id") as? UUID ?? UUID(),
             kind: ClipKind(rawValue: object.value(forKey: "kind") as? String ?? "text") ?? .text,
@@ -189,7 +210,7 @@ final class HistoryStore {
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
             appBundleID: object.value(forKey: "appBundleID") as? String,
             copyCount: object.value(forKey: "copyCount") as? Int ?? 1,
-            data: object.value(forKey: "data") as? Data
+            data: includePayload ? object.value(forKey: "data") as? Data : nil
         )
     }
 }
