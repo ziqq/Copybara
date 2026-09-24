@@ -121,7 +121,7 @@ final class PopupOO: ObservableObject {
     }
 
     /// A small thumbnail for an image clip, decoded off the main thread and cached.
-    nonisolated func thumbnail(for item: ClipItemDO, maxPixel: Int) async -> NSImage? {
+    func thumbnail(for item: ClipItemDO, maxPixel: Int) async -> NSImage? {
         let cache = ThumbnailCache.shared
         if let hit = cache.cached(id: item.id, maxPixel: maxPixel) { return hit }
         let store = self.store
