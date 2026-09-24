@@ -85,7 +85,7 @@ jobs:
             echo
             echo "1. Download **${{ steps.package.outputs.name }}** and open it."
             echo "2. Drag **Copybara** onto **Applications**."
-            echo "3. Clear the quarantine flag (the build is unsigned — no paid Apple"
+            echo "3. Clear the quarantine flag (the build is ad-hoc signed — no paid Apple"
             echo "   Developer account yet — so Gatekeeper blocks it otherwise):"
             echo
             echo '```bash'
@@ -93,6 +93,10 @@ jobs:
             echo '```'
             echo
             echo "4. Launch it and grant Accessibility on the first paste. Requires macOS 12+."
+            echo
+            echo "> **After updating**, macOS treats the new ad-hoc build as a different app:"
+            echo "> in System Settings › Privacy & Security › Accessibility, remove Copybara"
+            echo "> with **−** and enable it again, or pasting stays off."
             echo
             echo "| File | Size | SHA-256 |"
             echo "|---|---|---|"

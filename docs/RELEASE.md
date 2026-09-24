@@ -21,7 +21,7 @@ Gatekeeper quarantine step).
 The **Release** workflow (`.github/workflows/release.yml`) then:
 - builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag)
   as `build/Copybara-<version>.dmg`, then mounts it read-only to check the app,
-  the `Applications` link and (for signed builds) the code signature,
+  the `Applications` link and the code signature,
 - computes `SHA256SUMS.txt` (by bare file name: `shasum -a 256 -c` works next
   to the download),
 - generates notes: DMG install steps first, a file / size / SHA-256 table, the
@@ -36,11 +36,16 @@ running version and points them at the download.
 
 ## Signing (optional, needs a paid account)
 
-The DMG is **unsigned/ad-hoc** by default, so users clear the quarantine flag:
+Without a team the DMG is **ad-hoc signed** (sealed as `dev.ustinoff.copybara`,
+no certificate), so users clear the quarantine flag:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Copybara.app
 ```
+
+An ad-hoc signature is tied to the exact build, so after each update users must
+re-enable Copybara under Privacy & Security › Accessibility (remove it with −,
+then turn it on). The release notes say so; a Developer ID signature fixes it.
 
 To ship a clean, notarized DMG, build signed and notarize:
 

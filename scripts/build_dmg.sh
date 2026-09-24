@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Builds a Release Copybara.app and packages it into a DMG.
 #
-# Local (unsigned) DMG:   ./scripts/build_dmg.sh
+# Local (ad-hoc) DMG:     ./scripts/build_dmg.sh
 # Signed DMG:             DEVELOPMENT_TEAM=XXXXXXXXXX ./scripts/build_dmg.sh
 # Explicit version:       COPYBARA_VERSION=0.2.0 ./scripts/build_dmg.sh
 #
@@ -26,8 +26,12 @@ xcodegen generate
 if [ -n "${DEVELOPMENT_TEAM:-}" ]; then
   SIGN_ARGS=(DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" CODE_SIGN_STYLE=Automatic)
 else
-  echo "No DEVELOPMENT_TEAM set — building an UNSIGNED app (local testing only)."
-  SIGN_ARGS=(CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
+  # Ad-hoc, not unsigned: with signing disabled only the linker signs the
+  # executable (identifier "Copybara") and the bundle is left unsealed, which
+  # breaks the Accessibility grant. Ad-hoc seals it as dev.ustinoff.copybara.
+  # Overrides any team from Config/Local.xcconfig.
+  echo "No DEVELOPMENT_TEAM set — building an ad-hoc signed app (no certificate)."
+  SIGN_ARGS=(CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=)
 fi
 
 # Version: explicit override (e.g. from a release tag), else project.yml.
@@ -70,13 +74,11 @@ trap 'hdiutil detach "$MOUNT" -quiet >/dev/null 2>&1 || true; rmdir "$MOUNT" 2>/
 hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "$DMG" >/dev/null
 [ -d "$MOUNT/$APP_NAME.app" ] || { echo "DMG check failed: $APP_NAME.app missing"; exit 1; }
 [ -L "$MOUNT/Applications" ] || { echo "DMG check failed: Applications link missing"; exit 1; }
-if [ -n "${DEVELOPMENT_TEAM:-}" ]; then
-  codesign --verify --deep --strict "$MOUNT/$APP_NAME.app"
-  echo "Signature verified inside the DMG."
-fi
+codesign --verify --deep --strict "$MOUNT/$APP_NAME.app"
+echo "Signature verified inside the DMG."
 
 echo "Created $DMG ($(du -h "$DMG" | cut -f1 | tr -d ' '))"
 if [ -z "${DEVELOPMENT_TEAM:-}" ]; then
-  echo "Unsigned build: on other Macs, clear quarantine after copying to /Applications:"
+  echo "Ad-hoc build: on other Macs, clear quarantine after copying to /Applications:"
   echo "  xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
 fi
