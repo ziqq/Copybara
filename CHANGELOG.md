@@ -12,13 +12,11 @@
 ## Unreleased
 
 
+## 0.1.1 — 2026-09-29
+- **CHANGED**: Update menu bar icon.
+
+
 ## 0.1.0 — 2026-09-24
-- **FIXED**: Paste went into Copybara itself instead of the app you were in —
-  the target app is now kept for the paste and gets focus back reliably.
-- **FIXED**: Paste into Chromium/Electron apps (Claude, Discord, VS Code, Telegram).
-- **FIXED**: The Settings window didn't open on macOS 14+; changes to history
-  size, retention and "Ignore all copies" now apply immediately, the
-  Accessibility status refreshes, and "Launch at login" shows the real state.
 - **ADDED**: Delete single clips with the mouse — a ✕ on hover and a right-click
   menu (Paste, Paste as Plain Text, Copy, Pin/Unpin, Delete). Deleting a snippet
   now removes it.
@@ -31,10 +29,16 @@
   payloads load only when a clip is pasted, copied or previewed.
 - **CHANGED**: The Accessibility warning no longer hides the footer actions, and
   only the system permission prompt is shown (no second dialog on top).
-- **FIXED**: Square corners showed around the Liquid Glass popup.
 - **CHANGED**: The DMG is `Copybara-<version>.dmg`, ad-hoc signed as
   `dev.ustinoff.copybara`, and checked after packaging; local builds can sign
   with your team from `Config/Local.xcconfig` so Accessibility survives rebuilds.
+- **FIXED**: Square corners showed around the Liquid Glass popup.
+- **FIXED**: Paste went into Copybara itself instead of the app you were in —
+  the target app is now kept for the paste and gets focus back reliably.
+- **FIXED**: Paste into Chromium/Electron apps (Claude, Discord, VS Code, Telegram).
+- **FIXED**: The Settings window didn't open on macOS 14+; changes to history
+  size, retention and "Ignore all copies" now apply immediately, the
+  Accessibility status refreshes, and "Launch at login" shows the real state.
 
 - **ADDED**: Snippet placeholders — `${date}`, `${time}`, `${datetime}`,
   `${clipboard}`, `${uuid}`, expanded at paste time; multi-line snippet editor.
