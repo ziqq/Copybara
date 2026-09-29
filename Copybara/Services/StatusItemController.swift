@@ -33,8 +33,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func configureButton() {
         guard let button = statusItem.button else { return }
-        button.image = NSImage(systemSymbolName: "doc.on.clipboard", accessibilityDescription: "Copybara")
-        button.image?.isTemplate = true
+        button.image = MenuBarIcon.image()
         button.target = self
         button.action = #selector(handleClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
