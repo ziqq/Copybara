@@ -26,7 +26,7 @@ final class OnboardingController {
             )
             let hosting = NSHostingController(rootView: root)
             let window = NSWindow(contentViewController: hosting)
-            window.title = "Welcome to Copybara"
+            window.title = L10n.string("Welcome to Copybara")
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
             window.center()

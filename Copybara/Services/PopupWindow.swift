@@ -10,7 +10,7 @@ final class PopupWindow: NSPanel {
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: PopupMetrics.width, height: 480),
-            styleMask: [.borderless],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )

@@ -36,7 +36,7 @@ struct PopupView: View {
 
     @FocusState private var searchFocused: Bool
     @State private var previewItem: ClipItemDO?
-    @State private var axTrusted: Bool = AXIsProcessTrusted()
+    @State private var axTrusted: Bool = Paster().hasAccessibilityPermission
 
     private let axTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
@@ -60,7 +60,7 @@ struct PopupView: View {
         }
         .onChange(of: previewItem) { onHoverPreview($0) }
         .onReceive(axTimer) { _ in
-            let trusted = AXIsProcessTrusted()
+            let trusted = Paster().hasAccessibilityPermission
             if trusted != axTrusted { axTrusted = trusted }
         }
     }
@@ -103,7 +103,7 @@ struct PopupView: View {
         if oo.results.isEmpty {
             VStack {
                 Spacer()
-                Text(oo.query.isEmpty ? "No clips yet" : "No matches")
+                Text(L10n.string(oo.query.isEmpty ? "No clips yet" : "No matches"))
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -195,7 +195,7 @@ struct PopupView: View {
 
     private func actionLabel(_ title: String, keys: String) -> some View {
         HStack(spacing: 6) {
-            Text(title).font(.system(size: 11))
+            Text(L10n.string(title)).font(.system(size: 11))
             keycap(keys)
         }
         .foregroundStyle(.secondary)
@@ -245,7 +245,7 @@ struct PopupView: View {
             onAction(action)
         } label: {
             HStack {
-                Text(title).font(.system(size: 12))
+                Text(L10n.string(title)).font(.system(size: 12))
                 Spacer()
                 if let keys { keycap(keys) }
             }
@@ -281,7 +281,7 @@ struct PopupView: View {
         Button("Copy") { run(.copy, on: item) }
         if item.kind != .snippet {
             Divider()
-            Button(item.isPinned ? "Unpin" : "Pin") { run(.pin, on: item) }
+            Button(L10n.string(item.isPinned ? "Unpin" : "Pin")) { run(.pin, on: item) }
         }
         Divider()
         Button("Delete") { oo.delete(item) }

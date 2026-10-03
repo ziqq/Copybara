@@ -12,15 +12,29 @@ final class SettingsWindowController {
 
     func show() {
         if window == nil {
-            let hosting = NSHostingController(rootView: SettingsView())
-            let window = NSWindow(contentViewController: hosting)
-            window.title = "Copybara Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            let hosting = NSHostingView(rootView: SettingsView())
+            if #available(macOS 13.0, *) {
+                // The window owns its size; measuring the whole settings form
+                // here can re-enter AppKit's window layout while opening it.
+                hosting.sizingOptions = []
+            }
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
+                styleMask: [.titled, .closable, .miniaturizable],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentView = hosting
+            window.title = L10n.string("Copybara Settings")
             window.isReleasedWhenClosed = false
             window.center()
             self.window = window
         }
-        NSApp.activate(ignoringOtherApps: true)
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         window?.makeKeyAndOrderFront(nil)
     }
 }

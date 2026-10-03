@@ -11,10 +11,10 @@ enum KindScope: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .all: return "All"
-        case .text: return "Text"
-        case .image: return "Images"
-        case .file: return "Files"
+        case .all: return L10n.string("All")
+        case .text: return L10n.string("Text")
+        case .image: return L10n.string("Images")
+        case .file: return L10n.string("Files")
         }
     }
 

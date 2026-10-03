@@ -2,12 +2,31 @@ import ApplicationServices
 import KeyboardShortcuts
 import SwiftUI
 
-/// The preferences window, shown via the standard Settings scene.
+/// Scrollable preferences hosted by the settings window controller or scene.
 struct SettingsView: View {
     @StateObject private var oo = SettingsOO()
     private let refreshTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
+        scrollableForm
+        .frame(width: 480, height: 600)
+        .onReceive(refreshTimer) { _ in oo.refreshExternalState() }
+    }
+
+    @ViewBuilder
+    private var scrollableForm: some View {
+        if #available(macOS 13.0, *) {
+            settingsForm.formStyle(.grouped)
+        } else {
+            ScrollView {
+                settingsForm
+                    .padding(20)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var settingsForm: some View {
         Form {
             Section(header: Text("Shortcut")) {
                 KeyboardShortcuts.Recorder("Toggle Copybara", name: .togglePopup)
@@ -15,7 +34,7 @@ struct SettingsView: View {
 
             Section(header: Text("History")) {
                 Stepper(value: $oo.historySize, in: 10...1000, step: 10) {
-                    Text("Keep \(oo.historySize) items")
+                    Text(L10n.format("Keep %ld items", oo.historySize))
                 }
                 Picker("Sort by", selection: $oo.sortMode) {
                     ForEach(SortMode.allCases) { mode in
@@ -122,7 +141,7 @@ struct SettingsView: View {
                 HStack {
                     Text("Accessibility")
                     Spacer()
-                    Text(oo.accessibilityGranted ? "Granted" : "Not granted")
+                    Text(L10n.string(oo.accessibilityGranted ? "Granted" : "Not granted"))
                         .font(.caption)
                         .foregroundColor(oo.accessibilityGranted ? .secondary : .orange)
                 }
@@ -134,9 +153,6 @@ struct SettingsView: View {
                 }
             }
         }
-        .padding(20)
-        .frame(width: 420)
-        .onReceive(refreshTimer) { _ in oo.refreshExternalState() }
     }
 }
 

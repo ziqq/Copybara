@@ -12,6 +12,19 @@
 ## Unreleased
 
 
+## 0.1.2 — 2026-10-03
+- **ADDED**: Localization in English, Russian, German, French, Spanish, Italian,
+  Portuguese, Simplified Chinese, Japanese, and Korean, following the app language
+  selected in macOS.
+- **CHANGED**: The menu has no action icons; Check for Updates, Settings, and
+  Clear All appear in that order. Removed the ambiguous Clear menu item.
+- **FIXED**: Settings opens after the menu closes, in a bounded, scrollable window
+  without measuring the entire form to determine the window size.
+- **FIXED**: The search panel keeps the destination app active; paste verifies
+  focus and event-posting permission and targets that app. Images offer both
+  PNG and TIFF for native editors.
+
+
 ## 0.1.1 — 2026-09-29
 - **CHANGED**: Update menu bar icon.
 

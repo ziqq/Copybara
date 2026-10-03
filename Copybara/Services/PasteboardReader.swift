@@ -38,7 +38,7 @@ enum PasteboardReader {
         let height = Int(image.size.height)
         return ClipCapture(
             kind: .image,
-            text: "Image \(width)×\(height)",
+            text: L10n.format("Image %ld×%ld", width, height),
             data: png,
             contentHash: png.sha256Hex,
             appBundleID: appBundleID

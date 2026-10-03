@@ -1,6 +1,8 @@
 name: Copybara
 options:
   bundleIdPrefix: dev.ustinoff
+  developmentLanguage: en
+  knownRegions: [en, ru, de, fr, es, it, pt, zh-Hans, ja, ko]
   deploymentTarget:
     macOS: "12.0"
   createIntermediateGroups: true
@@ -14,8 +16,8 @@ fileGroups:
 
 settings:
   base:
-    CURRENT_PROJECT_VERSION: "1"
-    MARKETING_VERSION: "0.1.1"
+    CURRENT_PROJECT_VERSION: "2"
+    MARKETING_VERSION: "0.1.2"
     SWIFT_VERSION: "5.0"
 
 packages:

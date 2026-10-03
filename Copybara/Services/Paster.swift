@@ -17,7 +17,7 @@ final class Paster {
     }
 
     /// Whether the app currently holds the Accessibility permission.
-    var hasAccessibilityPermission: Bool { AXIsProcessTrusted() }
+    var hasAccessibilityPermission: Bool { AXIsProcessTrusted() && CGPreflightPostEventAccess() }
 
     /// Prompts the user to grant Accessibility permission if not already granted.
     /// Returns the current trust state.
@@ -27,7 +27,11 @@ final class Paster {
         // kAXTrustedCheckOptionPrompt; used literally to avoid SDK-specific
         // Unmanaged/CFString import differences.
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        return AXIsProcessTrustedWithOptions(options)
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        if trusted && !CGPreflightPostEventAccess() {
+            CGRequestPostEventAccess()
+        }
+        return hasAccessibilityPermission
     }
 
     /// Writes `text` to the pasteboard without pasting.
@@ -52,6 +56,11 @@ final class Paster {
         case .image:
             if let data = item.data {
                 pasteboard.setData(data, forType: .png)
+                // Native editors commonly request TIFF even when browsers
+                // accept PNG. Offer both representations of the same image.
+                if let tiff = NSImage(data: data)?.tiffRepresentation {
+                    pasteboard.setData(tiff, forType: .tiff)
+                }
             }
         case .file:
             if !plain, let data = item.data, let paths = FilePayload.paths(from: data) {
@@ -65,12 +74,18 @@ final class Paster {
 
     /// Synthesizes ⌘V into whatever app is currently frontmost.
     /// Requires Accessibility permission; no-ops (with a log) otherwise.
-    func pasteIntoFrontmostApp() {
+    func pasteIntoFrontmostApp(expectedPID: pid_t? = nil) {
         guard hasAccessibilityPermission else {
             Log.paste.error("Cannot paste: Accessibility permission is missing")
             return
         }
-        synthesizeCommandV()
+        guard let target = NSWorkspace.shared.frontmostApplication,
+              target.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              expectedPID == nil || target.processIdentifier == expectedPID else {
+            Log.paste.error("Cannot paste: target app no longer has focus")
+            return
+        }
+        synthesizeCommandV(into: target.processIdentifier)
     }
 
     /// Convenience: stage `text` and immediately paste it into the frontmost app.
@@ -79,7 +94,7 @@ final class Paster {
         pasteIntoFrontmostApp()
     }
 
-    private func synthesizeCommandV() {
+    private func synthesizeCommandV(into pid: pid_t) {
         let source = CGEventSource(stateID: .combinedSessionState)
         // Don't let keys the user is still physically holding (e.g. ⌘ from ⌘1
         // or ⇧ from the hotkey) leak into the synthesized chord.
@@ -97,7 +112,7 @@ final class Paster {
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
         keyUp?.flags = flags
 
-        keyDown?.post(tap: .cgSessionEventTap)
-        keyUp?.post(tap: .cgSessionEventTap)
+        keyDown?.postToPid(pid)
+        keyUp?.postToPid(pid)
     }
 }
