@@ -11,4 +11,14 @@ enum ClipKind: String, Codable, CaseIterable {
     case file
     /// A user-authored snippet (not captured from the pasteboard).
     case snippet
+
+    var title: String {
+        switch self {
+        case .text: return L10n.string("Text")
+        case .rtf: return L10n.string("Rich Text")
+        case .image: return L10n.string("Image")
+        case .file: return L10n.string("File")
+        case .snippet: return L10n.string("Snippet")
+        }
+    }
 }

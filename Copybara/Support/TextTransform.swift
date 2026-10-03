@@ -10,9 +10,9 @@ enum TextTransform: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .trimmed: return "Paste Trimmed"
-        case .lowercased: return "Paste lowercased"
-        case .uppercased: return "Paste UPPERCASED"
+        case .trimmed: return L10n.string("Paste Trimmed")
+        case .lowercased: return L10n.string("Paste lowercased")
+        case .uppercased: return L10n.string("Paste UPPERCASED")
         }
     }
 

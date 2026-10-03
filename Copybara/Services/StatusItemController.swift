@@ -45,7 +45,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         let ignoring = AppSettings.shared.ignoreAllCopies
         button.appearsDisabled = ignoring
-        button.toolTip = ignoring ? "Copybara — ignoring copies" : "Copybara"
+        button.toolTip = ignoring ? L10n.string("Copybara — ignoring copies") : "Copybara"
     }
 
     // MARK: - Click handling
@@ -79,48 +79,43 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
+        menu.autoenablesItems = false
 
         let count = store.count()
         let header = NSMenuItem(
-            title: "Copybara — \(count) \(count == 1 ? "item" : "items")",
+            title: L10n.format("Copybara — %ld items", count),
             action: nil,
             keyEquivalent: ""
         )
         header.isEnabled = false
         menu.addItem(header)
 
-        let open = NSMenuItem(title: "Show Copybara", action: #selector(openPopup), keyEquivalent: "")
+        let open = NSMenuItem(title: L10n.string("Show Copybara"), action: #selector(openPopup), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
 
         menu.addItem(.separator())
 
-        let ignoreAll = NSMenuItem(title: "Ignore All Copies", action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
+        let ignoreAll = NSMenuItem(title: L10n.string("Ignore All Copies"), action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
         ignoreAll.target = self
         ignoreAll.state = AppSettings.shared.ignoreAllCopies ? .on : .off
         menu.addItem(ignoreAll)
 
-        let ignoreNext = NSMenuItem(title: "Ignore Next Copy", action: #selector(ignoreNextFromMenu), keyEquivalent: "")
+        let ignoreNext = NSMenuItem(title: L10n.string("Ignore Next Copy"), action: #selector(ignoreNextFromMenu), keyEquivalent: "")
         ignoreNext.target = self
         menu.addItem(ignoreNext)
 
         menu.addItem(.separator())
 
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
-        settings.target = self
-        menu.addItem(settings)
-
-        let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
+        let updates = NSMenuItem(title: L10n.string("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
 
-        let clear = NSMenuItem(title: "Clear", action: #selector(clearUnpinned), keyEquivalent: "\u{8}")
-        clear.keyEquivalentModifierMask = [.option, .command]
-        clear.target = self
-        clear.isEnabled = count > 0
-        menu.addItem(clear)
+        let settings = NSMenuItem(title: L10n.string("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
+        settings.target = self
+        menu.addItem(settings)
 
-        let clearAll = NSMenuItem(title: "Clear All", action: #selector(clearAll), keyEquivalent: "\u{8}")
+        let clearAll = NSMenuItem(title: L10n.string("Clear All"), action: #selector(clearAll), keyEquivalent: "\u{8}")
         clearAll.keyEquivalentModifierMask = [.shift, .option, .command]
         clearAll.target = self
         clearAll.isEnabled = count > 0
@@ -128,9 +123,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit Copybara", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L10n.string("Quit Copybara"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
+
+        for item in menu.items where !item.isSeparatorItem {
+            // macOS 26 preserves default action icons when nil is assigned
+            // first. Assigning an image before clearing it opts out instead.
+            // https://developer.apple.com/forums/thread/800414
+            item.image = NSImage()
+            item.image = nil
+        }
 
         return menu
     }
@@ -138,9 +141,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func openPopup() { onPrimaryAction?() }
-    @objc private func openSettings() { onOpenSettings?() }
+    @objc private func openSettings() {
+        // Let NSMenu finish tracking before creating and activating a window.
+        DispatchQueue.main.async { [weak self] in self?.onOpenSettings?() }
+    }
     @objc private func checkForUpdates() { onCheckForUpdates?() }
-    @objc private func clearUnpinned() { store.clearUnpinned() }
     @objc private func clearAll() { store.clearAll() }
     @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }
     @objc private func ignoreNextFromMenu() { onIgnoreNext?() }

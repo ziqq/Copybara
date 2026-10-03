@@ -6,9 +6,9 @@ import SwiftUI
 /// and hides it, routes keyboard navigation, sizes the window to the results,
 /// and performs paste-on-commit.
 ///
-/// The tricky part is focus: to receive keystrokes, Copybara must become active,
-/// which steals focus from the app the user was in. So the controller remembers
-/// that app on show and re-activates it right before synthesizing ⌘V.
+/// The panel takes keyboard focus without activating Copybara. The controller
+/// remembers the destination app and restores it when another Copybara window
+/// (such as Settings) was active before the popup opened.
 @MainActor
 final class PopupController {
     private let oo: PopupOO
@@ -19,6 +19,7 @@ final class PopupController {
     /// The app to paste into. Held strongly: `frontmostApplication` hands back a
     /// fresh instance nobody else retains, so a weak reference is nil at once.
     private var previousApp: NSRunningApplication?
+    private var pasteGeneration = 0
     private var cancellables = Set<AnyCancellable>()
 
     private var previewPanel: NSPanel?
@@ -34,6 +35,14 @@ final class PopupController {
         self.oo = PopupOO(store: store)
         self.paster = paster
         self.window = PopupWindow()
+
+        rememberTarget(NSWorkspace.shared.frontmostApplication)
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] note in
+                self?.rememberTarget(note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication)
+            }
+            .store(in: &cancellables)
 
         configureAppearance()
 
@@ -128,22 +137,17 @@ final class PopupController {
     // MARK: - Show / hide
 
     func show() {
+        pasteGeneration += 1
         // Re-opening while Copybara is already frontmost (e.g. from Settings) must
         // keep the real target rather than pasting into Copybara itself.
-        if let front = NSWorkspace.shared.frontmostApplication,
-           front.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-            previousApp = front
-        }
+        rememberTarget(NSWorkspace.shared.frontmostApplication)
         configureAppearance()
         oo.reset()
         layoutWindow()
         installKeyMonitor()
 
-        if #available(macOS 14.0, *) {
-            NSApp.activate()
-        } else {
-            NSApp.activate(ignoringOtherApps: true)
-        }
+        // A nonactivating panel accepts search input while keeping the target
+        // app active, avoiding an activation race when an item is pasted.
         window.makeKeyAndOrderFront(nil)
         window.makeKey()
     }
@@ -152,6 +156,11 @@ final class PopupController {
         removeKeyMonitor()
         updatePreview(nil)
         window.orderOut(nil)
+    }
+
+    private func rememberTarget(_ app: NSRunningApplication?) {
+        guard let app, app.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return }
+        previousApp = app
     }
 
     // MARK: - Side preview
@@ -482,8 +491,12 @@ final class PopupController {
             handleMissingAccessibility()
             return
         }
-        reactivatePreviousApp()
-        pasteWhenTargetIsFrontmost()
+        guard let target = previousApp, !target.isTerminated else {
+            Log.paste.error("Committed to pasteboard only — no target app")
+            return
+        }
+        reactivate(target)
+        pasteWhenTargetIsFrontmost(target, generation: pasteGeneration)
     }
 
     /// Content is already on the pasteboard. Show the system's own permission
@@ -496,26 +509,27 @@ final class PopupController {
         paster.ensureAccessibilityPermission()
     }
 
-    private func reactivatePreviousApp() {
-        guard let previousApp else { return }
+    private func reactivate(_ target: NSRunningApplication) {
+        guard !target.isActive else { return }
         if #available(macOS 14.0, *) {
             // Cooperative activation: the active app must hand focus over, or
             // the target's `activate()` request is ignored.
-            NSApp.yieldActivation(to: previousApp)
-            previousApp.activate()
+            NSApp.yieldActivation(to: target)
+            target.activate()
         } else {
-            previousApp.activate(options: [.activateIgnoringOtherApps])
+            target.activate(options: [.activateIgnoringOtherApps])
         }
     }
 
     /// Waits (briefly) for the previously-frontmost app to actually regain focus
     /// before synthesizing ⌘V, so paste lands in the right app even when it is
-    /// slow to activate. Falls back to pasting after ~0.5s regardless.
-    private func pasteWhenTargetIsFrontmost(attempt: Int = 0) {
-        let maxAttempts = 20 // ~0.5s at 25ms steps
-        let targetPID = previousApp?.processIdentifier
+    /// slow to activate. Leaves the content on the clipboard if focus is lost.
+    private func pasteWhenTargetIsFrontmost(_ target: NSRunningApplication, generation: Int, attempt: Int = 0) {
+        guard generation == pasteGeneration, !window.isVisible, !target.isTerminated else { return }
+        let maxAttempts = 40 // ~1s at 25ms steps
+        let targetPID = target.processIdentifier
         let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier
-        let ready = targetPID == nil || frontPID == targetPID
+        let ready = frontPID == targetPID
 
         if !ready && attempt == maxAttempts / 2 {
             // Activation was refused; stepping aside hands focus back to the
@@ -523,17 +537,18 @@ final class PopupController {
             NSApp.hide(nil)
         }
 
-        if ready || attempt >= maxAttempts {
-            if !ready { Log.paste.error("Target app did not regain focus; pasting anyway") }
+        if ready {
             // Becoming frontmost precedes the target's window turning key, so give
             // it a moment; otherwise ⌘V lands before there is a focused field.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
-                self?.paster.pasteIntoFrontmostApp()
-                Log.paste.info("Synthesized ⌘V into \(NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "?", privacy: .public)")
+                guard let self, generation == self.pasteGeneration, !self.window.isVisible else { return }
+                self.paster.pasteIntoFrontmostApp(expectedPID: targetPID)
             }
+        } else if attempt >= maxAttempts {
+            Log.paste.error("Committed to pasteboard only — target app did not regain focus")
         } else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) { [weak self] in
-                self?.pasteWhenTargetIsFrontmost(attempt: attempt + 1)
+                self?.pasteWhenTargetIsFrontmost(target, generation: generation, attempt: attempt + 1)
             }
         }
     }

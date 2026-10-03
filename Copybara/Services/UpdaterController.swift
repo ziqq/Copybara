@@ -17,25 +17,25 @@ final class UpdaterController {
 
         switch outcome {
         case .upToDate(let current):
-            alert.messageText = "You're up to date"
-            alert.informativeText = "Copybara \(current) is the latest version."
-            alert.addButton(withTitle: "OK")
+            alert.messageText = L10n.string("You're up to date")
+            alert.informativeText = L10n.format("Copybara %@ is the latest version.", current)
+            alert.addButton(withTitle: L10n.string("OK"))
             alert.runModal()
 
         case .available(let release):
-            alert.messageText = "Update available"
-            alert.informativeText = "Copybara \(release.version) is available — you have \(UpdateChecker.current())."
-            alert.addButton(withTitle: "Download")
-            alert.addButton(withTitle: "Later")
+            alert.messageText = L10n.string("Update available")
+            alert.informativeText = L10n.format("Copybara %@ is available — you have %@.", release.version, UpdateChecker.current())
+            alert.addButton(withTitle: L10n.string("Download"))
+            alert.addButton(withTitle: L10n.string("Later"))
             if alert.runModal() == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(release.downloadURL ?? release.url)
             }
 
         case .failed(let message):
-            alert.messageText = "Couldn't check for updates"
+            alert.messageText = L10n.string("Couldn't check for updates")
             alert.informativeText = message
-            alert.addButton(withTitle: "Open Releases")
-            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: L10n.string("Open Releases"))
+            alert.addButton(withTitle: L10n.string("OK"))
             if alert.runModal() == .alertFirstButtonReturn {
                 NSWorkspace.shared.open(UpdateChecker.releasesPage)
             }

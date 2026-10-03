@@ -19,9 +19,9 @@ enum IconVisibility: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .menuBar: return "Menu bar"
-        case .dock: return "Dock"
-        case .both: return "Both"
+        case .menuBar: return L10n.string("Menu bar")
+        case .dock: return L10n.string("Dock")
+        case .both: return L10n.string("Both")
         }
     }
 }
@@ -37,10 +37,10 @@ enum PopupPosition: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .remembered: return "Last position (drag to move)"
-        case .menuBarIcon: return "Menu bar icon"
-        case .cursor: return "Cursor"
-        case .center: return "Screen center"
+        case .remembered: return L10n.string("Last position (drag to move)")
+        case .menuBarIcon: return L10n.string("Menu bar icon")
+        case .cursor: return L10n.string("Cursor")
+        case .center: return L10n.string("Screen center")
         }
     }
 }
@@ -55,9 +55,9 @@ enum SearchMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .fuzzy: return "Fuzzy"
-        case .exact: return "Exact"
-        case .regex: return "Regex"
+        case .fuzzy: return L10n.string("Fuzzy")
+        case .exact: return L10n.string("Exact")
+        case .regex: return L10n.string("Regex")
         }
     }
 }
@@ -72,9 +72,9 @@ enum SortMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .lastCopied: return "Last copied"
-        case .firstCopied: return "First copied"
-        case .numberOfCopies: return "Most copied"
+        case .lastCopied: return L10n.string("Last copied")
+        case .firstCopied: return L10n.string("First copied")
+        case .numberOfCopies: return L10n.string("Most copied")
         }
     }
 }

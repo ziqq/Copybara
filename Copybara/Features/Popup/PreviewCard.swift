@@ -26,7 +26,7 @@ struct PreviewCard: View {
             if let icon = AppIconProvider.icon(forBundleID: item.appBundleID) {
                 Image(nsImage: icon).resizable().frame(width: 16, height: 16)
             }
-            Text(AppIconProvider.name(forBundleID: item.appBundleID) ?? item.kind.rawValue.capitalized)
+            Text(AppIconProvider.name(forBundleID: item.appBundleID) ?? item.kind.title)
                 .font(.system(size: 12, weight: .medium))
             Spacer()
             if item.copyCount > 1 {

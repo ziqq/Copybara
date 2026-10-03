@@ -42,7 +42,7 @@ enum UpdateChecker {
             // 404 — no releases published yet. Not an error: nothing to update to.
             if status == 404 { return .upToDate(current: current()) }
             guard status == 200 else { return .failed("HTTP \(status)") }
-            guard let release = parse(data) else { return .failed("Couldn't read the release info") }
+            guard let release = parse(data) else { return .failed(L10n.string("Couldn't read the release info")) }
             let current = current()
             return isNewer(release.version, than: current) ? .available(release) : .upToDate(current: current)
         } catch {

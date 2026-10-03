@@ -66,7 +66,7 @@ final class SettingsOO: ObservableObject {
         didSet { snippetStore.save(snippets) }
     }
     /// Whether Copybara currently holds the Accessibility permission.
-    @Published private(set) var accessibilityGranted = AXIsProcessTrusted()
+    @Published private(set) var accessibilityGranted = Paster().hasAccessibilityPermission
 
     /// Whether the OS supports toggling launch at login (macOS 13+).
     let launchAtLoginSupported = LaunchAtLoginManager.isSupported
@@ -95,7 +95,7 @@ final class SettingsOO: ObservableObject {
     /// Re-reads state that can change outside the form (System Settings, the
     /// status-item menu) while the window is open.
     func refreshExternalState() {
-        let granted = AXIsProcessTrusted()
+        let granted = Paster().hasAccessibilityPermission
         if granted != accessibilityGranted { accessibilityGranted = granted }
         if settings.ignoreAllCopies != ignoreAllCopies { ignoreAllCopies = settings.ignoreAllCopies }
     }

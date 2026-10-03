@@ -53,7 +53,7 @@ struct OnboardingView: View {
         .frame(width: 420)
     }
 
-    private func row(_ symbol: String, _ text: String) -> some View {
+    private func row(_ symbol: String, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol)
                 .font(.system(size: 15))

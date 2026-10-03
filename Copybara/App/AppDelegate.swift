@@ -96,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showSettings() {
         // Not `showSettingsWindow:` — on macOS 14+ that selector no longer opens
         // the SwiftUI Settings scene (it only logs "Please use SettingsLink").
+        popupController.hide()
         settingsWindowController.show()
     }
 }
