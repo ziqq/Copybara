@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import Foundation
 
 /// Data Object: an immutable snapshot of a single clipboard entry as shown in the UI.

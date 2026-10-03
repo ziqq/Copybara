@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import SwiftUI
 
 /// A single clip row in the popup list: source-app icon, the (match-highlighted)

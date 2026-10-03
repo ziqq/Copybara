@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 <div align="center">
 
 # 🐹 Copybara
@@ -8,7 +13,7 @@
 
 [![CI](https://github.com/ziqq/Copybara/actions/workflows/ci.yml/badge.svg)](https://github.com/ziqq/Copybara/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/ziqq/Copybara/graph/badge.svg?token=ME9X8CFF9K)](https://codecov.io/gh/ziqq/Copybara)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Copybara](https://img.shields.io/badge/License-Copybara-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-12%2B-black?logo=apple)
 
 <br>
@@ -173,4 +178,15 @@ See [`docs/MONETIZATION.md`](docs/MONETIZATION.md) for the funding strategy.
 
 ## License
 
-[MIT](LICENSE) © 2026 Anton Ustinoff
+[Copybara License](LICENSE) © 2026 Anton Ustinoff. All rights reserved.
+
+Personal use and internal use within companies are permitted, including private
+modifications. Redistribution of the original or modified source code or
+binaries, even for free, requires the copyright holder's prior written
+permission. Selling, paid distribution, and inclusion in paid products or
+services require separate written permission.
+
+The source is available to inspect and build; it is not licensed under MIT.
+Third-party dependencies keep their own licenses; see
+[THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES). The limited rights to view and fork
+a public repository under GitHub's terms remain unaffected.

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import SwiftUI
 
 /// First-run welcome screen: explains how Copybara works and the single

@@ -1,4 +1,7 @@
 #!/usr/bin/env swift
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import AppKit
 import Foundation
 

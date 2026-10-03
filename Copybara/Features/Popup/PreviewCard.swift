@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import SwiftUI
 
 /// A floating preview of a clip shown while hovering a row: full content (text,

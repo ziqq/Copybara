@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import Foundation
 
 /// A small, dependency-free fuzzy matcher used to filter clip history as the

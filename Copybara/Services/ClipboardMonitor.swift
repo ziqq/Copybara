@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import AppKit
 
 /// Watches the general pasteboard for changes and records new text clips.

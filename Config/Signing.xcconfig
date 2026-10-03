@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 // Code signing. The team is not committed: put your own in Config/Local.xcconfig
 // (git-ignored), e.g. `DEVELOPMENT_TEAM = XXXXXXXXXX`. A stable signing identity
 // keeps the Accessibility permission across rebuilds; ad-hoc builds lose it.

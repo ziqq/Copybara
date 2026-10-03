@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 # Copybara — Architecture
 
 This document defines how Copybara is structured, the conventions to follow, and

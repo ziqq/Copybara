@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 # Releasing Copybara
 
 Copybara is distributed as a DMG via **GitHub Releases**. The app checks for

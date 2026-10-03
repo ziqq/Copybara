@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import AppKit
 
 /// Resolves and caches the icon and display name of a source app from its bundle

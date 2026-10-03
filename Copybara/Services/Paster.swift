@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import AppKit
 
 /// Places an item on the pasteboard and pastes it into the frontmost app by
