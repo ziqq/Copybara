@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 # Contributing to Copybara
 
 Thanks for your interest! Copybara is a small, focused, native macOS clipboard

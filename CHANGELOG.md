@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 # Changelog
 
 
@@ -10,6 +15,9 @@
 
 
 ## Unreleased
+- **CHANGED**: Adopted the Copybara License: personal and internal business use
+  are permitted; redistribution and monetization require prior written
+  permission. Added author notices to repository files.
 
 
 ## 0.1.2 — 2026-10-03

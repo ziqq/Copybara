@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+# Use and redistribution are subject to LICENSE.
+
 set -euo pipefail
 
 # Builds a Release Copybara.app and packages it into a DMG.

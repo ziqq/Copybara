@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import SwiftUI
 
 /// Whether the macOS 26 Liquid Glass material should be used.

@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import CoreGraphics
 
 /// Shared layout constants for the popup, used by both the SwiftUI view (to lay

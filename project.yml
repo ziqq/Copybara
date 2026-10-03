@@ -1,3 +1,6 @@
+# Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+# Use and redistribution are subject to LICENSE.
+
 name: Copybara
 options:
   bundleIdPrefix: dev.ustinoff
@@ -34,6 +37,10 @@ targets:
       Release: Config/Signing.xcconfig
     sources:
       - path: Copybara
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD_PARTY_NOTICES
+        buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
     settings:

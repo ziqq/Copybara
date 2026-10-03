@@ -1,21 +1,65 @@
-MIT License
+Copybara License
 
-Copyright (c) 2026 Anton Ustinoff
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Scope
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This license applies to Copybara's source code, executables, documentation,
+and other original materials supplied by the copyright holder (the "Software").
+A "Derivative Work" is a modified version or another work incorporating the
+Software or a substantial portion of its code or original materials.
+
+2. Permitted use
+
+You may download, install, run, study, and make private copies of the Software
+for personal use or for internal use within your company or organization.
+You may modify the Software and use those modifications for the same purposes.
+Internal use includes use by the organization's personnel in their work; it
+does not authorize offering or supplying the Software to customers or other
+third parties.
+
+3. Redistribution requires written permission
+
+You may not publish, redistribute, transfer, sublicense, or otherwise supply
+the Software or a Derivative Work to third parties, whether in source or binary
+form and whether free of charge or for payment, without the copyright holder's
+prior express written permission for that distribution.
+
+4. No monetization rights
+
+This license does not permit you to sell, rent, commercially license, charge
+for access to, or otherwise monetize the Software or a Derivative Work.
+You may not include or integrate it into a paid product or paid service, or
+provide it to third parties through paid hosting, subscriptions, advertising,
+or another revenue-generating distribution or access arrangement.
+These activities require separate, express written permission from the
+copyright holder. Permission to distribute does not itself grant permission
+to monetize.
+
+Using the Software as an internal productivity tool while performing your
+normal business work is permitted by Section 2 and is not monetization of the
+Software.
+
+5. Notices and other rights
+
+Keep the copyright notice and this license with every permitted copy. Do not
+remove or replace the original authorship notices. All rights not expressly
+granted are reserved. No trademark rights are granted.
+
+Third-party components remain governed by their own licenses. This license
+does not restrict rights that cannot be restricted under applicable law or
+the limited rights independently granted by a repository hosting platform's
+terms to view and fork a public repository. Those platform rights do not grant
+additional permission to distribute the Software elsewhere or to monetize it.
+
+Permissions validly granted under an earlier license remain subject to the
+terms under which they were granted.
+
+6. Disclaimer
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

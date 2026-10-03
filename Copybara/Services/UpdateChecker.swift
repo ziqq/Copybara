@@ -1,3 +1,6 @@
+// Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+// Use and redistribution are subject to LICENSE.
+
 import Foundation
 
 /// On-demand update check via the GitHub Releases API: asks for the latest

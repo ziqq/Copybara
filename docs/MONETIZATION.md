@@ -1,3 +1,8 @@
+<!--
+Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+Use and redistribution are subject to LICENSE.
+-->
+
 # Copybara — Monetization
 
 Strategy for funding Copybara without compromising its principles. This is a
@@ -6,7 +11,11 @@ planning document; nothing here is implemented yet. Decisions are marked
 
 ## Principles (non-negotiable)
 
-- **Stay open source (MIT).** The source is free to read, build, and fork.
+- **Source available under the [Copybara License](../LICENSE).** Personal and
+  internal business use are permitted. Redistribution and monetization by
+  others require the copyright holder's prior express written permission.
+  The funding models below describe choices for the copyright holder; they do
+  not grant third parties permission to sell or redistribute Copybara.
 - **Local-only stays local.** Monetization must never require an account,
   telemetry, ads, or sending clipboard data anywhere. Privacy is the product.
 - **No dark patterns.** No nag screens on a paid-but-unpaid loop, no crippling
@@ -70,7 +79,7 @@ pin/delete, privacy filters, launch-at-login — i.e. everything today.
 
 ## Recommended phased plan
 
-1. **Phase 0 — now (free, pre-account):** open source, build-from-source, personal
+1. **Phase 0 — now (free, pre-account):** source available, private builds, personal
    use. Add a `FUNDING.yml` / Sponsors button and a Buy-Me-a-Coffee link when
    ready. No code needed.
 2. **Phase 1 — first release (Model A):** ship a DMG via GitHub Releases (the
