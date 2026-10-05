@@ -42,6 +42,11 @@ final class PopupOO: ObservableObject {
     private let store: HistoryStore
     private let settings: AppSettings
     private let snippets: SnippetStore
+    private let loadHistory: (Int, SortMode) -> [ClipItemDO]
+    private var deletedIDs: Set<UUID> = []
+    private var pinnedOverrides: [UUID: Bool] = [:]
+    private(set) var loadTask: Task<Void, Never>?
+    private(set) var searchTask: Task<Void, Never>?
     private var snippetItems: [ClipItemDO] = []
     private var historyItems: [ClipItemDO] = []
     private var allItems: [ClipItemDO] { snippetItems + historyItems }
@@ -56,10 +61,12 @@ final class PopupOO: ObservableObject {
     /// the injected sample data.
     private(set) var isPreview = false
 
-    init(store: HistoryStore, settings: AppSettings = .shared, snippets: SnippetStore = .shared) {
+    init(store: HistoryStore, settings: AppSettings = .shared, snippets: SnippetStore = .shared,
+         loadHistory: ((Int, SortMode) -> [ClipItemDO])? = nil) {
         self.store = store
         self.settings = settings
         self.snippets = snippets
+        self.loadHistory = loadHistory ?? { store.recentItems(limit: $0, includePayloads: false, sort: $1) }
     }
 
     /// The currently highlighted item, if any.
@@ -95,21 +102,33 @@ final class PopupOO: ObservableObject {
     /// background and then re-filters.
     func reload() {
         loadGeneration += 1
+        deletedIDs.removeAll()
+        pinnedOverrides.removeAll()
         let generation = loadGeneration
         let mode = settings.sortMode
         // Snippets are always available, shown above the sorted history.
         snippetItems = snippets.asClipItems()
-        historyItems = store.recentItems(limit: Self.pageSize, includePayloads: false, sort: mode)
+        historyItems = loadHistory(Self.pageSize, mode)
         lastSearch = nil
         refilter()
 
         guard historyItems.count == Self.pageSize else { return } // that was all of it
-        let store = self.store
-        Task.detached(priority: .userInitiated) {
-            let everything = store.recentItems(limit: 0, includePayloads: false, sort: mode)
+        let loadHistory = self.loadHistory
+        loadTask = Task.detached(priority: .userInitiated) {
+            let everything = loadHistory(0, mode)
             await MainActor.run { [weak self] in
                 guard let self, generation == self.loadGeneration else { return }
-                self.historyItems = everything
+                // A fetched snapshot may predate a local delete or pin. Apply
+                // those edits while retaining the older pages it just loaded.
+                if self.deletedIDs.isEmpty && self.pinnedOverrides.isEmpty {
+                    self.historyItems = everything // already sorted by the store
+                } else {
+                    let reconciled = everything.compactMap { item -> ClipItemDO? in
+                        guard !self.deletedIDs.contains(item.id) else { return nil }
+                        return self.pinnedOverrides[item.id].map { item.with(isPinned: $0) } ?? item
+                    }
+                    self.historyItems = self.pinnedOverrides.isEmpty ? reconciled : ClipSearch.sort(reconciled, by: mode)
+                }
                 self.lastSearch = nil
                 self.refilter(keepSelection: true)
             }
@@ -128,10 +147,14 @@ final class PopupOO: ObservableObject {
         let cache = ThumbnailCache.shared
         if let hit = cache.cached(id: item.id, maxPixel: maxPixel) { return hit }
         let store = self.store
-        return await Task.detached(priority: .userInitiated) {
+        let decoded = await Task.detached(priority: .userInitiated) { () -> CGImage? in
             guard let data = item.data ?? store.payload(id: item.id) else { return nil }
-            return cache.image(id: item.id, maxPixel: maxPixel, data: data)
+            return ThumbnailCache.downsampleCGImage(data, maxPixel: maxPixel)
         }.value
+        guard let decoded else { return nil }
+        let image = NSImage(cgImage: decoded, size: NSSize(width: decoded.width, height: decoded.height))
+        cache.store(image, id: item.id, maxPixel: maxPixel)
+        return image
     }
 
     /// Called as rows appear; extends the rendered window near its end.
@@ -181,6 +204,7 @@ final class PopupOO: ObservableObject {
     func togglePinSelected() {
         guard let item = selectedItem, item.kind != .snippet else { return }
         store.togglePin(id: item.id)
+        pinnedOverrides[item.id] = !item.isPinned
         guard let index = historyItems.firstIndex(where: { $0.id == item.id }) else { return }
         historyItems[index] = item.with(isPinned: !item.isPinned)
         historyItems = ClipSearch.sort(historyItems, by: settings.sortMode)
@@ -203,6 +227,7 @@ final class PopupOO: ObservableObject {
             snippetItems.removeAll { $0.id == item.id }
         } else {
             store.delete(id: item.id)
+            deletedIDs.insert(item.id)
             if let index = historyItems.firstIndex(where: { $0.id == item.id }) {
                 historyItems.remove(at: index)
             }
@@ -212,6 +237,8 @@ final class PopupOO: ObservableObject {
         }
         lastSearch?.matches.removeAll { $0.id == item.id }
         selectedIndex = results.isEmpty ? 0 : min(selectedIndex, results.count - 1)
+        // Supersede any search that captured the row before it was deleted.
+        refilter(keepSelection: true)
     }
 
     /// Clears all non-pinned items and reloads.
@@ -256,7 +283,7 @@ final class PopupOO: ObservableObject {
                   query: query, scope: scope, mode: mode, keepSelection: keepSelection)
             return
         }
-        Task.detached(priority: .userInitiated) {
+        searchTask = Task.detached(priority: .userInitiated) {
             let result = ClipSearch.search(base, query: query, mode: mode, scope: scope)
             await MainActor.run { [weak self] in
                 guard let self, generation == self.searchGeneration else { return }

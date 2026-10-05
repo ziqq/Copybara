@@ -3,13 +3,8 @@
 
 import Foundation
 
-/// On-demand update check via the GitHub Releases API: asks for the latest
-/// published release and compares it to the running version from Info.plist.
-///
-/// Manual only (a menu item) — there is no background polling. Copybara never
-/// downloads or replaces itself; it points the user to the release page. This is
-/// the right fit for non-App-Store builds distributed via GitHub Releases (no
-/// Sparkle keys, appcast, or notarization required).
+/// Legacy GitHub release metadata helpers, retained for compatibility.
+/// In-app update checks and installation are handled by `UpdaterController`.
 enum UpdateChecker {
     static let repo = "ziqq/Copybara"
     static let releasesPage = URL(string: "https://github.com/\(repo)/releases/latest")!

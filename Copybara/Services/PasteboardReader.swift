@@ -58,7 +58,7 @@ enum PasteboardReader {
             kind: .rtf,
             text: plain,
             data: data,
-            contentHash: plain.sha256Hex,
+            contentHash: data.sha256Hex,
             appBundleID: appBundleID
         )
     }

@@ -5,11 +5,16 @@ Use and redistribution are subject to LICENSE.
 
 # Releasing Copybara
 
-Copybara is distributed as a DMG via **GitHub Releases**. The app checks for
-updates on demand through the GitHub Releases API (menu → *Check for Updates…*) —
-no Sparkle, appcast, or signing keys required. A paid Apple Developer account is
-optional (only needed to ship a signed, notarized DMG that installs without the
-Gatekeeper quarantine step).
+Copybara is distributed as a DMG via **GitHub Releases**. Starting with 0.1.3,
+the app uses Sparkle for on-demand updates (menu → *Check for Updates…*): it
+downloads, verifies, installs, and relaunches. Automatic background checks are
+disabled by default. Versions before 0.1.3 need one manual DMG installation.
+
+Updates and the appcast are signed with an Ed25519 key. The public key is in
+`Info.plist`; the private key is stored in the developer's Keychain account
+`dev.ustinoff.copybara` and the repository's `SPARKLE_PRIVATE_KEY` Actions secret.
+Never commit the private key or pass it as a command-line argument. Keep a
+secure backup: ad-hoc builds cannot rotate a lost key using Developer ID.
 
 ## Cut a release
 
@@ -29,15 +34,17 @@ The **Release** workflow (`.github/workflows/release.yml`) then:
   the `Applications` link and the code signature,
 - computes `SHA256SUMS.txt` (by bare file name: `shasum -a 256 -c` works next
   to the download),
+- assigns the workflow run number to `CFBundleVersion` so Sparkle can order
+  successive release builds,
+- signs the DMG and appcast using Sparkle 2.10.0 tools and the Actions secret,
 - generates notes: DMG install steps first, a file / size / SHA-256 table, the
   build-from-source fallback, the commit log since the previous tag,
-- publishes a GitHub Release with the DMG + checksum.
+- publishes a GitHub Release with the DMG, checksum, and `appcast.xml`.
 
-*Check for Updates…* links to the release's `.dmg` asset, so keep that
-extension if the packaging changes.
-
-Users get *Check for Updates…* → it compares the latest release tag to the
-running version and points them at the download.
+The feed URL is the latest release's `appcast.xml` asset. Its enclosure points
+to the version-specific DMG asset. Sparkle requires valid archive and feed
+signatures before installing; downloading a DMG in a browser remains available
+for first-time installation.
 
 ## Signing (optional, needs a paid account)
 

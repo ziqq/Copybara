@@ -32,5 +32,15 @@ Use and redistribution are subject to LICENSE.
 	<string>© 2026 Anton Ustinoff</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/ziqq/Copybara/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>E5rc+HLqz7Iw2qF/ySuLrhfOxz1jSmWzdamvTr5LouM=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
 </dict>
 </plist>

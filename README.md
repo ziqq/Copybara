@@ -63,8 +63,8 @@ exactly one job well. That is the entire scope of Copybara.
   Menu bar / Dock / Both" and popup-position setting.
 
 ### Later (optional)
-- Snippets/templates, multiple paste formats. (Updates are checked on demand via
-  GitHub Releases — menu → *Check for Updates…*.)
+- Snippets/templates, multiple paste formats. Updates install inside the app via
+  Sparkle — menu → *Check for Updates…*, then *Install Update*.
 
 ## Requirements
 

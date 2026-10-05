@@ -12,11 +12,13 @@ final class CoreDataStack {
 
     let container: NSPersistentContainer
 
-    init(inMemory: Bool = false) {
+    init(inMemory: Bool = false, storeURL: URL? = nil) {
         container = NSPersistentContainer(name: "Copybara")
 
         if inMemory {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        } else if let storeURL {
+            container.persistentStoreDescriptions.first?.url = storeURL
         }
 
         // Adding attributes (e.g. copyCount) is handled by lightweight migration.

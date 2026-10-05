@@ -11,7 +11,7 @@ import SwiftUI
 /// is ignored and `SettingsLink` needs a SwiftUI view to click).
 @MainActor
 final class SettingsWindowController {
-    private var window: NSWindow?
+    private(set) var window: NSWindow?
 
     func show() {
         if window == nil {

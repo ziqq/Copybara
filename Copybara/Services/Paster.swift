@@ -14,13 +14,22 @@ import AppKit
 /// putting the text on the pasteboard and sending ⌘V.
 final class Paster {
     private let pasteboard: NSPasteboard
+    private let accessibilityPermission: () -> Bool
+    private let frontmostPID: () -> pid_t?
+    private let postEvent: (CGEvent, CGEventTapLocation) -> Void
 
-    init(pasteboard: NSPasteboard = .general) {
+    init(pasteboard: NSPasteboard = .general,
+         accessibilityPermission: @escaping () -> Bool = { AXIsProcessTrusted() && CGPreflightPostEventAccess() },
+         frontmostPID: @escaping () -> pid_t? = { NSWorkspace.shared.frontmostApplication?.processIdentifier },
+         postEvent: @escaping (CGEvent, CGEventTapLocation) -> Void = { $0.post(tap: $1) }) {
         self.pasteboard = pasteboard
+        self.accessibilityPermission = accessibilityPermission
+        self.frontmostPID = frontmostPID
+        self.postEvent = postEvent
     }
 
     /// Whether the app currently holds the Accessibility permission.
-    var hasAccessibilityPermission: Bool { AXIsProcessTrusted() && CGPreflightPostEventAccess() }
+    var hasAccessibilityPermission: Bool { accessibilityPermission() }
 
     /// Prompts the user to grant Accessibility permission if not already granted.
     /// Returns the current trust state.
@@ -82,13 +91,13 @@ final class Paster {
             Log.paste.error("Cannot paste: Accessibility permission is missing")
             return
         }
-        guard let target = NSWorkspace.shared.frontmostApplication,
-              target.processIdentifier != ProcessInfo.processInfo.processIdentifier,
-              expectedPID == nil || target.processIdentifier == expectedPID else {
+        guard let targetPID = frontmostPID(),
+              targetPID != ProcessInfo.processInfo.processIdentifier,
+              expectedPID == nil || targetPID == expectedPID else {
             Log.paste.error("Cannot paste: target app no longer has focus")
             return
         }
-        synthesizeCommandV(into: target.processIdentifier)
+        synthesizeCommandV()
     }
 
     /// Convenience: stage `text` and immediately paste it into the frontmost app.
@@ -97,7 +106,7 @@ final class Paster {
         pasteIntoFrontmostApp()
     }
 
-    private func synthesizeCommandV(into pid: pid_t) {
+    private func synthesizeCommandV() {
         let source = CGEventSource(stateID: .combinedSessionState)
         // Don't let keys the user is still physically holding (e.g. ⌘ from ⌘1
         // or ⇧ from the hotkey) leak into the synthesized chord.
@@ -115,7 +124,9 @@ final class Paster {
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false)
         keyUp?.flags = flags
 
-        keyDown?.postToPid(pid)
-        keyUp?.postToPid(pid)
+        // Use the session keyboard stream so WindowServer routes the shortcut
+        // to the focused window. Posting directly to a PID bypasses that route.
+        if let keyDown { postEvent(keyDown, .cgSessionEventTap) }
+        if let keyUp { postEvent(keyUp, .cgSessionEventTap) }
     }
 }

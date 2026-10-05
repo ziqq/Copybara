@@ -119,8 +119,8 @@ services; services never depend on screens.
   <kbd>⌘V</kbd> with `CGEvent`; owns the Accessibility-permission check/prompt.
 - **`AppSettings`** — typed wrapper over `UserDefaults` (history size, sort/search
   mode, icon visibility, popup position, privacy, appearance).
-- **`UpdateChecker`** / **`UpdaterController`** — on-demand update check via the
-  GitHub Releases API, presenting the result as an alert.
+- **`UpdaterController`** — on-demand update installation through Sparkle:
+  verifies signatures, installs the app, and relaunches it.
 
 ### Screens (VOODO)
 - **Popup** — `PopupView`, `PopupOO`, `ClipRowView`. `PopupOO` holds the query,
@@ -244,8 +244,9 @@ copybara/
 Kept deliberately minimal:
 
 - [`KeyboardShortcuts`](https://github.com/sindresorhus/KeyboardShortcuts) — global hotkey + rebinding UI.
+- [`Sparkle`](https://github.com/sparkle-project/Sparkle) — signed in-app updates.
 
 Everything else (pasteboard, Core Data, CGEvent, status item, settings via
 `UserDefaults`) uses the system frameworks directly. Updates are on-demand via the
-GitHub Releases API (`UpdateChecker`) — no Sparkle. Signing/notarization is
+signed Sparkle appcast hosted on GitHub Releases (`UpdaterController`). Signing/notarization is
 optional (see `docs/RELEASE.md`).

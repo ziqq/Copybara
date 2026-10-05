@@ -6,7 +6,7 @@ Use and redistribution are subject to LICENSE.
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>_XCCurrentVersionName</key>
-	<string>Copybara.xcdatamodel</string>
+    <key>_XCCurrentVersionName</key>
+    <string>CopybaraV2.xcdatamodel</string>
 </dict>
 </plist>

@@ -11,9 +11,12 @@ import AppKit
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let store: HistoryStore
+    private let presentMenu: (NSMenu, NSStatusBarButton) -> Void
 
     /// Invoked on left-click — opens/toggles the popup.
     var onPrimaryAction: (() -> Void)?
+    /// Invoked before the context menu opens, to dismiss the search popup.
+    var onOpenContextMenu: (() -> Void)?
     /// Invoked when the user chooses "Settings…".
     var onOpenSettings: (() -> Void)?
     /// Invoked to skip recording the next copy (⌥⇧-click / menu).
@@ -21,8 +24,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Invoked to check for app updates.
     var onCheckForUpdates: (() -> Void)?
 
-    init(store: HistoryStore) {
+    init(store: HistoryStore, presentMenu: @escaping (NSMenu, NSStatusBarButton) -> Void = { menu, button in
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+    }) {
         self.store = store
+        self.presentMenu = presentMenu
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
         configureButton()
@@ -30,15 +36,24 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// The status button's frame in screen coordinates, used to anchor the popup.
     func statusButtonScreenRect() -> NSRect? {
+        guard statusItem.isVisible else { return nil }
         guard let button = statusItem.button, let window = button.window else { return nil }
         return window.convertToScreen(button.convert(button.bounds, to: nil))
     }
+
+    func applyVisibility(_ visibility: IconVisibility) {
+        statusItem.isVisible = visibility != .dock
+    }
+
+    var isVisible: Bool { statusItem.isVisible }
+
+    deinit { NSStatusBar.system.removeStatusItem(statusItem) }
 
     private func configureButton() {
         guard let button = statusItem.button else { return }
         button.image = MenuBarIcon.image()
         button.target = self
-        button.action = #selector(handleClick)
+        button.action = #selector(handleStatusClick)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         updateAppearance()
     }
@@ -53,13 +68,18 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     // MARK: - Click handling
 
-    @objc private func handleClick() {
-        guard let event = NSApp.currentEvent else { onPrimaryAction?(); return }
-        if event.type == .rightMouseUp {
+    @objc private func handleStatusClick() {
+        handleClick(event: NSApp.currentEvent)
+    }
+
+    func handleClick(event: NSEvent?) {
+        guard let event else { onPrimaryAction?(); return }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if event.type == .rightMouseUp || (event.type == .leftMouseUp && flags.contains(.control)) {
             showContextMenu()
             return
         }
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard event.type == .leftMouseUp else { return }
         if flags.contains(.option) && flags.contains(.shift) {
             onIgnoreNext?() // ⌥⇧-click — ignore the next copy
         } else if flags.contains(.option) {
@@ -76,11 +96,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private func showContextMenu() {
         guard let button = statusItem.button else { return }
+        onOpenContextMenu?()
         let menu = buildMenu()
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        presentMenu(menu, button)
     }
 
-    private func buildMenu() -> NSMenu {
+    func buildMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
@@ -143,7 +164,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     // MARK: - Actions
 
-    @objc private func openPopup() { onPrimaryAction?() }
+    @objc private func openPopup() {
+        // Show the search window after the context menu finishes tracking.
+        DispatchQueue.main.async { [weak self] in self?.onPrimaryAction?() }
+    }
     @objc private func openSettings() {
         // Let NSMenu finish tracking before creating and activating a window.
         DispatchQueue.main.async { [weak self] in self?.onOpenSettings?() }
