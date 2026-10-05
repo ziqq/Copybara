@@ -10,7 +10,7 @@ import AppKit
 /// started, and the activation policy is set from the icon-visibility preference.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let store = HistoryStore()
+    private lazy var store = HistoryStore()
     private let paster = Paster()
     private lazy var monitor = ClipboardMonitor(store: store)
     private lazy var popupController = PopupController(store: store, paster: paster)
@@ -21,6 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Unit tests own isolated stores and pasteboards. Their host must not
+        // start the user's clipboard monitor, shortcuts or onboarding.
+        if NSClassFromString("XCTestCase") != nil { return }
 #if DEBUG
         if let path = ProcessInfo.processInfo.environment["COPYBARA_SCREENSHOT"] {
             ScreenshotRenderer.renderPopup(to: path)
@@ -35,10 +38,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let controller = StatusItemController(store: store)
         controller.onPrimaryAction = { [weak self] in self?.popupController.toggle() }
+        controller.onOpenContextMenu = { [weak self] in self?.popupController.hide() }
         controller.onOpenSettings = { [weak self] in self?.showSettings() }
         controller.onIgnoreNext = { [weak self] in self?.monitor.ignoreNextCopy() }
         controller.onCheckForUpdates = { [weak self] in self?.updaterController.checkForUpdates() }
         statusItemController = controller
+        controller.applyVisibility(AppSettings.shared.iconVisibility)
 
         popupController.anchorRectProvider = { [weak self] in
             self?.statusItemController?.statusButtonScreenRect()
@@ -70,6 +75,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Activation policy
 
     private func applyActivationPolicy(_ visibility: IconVisibility) {
+        statusItemController?.applyVisibility(visibility)
         switch visibility {
         case .menuBar:
             NSApp.setActivationPolicy(.accessory)

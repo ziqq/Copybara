@@ -143,4 +143,73 @@ final class PopupOOTests: XCTestCase {
         oo.selectLast()
         XCTAssertGreaterThan(oo.visibleResults.count, PopupOO.pageSize)
     }
+
+    func testDeleteDuringFullLoadCannotResurrectRowOrLoseOlderPages() async throws {
+        let snapshot = (0..<250).map { ClipItemDO(preview: "item \($0)", createdAt: Date(timeIntervalSince1970: Double(250 - $0))) }
+        let (oo, fetched, release) = makeDelayedOO(snapshot)
+        defer { release.signal() }
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        let deleted = try XCTUnwrap(oo.selectedItem)
+        oo.delete(deleted)
+        release.signal()
+        await oo.loadTask?.value
+        XCTAssertEqual(oo.results.count, 249)
+        XCTAssertFalse(oo.results.contains { $0.id == deleted.id })
+        XCTAssertTrue(oo.results.contains { $0.id == snapshot.last?.id }, "the rest of the history must still finish loading")
+    }
+
+    func testPinDuringFullLoadPreservesPinAndSortOrder() async {
+        let snapshot = (0..<250).map { ClipItemDO(preview: "item \($0)", createdAt: Date(timeIntervalSince1970: Double(250 - $0))) }
+        let (oo, fetched, release) = makeDelayedOO(snapshot)
+        defer { release.signal() }
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        oo.select(snapshot[150])
+        oo.togglePinSelected()
+        release.signal()
+        await oo.loadTask?.value
+        XCTAssertEqual(oo.results.first?.id, snapshot[150].id)
+        XCTAssertEqual(oo.results.first?.isPinned, true)
+        XCTAssertEqual(oo.selectedItem?.id, snapshot[150].id)
+        XCTAssertEqual(oo.results.count, 250)
+    }
+
+    func testDeleteWhileBackgroundSearchIsPendingStaysDeleted() async throws {
+        let snapshot = (0..<6_000).map { ClipItemDO(preview: "item \($0)") }
+        let (oo, fetched, release) = makeDelayedOO(snapshot)
+        defer { release.signal() }
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        release.signal()
+        await oo.loadTask?.value
+        await oo.searchTask?.value
+        let deleted = try XCTUnwrap(oo.selectedItem)
+        oo.query = "item" // queues a search with the soon-to-be-deleted row
+        let staleSearch = oo.searchTask
+        oo.delete(deleted)
+        await staleSearch?.value
+        await oo.searchTask?.value
+        XCTAssertEqual(oo.results.count, 5_999)
+        XCTAssertFalse(oo.results.contains { $0.id == deleted.id })
+        oo.query = "ite" // shortening must not use stale matches either
+        await oo.searchTask?.value
+        XCTAssertFalse(oo.results.contains { $0.id == deleted.id })
+    }
+
+    private func makeDelayedOO(_ snapshot: [ClipItemDO]) -> (PopupOO, XCTestExpectation, DispatchSemaphore) {
+        let fetched = expectation(description: "background snapshot captured")
+        let release = DispatchSemaphore(value: 0)
+        let settings = AppSettings(defaults: UserDefaults(suiteName: "oo-\(UUID())")!)
+        let snippets = SnippetStore(defaults: UserDefaults(suiteName: "oo-snip-\(UUID())")!)
+        let oo = PopupOO(store: HistoryStore(stack: CoreDataStack(inMemory: true)), settings: settings, snippets: snippets,
+                         loadHistory: { limit, _ in
+            if limit != 0 { return Array(snapshot.prefix(limit)) }
+            fetched.fulfill()
+            _ = release.wait(timeout: .now() + 5)
+            return snapshot
+        })
+        return (oo, fetched, release)
+    }
+
 }

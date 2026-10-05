@@ -15,9 +15,34 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+
+
+## 0.1.3 — 2026-10-05
+- **ADDED**: Signed in-app updates with Sparkle: download, verify, install, and
+  relaunch from Check for Updates. Versions before 0.1.3 need one manual install.
 - **CHANGED**: Adopted the Copybara License: personal and internal business use
   are permitted; redistribution and monetization require prior written
   permission. Added author notices to repository files.
+- **CHANGED**: Redesigned the menu-bar icon with a distinctive capybara profile,
+  an elongated muzzle, and clear facial cutouts at small sizes.
+- **CHANGED**: Automatic paste sends the shortcut through the session keyboard
+  stream after verifying the destination app, instead of posting directly to its PID.
+- **FIXED**: Opening the status icon's context menu dismisses the history popup.
+  Control-click opens only the menu; Show Copybara waits until the menu closes.
+
+
+- **FIXED**: Pending history loads and searches no longer restore deleted rows
+  or overwrite pin changes; older pages still finish loading.
+- **FIXED**: Rich text preserves its formatting when plain text or a differently
+  formatted copy has the same text.
+- **FIXED**: First copied uses a separate persistent timestamp, with migration
+  of existing history; repeated copies update only the last-copy date.
+- **FIXED**: Dock-only mode hides the menu-bar icon; retention cleanup also runs
+  during uninterrupted use, keeping pinned clips.
+- **FIXED**: Unread clipboard changes are discarded at blocked-app transitions,
+  including when the app switches before the next poll.
+- **FIXED**: Background thumbnails transfer CGImage instead of NSImage, avoiding
+  the macOS 14-only Sendable requirement on supported older systems.
 
 
 ## 0.1.2 — 2026-10-03

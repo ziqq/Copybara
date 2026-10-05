@@ -41,7 +41,7 @@ enum ClipSearch {
             case .lastCopied:
                 return lhs.createdAt > rhs.createdAt
             case .firstCopied:
-                return lhs.createdAt < rhs.createdAt
+                return lhs.firstCopiedAt < rhs.firstCopiedAt
             case .numberOfCopies:
                 if lhs.copyCount != rhs.copyCount { return lhs.copyCount > rhs.copyCount }
                 return lhs.createdAt > rhs.createdAt

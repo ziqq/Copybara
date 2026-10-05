@@ -64,6 +64,7 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] Onboarding for the Accessibility permission + Settings permission status.
 - [x] On-demand update check via GitHub Releases + DMG script + tag-based release
       workflow (`.github/workflows/release.yml`) — see `docs/RELEASE.md`.
+- [x] Signed in-app update installation via Sparkle.
 - [x] README screenshot (rendered from the real UI via a headless DEBUG mode).
 
 ## Later (optional, opt-in)

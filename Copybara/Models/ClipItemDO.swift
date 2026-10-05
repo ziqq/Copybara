@@ -13,6 +13,7 @@ struct ClipItemDO: Identifiable, Hashable {
     /// The clip's text content (full text for text clips), used for search and paste.
     let preview: String
     let createdAt: Date
+    let firstCopiedAt: Date
     let isPinned: Bool
     /// Bundle identifier of the app the content was copied from, when known.
     let appBundleID: String?
@@ -33,6 +34,7 @@ struct ClipItemDO: Identifiable, Hashable {
         kind: ClipKind = .text,
         preview: String,
         createdAt: Date = Date(),
+        firstCopiedAt: Date? = nil,
         isPinned: Bool = false,
         appBundleID: String? = nil,
         copyCount: Int = 1,
@@ -43,6 +45,7 @@ struct ClipItemDO: Identifiable, Hashable {
         self.kind = kind
         self.preview = preview
         self.createdAt = createdAt
+        self.firstCopiedAt = firstCopiedAt ?? createdAt
         self.isPinned = isPinned
         self.appBundleID = appBundleID
         self.copyCount = copyCount
@@ -56,7 +59,7 @@ struct ClipItemDO: Identifiable, Hashable {
     /// This item with its payload attached (copies every other field).
     func with(data: Data?) -> ClipItemDO {
         ClipItemDO(
-            id: id, kind: kind, preview: preview, createdAt: createdAt, isPinned: isPinned,
+            id: id, kind: kind, preview: preview, createdAt: createdAt, firstCopiedAt: firstCopiedAt, isPinned: isPinned,
             appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
         )
     }
@@ -64,7 +67,7 @@ struct ClipItemDO: Identifiable, Hashable {
     /// This item with a different pinned state (copies every other field).
     func with(isPinned: Bool) -> ClipItemDO {
         ClipItemDO(
-            id: id, kind: kind, preview: preview, createdAt: createdAt, isPinned: isPinned,
+            id: id, kind: kind, preview: preview, createdAt: createdAt, firstCopiedAt: firstCopiedAt, isPinned: isPinned,
             appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
         )
     }

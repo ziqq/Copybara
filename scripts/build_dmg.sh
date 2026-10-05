@@ -46,6 +46,9 @@ else
   [ -n "$VERSION" ] || { echo "Could not read MARKETING_VERSION from project.yml"; exit 1; }
 fi
 VERSION_ARGS=(MARKETING_VERSION="$VERSION")
+if [ -n "${COPYBARA_BUILD_NUMBER:-}" ]; then
+  VERSION_ARGS+=(CURRENT_PROJECT_VERSION="$COPYBARA_BUILD_NUMBER")
+fi
 
 rm -rf "$BUILD_DIR"
 xcodebuild \

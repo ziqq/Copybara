@@ -2,6 +2,8 @@
 // Use and redistribution are subject to LICENSE.
 
 import XCTest
+import CoreData
+import AppKit
 @testable import Copybara
 
 final class HistoryStoreTests: XCTestCase {
@@ -166,8 +168,98 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertNil(list.last?.data)
         XCTAssertEqual(store.payload(id: list.last!.id), Data([1, 2]))
 
-        XCTAssertEqual(store.recentItems(limit: 10, includePayloads: false, sort: .firstCopied).map(\.preview), ["img", "b", "a"])
+        XCTAssertEqual(store.recentItems(limit: 10, includePayloads: false, sort: .firstCopied).map(\.preview), ["img", "a", "b"])
         XCTAssertEqual(store.recentItems(limit: 10, includePayloads: false, sort: .numberOfCopies).first?.preview, "a")
         XCTAssertEqual(store.count(), 3)
     }
+
+    func testFirstCopyDateSurvivesRecopyInBothStoreAndPopupSorts() throws {
+        let store = makeStore()
+        store.insertTextSynchronously("a")
+        let first = try XCTUnwrap(store.recentItems().first)
+        store.insertTextSynchronously("b")
+        store.insertTextSynchronously("a")
+        let latest = store.recentItems()
+        let recopied = try XCTUnwrap(latest.first)
+        XCTAssertEqual(recopied.preview, "a")
+        XCTAssertEqual(recopied.firstCopiedAt, first.createdAt)
+        XCTAssertGreaterThan(recopied.createdAt, first.createdAt)
+        XCTAssertEqual(store.recentItems(sort: .firstCopied).map(\.preview), ["a", "b"])
+        XCTAssertEqual(ClipSearch.sort(latest, by: .firstCopied).map(\.preview), ["a", "b"])
+        XCTAssertEqual(recopied.with(isPinned: true).firstCopiedAt, first.createdAt)
+        XCTAssertEqual(recopied.with(data: Data([1])).firstCopiedAt, first.createdAt)
+    }
+
+    func testRichTextFormattingIsNotLostThroughDeduplication() throws {
+        let store = makeStore()
+        let board = NSPasteboard(name: .init("rich-dedup-\(UUID())"))
+        defer { board.releaseGlobally() }
+        board.setString("same text", forType: .string)
+        store.insertSynchronously(try XCTUnwrap(PasteboardReader.read(board, appBundleID: nil)))
+        for color in [NSColor.red, NSColor.blue] {
+            board.clearContents()
+            let attributed = NSAttributedString(string: "same text", attributes: [.foregroundColor: color])
+            let data = try XCTUnwrap(attributed.rtf(from: NSRange(location: 0, length: attributed.length), documentAttributes: [:]))
+            board.setData(data, forType: .rtf)
+            let capture = try XCTUnwrap(PasteboardReader.read(board, appBundleID: nil))
+            store.insertSynchronously(capture)
+            store.insertSynchronously(capture)
+            XCTAssertTrue(store.recentItems().contains { $0.kind == .rtf && $0.data == data && $0.copyCount == 2 })
+        }
+        XCTAssertEqual(store.count(), 3, "plain text and two different rich representations must survive")
+    }
+
+    func testIdenticalHashesAcrossKindsDoNotDiscardPayload() {
+        let store = makeStore()
+        store.insertSynchronously(ClipCapture(kind: .text, text: "same", data: nil, contentHash: "legacy", appBundleID: nil))
+        store.insertSynchronously(ClipCapture(kind: .rtf, text: "same", data: Data([1]), contentHash: "legacy", appBundleID: nil))
+        XCTAssertEqual(store.count(), 2)
+        XCTAssertEqual(store.recentItems().first?.data, Data([1]))
+    }
+
+    func testExistingSQLiteStoreMigratesWithoutLosingHistoryOrPayloads() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("copybara-migration-\(UUID())")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("history.sqlite")
+        let bundle = Bundle(for: AppDelegate.self)
+        let modelURL = try XCTUnwrap(bundle.url(forResource: "Copybara", withExtension: "momd"))
+            .appendingPathComponent("Copybara.mom")
+        let legacyModel = try XCTUnwrap(NSManagedObjectModel(contentsOf: modelURL))
+        XCTAssertNil(legacyModel.entitiesByName["ClipEntity"]?.attributesByName["firstCopiedAt"])
+        let coordinator = NSPersistentStoreCoordinator(managedObjectModel: legacyModel)
+        let legacyStore = try coordinator.addPersistentStore(ofType: NSSQLiteStoreType, configurationName: nil, at: url)
+        let context = NSManagedObjectContext(concurrencyType: .mainQueueConcurrencyType)
+        context.persistentStoreCoordinator = coordinator
+        let id = UUID(), oldDate = Date(timeIntervalSince1970: 1_000)
+        let item = NSEntityDescription.insertNewObject(forEntityName: "ClipEntity", into: context)
+        item.setValue(id, forKey: "id")
+        item.setValue("legacy", forKey: "text")
+        item.setValue("rtf", forKey: "kind")
+        item.setValue(Data([7, 8, 9]), forKey: "data")
+        item.setValue("hash", forKey: "contentHash")
+        item.setValue(oldDate, forKey: "createdAt")
+        item.setValue(true, forKey: "isPinned")
+        item.setValue(4, forKey: "copyCount")
+        try context.save()
+        context.reset()
+        try coordinator.remove(legacyStore)
+
+        let stack = CoreDataStack(storeURL: url)
+        let store = HistoryStore(stack: stack)
+        let migrated = try XCTUnwrap(store.recentItems().first)
+        XCTAssertEqual(migrated.id, id)
+        XCTAssertEqual(migrated.firstCopiedAt, oldDate)
+        XCTAssertEqual(migrated.data, Data([7, 8, 9]))
+        XCTAssertTrue(migrated.isPinned)
+        store.insertSynchronously(ClipCapture(kind: .rtf, text: "legacy", data: Data([7, 8, 9]), contentHash: "hash", appBundleID: nil))
+        let recopied = try XCTUnwrap(store.recentItems(includePayloads: false).first)
+        XCTAssertEqual(recopied.firstCopiedAt, oldDate)
+        XCTAssertEqual(recopied.copyCount, 5)
+        XCTAssertGreaterThan(recopied.createdAt, oldDate)
+        for persistentStore in stack.container.persistentStoreCoordinator.persistentStores {
+            try stack.container.persistentStoreCoordinator.remove(persistentStore)
+        }
+    }
+
 }

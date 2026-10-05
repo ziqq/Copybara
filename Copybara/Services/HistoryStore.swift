@@ -18,6 +18,7 @@ final class HistoryStore {
     init(stack: CoreDataStack = .shared, sizeLimit: Int = 200) {
         self.stack = stack
         self.sizeLimit = sizeLimit
+        backfillFirstCopiedDates()
     }
 
     // MARK: - Writes
@@ -59,9 +60,9 @@ final class HistoryStore {
         let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
         // De-duplicate by content hash when present, else by exact text.
         if let hash = capture.contentHash {
-            request.predicate = NSPredicate(format: "contentHash == %@", hash)
+            request.predicate = NSPredicate(format: "kind == %@ AND contentHash == %@", capture.kind.rawValue, hash)
         } else {
-            request.predicate = NSPredicate(format: "contentHash == nil AND text == %@", capture.text)
+            request.predicate = NSPredicate(format: "kind == %@ AND contentHash == nil AND text == %@", capture.kind.rawValue, capture.text)
         }
         request.fetchLimit = 1
 
@@ -76,7 +77,9 @@ final class HistoryStore {
             item.setValue(capture.kind.rawValue, forKey: "kind")
             item.setValue(capture.data, forKey: "data")
             item.setValue(capture.contentHash, forKey: "contentHash")
-            item.setValue(Date(), forKey: "createdAt")
+            let now = Date()
+            item.setValue(now, forKey: "createdAt")
+            item.setValue(now, forKey: "firstCopiedAt")
             item.setValue(false, forKey: "isPinned")
             item.setValue(capture.appBundleID, forKey: "appBundleID")
             item.setValue(1, forKey: "copyCount")
@@ -185,7 +188,7 @@ final class HistoryStore {
         case .lastCopied:
             return [NSSortDescriptor(key: "createdAt", ascending: false)]
         case .firstCopied:
-            return [NSSortDescriptor(key: "createdAt", ascending: true)]
+            return [NSSortDescriptor(key: "firstCopiedAt", ascending: true)]
         case .numberOfCopies:
             return [
                 NSSortDescriptor(key: "copyCount", ascending: false),
@@ -200,7 +203,7 @@ final class HistoryStore {
     private func listRows(limit: Int, sort: [NSSortDescriptor]) -> [ClipItemDO] {
         let request = NSFetchRequest<NSDictionary>(entityName: Self.entityName)
         request.resultType = .dictionaryResultType
-        request.propertiesToFetch = ["id", "kind", "text", "createdAt", "isPinned", "appBundleID", "copyCount"]
+        request.propertiesToFetch = ["id", "kind", "text", "createdAt", "firstCopiedAt", "isPinned", "appBundleID", "copyCount"]
         request.sortDescriptors = sort
         request.fetchLimit = limit
 
@@ -215,6 +218,7 @@ final class HistoryStore {
                 kind: ClipKind(rawValue: row["kind"] as? String ?? "text") ?? .text,
                 preview: row["text"] as? String ?? "",
                 createdAt: row["createdAt"] as? Date ?? Date(),
+                firstCopiedAt: row["firstCopiedAt"] as? Date,
                 isPinned: row["isPinned"] as? Bool ?? false,
                 appBundleID: row["appBundleID"] as? String,
                 copyCount: row["copyCount"] as? Int ?? 1
@@ -241,6 +245,24 @@ final class HistoryStore {
 
     // MARK: - Helpers
 
+    /// Older stores only know the last copy date. Preserve that best available
+    /// date once during migration; subsequent copies must never overwrite it.
+    private func backfillFirstCopiedDates() {
+        let context = stack.newBackgroundContext()
+        context.performAndWait {
+            let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
+            request.predicate = NSPredicate(format: "firstCopiedAt == nil")
+            request.fetchLimit = 500
+            while let rows = try? context.fetch(request), !rows.isEmpty {
+                for row in rows {
+                    row.setValue(row.value(forKey: "createdAt"), forKey: "firstCopiedAt")
+                }
+                do { try context.save() } catch { break }
+                context.reset()
+            }
+        }
+    }
+
     /// Deletes non-pinned clips beyond `sizeLimit`. Fetches only the IDs past the
     /// limit (SQLite skips the rest), instead of every clip on every copy. The
     /// context must be saved first: `fetchOffset` ignores unsaved inserts.
@@ -263,6 +285,7 @@ final class HistoryStore {
             kind: ClipKind(rawValue: object.value(forKey: "kind") as? String ?? "text") ?? .text,
             preview: object.value(forKey: "text") as? String ?? "",
             createdAt: object.value(forKey: "createdAt") as? Date ?? Date(),
+            firstCopiedAt: object.value(forKey: "firstCopiedAt") as? Date,
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
             appBundleID: object.value(forKey: "appBundleID") as? String,
             copyCount: object.value(forKey: "copyCount") as? Int ?? 1,

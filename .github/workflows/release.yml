@@ -59,6 +59,7 @@ jobs:
       - name: Build DMG
         env:
           COPYBARA_VERSION: ${{ steps.meta.outputs.version }}
+          COPYBARA_BUILD_NUMBER: ${{ github.run_number }}
         run: ./scripts/build_dmg.sh
 
       - name: Package
@@ -75,6 +76,23 @@ jobs:
           echo "path=${DMG}" >> "$GITHUB_OUTPUT"
           echo "sha=$(cut -d' ' -f1 SHA256SUMS.txt)" >> "$GITHUB_OUTPUT"
           echo "size=$(awk -v b="$BYTES" 'BEGIN { printf "%.1f MB", b / 1048576 }')" >> "$GITHUB_OUTPUT"
+
+      - name: Sign update and generate appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          [ -n "$SPARKLE_PRIVATE_KEY" ] || { echo "::error::SPARKLE_PRIVATE_KEY is not configured"; exit 1; }
+          TOOLS="$RUNNER_TEMP/sparkle"
+          mkdir -p "$TOOLS"
+          curl -fL --retry 3 https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz -o "$TOOLS/Sparkle.tar.xz"
+          tar -xJf "$TOOLS/Sparkle.tar.xz" -C "$TOOLS"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$TOOLS/bin/generate_appcast" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/ziqq/Copybara/releases/download/$TAG/" \
+            build
+          [ -s build/appcast.xml ] || { echo "::error::appcast.xml was not generated"; exit 1; }
 
       - name: Release notes
         run: |
@@ -96,6 +114,10 @@ jobs:
             echo '```'
             echo
             echo "4. Launch it and grant Accessibility on the first paste. Requires macOS 12+."
+            echo
+            echo "**Updates:** this version includes an in-app installer. From the next release,"
+            echo "choose Check for Updates, then Install Update — Copybara verifies the update,"
+            echo "replaces the app and relaunches. Versions before 0.1.3 need one manual install."
             echo
             echo "> **After updating**, macOS treats the new ad-hoc build as a different app:"
             echo "> in System Settings › Privacy & Security › Accessibility, remove Copybara"
@@ -136,6 +158,7 @@ jobs:
         run: |
           gh release create "${{ steps.meta.outputs.tag }}" \
             "${{ steps.package.outputs.path }}" \
+            build/appcast.xml \
             SHA256SUMS.txt \
             --title "Copybara ${{ steps.meta.outputs.version }}" \
             --notes-file NOTES.md
