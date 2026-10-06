@@ -10,6 +10,20 @@ import AppKit
 /// window is transparent; the rounded, vibrant background is provided by the
 /// content view (`NSVisualEffectView`) installed by `PopupController`.
 final class PopupWindow: NSPanel {
+    /// Return true to consume a popup shortcut before the search field or the
+    /// destination application can handle it.
+    var onKeyDown: ((NSEvent) -> Bool)?
+
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .keyDown, onKeyDown?(event) == true { return }
+        super.sendEvent(event)
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if event.type == .keyDown, onKeyDown?(event) == true { return true }
+        return super.performKeyEquivalent(with: event)
+    }
+
     init() {
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: PopupMetrics.width, height: 480),

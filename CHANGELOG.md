@@ -17,6 +17,10 @@ Use and redistribution are subject to LICENSE.
 ## Unreleased
 
 
+## 0.1.7 — 2026-10-06
+- **FIXED**: The history panel handles arrows and keyboard shortcuts at its
+  own event boundary, before the search field, including nonactivating dispatch.
+
 ## 0.1.6 — 2026-10-06
 - **ADDED**: Certificate signing for releases and a check that different
   versions satisfy each other's signing requirement; ad-hoc releases are rejected.
