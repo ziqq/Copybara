@@ -125,8 +125,12 @@ To keep the Accessibility permission across rebuilds, put your team in a
 git-ignored `Config/Local.xcconfig` (`DEVELOPMENT_TEAM = XXXXXXXXXX`); ad-hoc
 builds lose it on every rebuild.
 
+Releases starting with 0.1.6 use one stable certificate, with a regression check
+across different versions. Migrating from an older ad-hoc release requires
+removing the old Accessibility entry and adding the installed app once.
+
 To build a DMG without a certificate, run `./scripts/build_dmg.sh` (no
-`DEVELOPMENT_TEAM`); the app is ad-hoc signed.
+`DEVELOPMENT_TEAM` or `COPYBARA_CODE_SIGN_IDENTITY`); the app is ad-hoc signed.
 It writes `build/Copybara-<version>.dmg` and checks the image after creating it
 (app present, `Applications` link, code signature intact).
 It runs on your Mac; on **other** Macs, Gatekeeper blocks it — open via

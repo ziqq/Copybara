@@ -7,6 +7,7 @@ set -euo pipefail
 # Builds a Release Copybara.app and packages it into a DMG.
 #
 # Local (ad-hoc) DMG:     ./scripts/build_dmg.sh
+# Certificate-signed DMG: COPYBARA_CODE_SIGN_IDENTITY=<SHA1> ./scripts/build_dmg.sh
 # Signed DMG:             DEVELOPMENT_TEAM=XXXXXXXXXX ./scripts/build_dmg.sh
 # Explicit version:       COPYBARA_VERSION=0.2.0 ./scripts/build_dmg.sh
 #
@@ -26,7 +27,9 @@ BUILD_DIR="$ROOT/build"
 command -v xcodegen >/dev/null || { echo "Install xcodegen: brew install xcodegen"; exit 1; }
 xcodegen generate
 
-if [ -n "${DEVELOPMENT_TEAM:-}" ]; then
+if [ -n "${COPYBARA_CODE_SIGN_IDENTITY:-}" ]; then
+  SIGN_ARGS=(CODE_SIGN_IDENTITY="$COPYBARA_CODE_SIGN_IDENTITY" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=)
+elif [ -n "${DEVELOPMENT_TEAM:-}" ]; then
   SIGN_ARGS=(DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" CODE_SIGN_STYLE=Automatic)
 else
   # Ad-hoc, not unsigned: with signing disabled only the linker signs the
@@ -63,6 +66,10 @@ xcodebuild \
 APP_PATH="$BUILD_DIR/DerivedData/Build/Products/Release/$APP_NAME.app"
 [ -d "$APP_PATH" ] || { echo "Build failed: $APP_PATH not found"; exit 1; }
 
+if [ -n "${COPYBARA_CODE_SIGN_IDENTITY:-}" ]; then
+  python3 scripts/verify_signing.py "$APP_PATH" --identity "$COPYBARA_CODE_SIGN_IDENTITY"
+fi
+
 STAGING="$BUILD_DIR/dmg"
 rm -rf "$STAGING"; mkdir -p "$STAGING"
 # ditto, not cp -R: keeps the bundle's code signature and extended attributes.
@@ -84,7 +91,7 @@ codesign --verify --deep --strict "$MOUNT/$APP_NAME.app"
 echo "Signature verified inside the DMG."
 
 echo "Created $DMG ($(du -h "$DMG" | cut -f1 | tr -d ' '))"
-if [ -z "${DEVELOPMENT_TEAM:-}" ]; then
+if [ -z "${DEVELOPMENT_TEAM:-}" ] && [ -z "${COPYBARA_CODE_SIGN_IDENTITY:-}" ]; then
   echo "Ad-hoc build: on other Macs, clear quarantine after copying to /Applications:"
   echo "  xattr -dr com.apple.quarantine /Applications/$APP_NAME.app"
 fi
