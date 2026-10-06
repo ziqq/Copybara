@@ -20,7 +20,9 @@ final class PopupWindow: NSPanel {
         isFloatingPanel = true
         becomesKeyOnlyIfNeeded = false
         level = .floating
-        hidesOnDeactivate = true
+        // The destination app stays active while this nonactivating panel is
+        // open. AppKit must not hide the panel with its inactive owner.
+        hidesOnDeactivate = false
         isMovable = true
         isMovableByWindowBackground = true // drag anywhere non-interactive to reposition
         isOpaque = false

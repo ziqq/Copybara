@@ -7,6 +7,17 @@ import XCTest
 
 @MainActor
 final class WindowRecoveryTests: XCTestCase {
+    func testPopupSupportsPresentationWhileDestinationApplicationStaysActive() {
+        let window = PopupWindow()
+        // The launcher accepts keyboard focus while its owning app remains
+        // inactive. AppKit's automatic deactivation hiding contradicts that
+        // presentation contract even if NSWindow.isVisible still reports true.
+        XCTAssertTrue(window.styleMask.contains(.nonactivatingPanel))
+        XCTAssertTrue(window.canBecomeKey)
+        XCTAssertFalse(window.hidesOnDeactivate,
+                       "the history popup must remain onscreen while the destination app is active")
+    }
+
     func testPopupUnhidesApplicationAfterFailedPasteHandoff() {
         let suite = UserDefaults(suiteName: "window-recovery-\(UUID())")!
         let board = NSPasteboard(name: .init("window-recovery-\(UUID())"))
