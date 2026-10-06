@@ -8,22 +8,29 @@ import SwiftUI
 @MainActor
 final class OnboardingController {
     private let paster: Paster
-    private var window: NSWindow?
+    private let settings: AppSettings
+    private(set) var window: NSWindow?
 
-    init(paster: Paster) {
+    init(paster: Paster, settings: AppSettings = .shared) {
         self.paster = paster
+        self.settings = settings
     }
 
-    /// Shows onboarding once, on first launch.
+    /// Also restores permission guidance when an update loses Accessibility.
     func showIfNeeded() {
-        guard !AppSettings.shared.hasCompletedOnboarding else { return }
+        guard !settings.hasCompletedOnboarding || !paster.hasAccessibilityPermission else { return }
         show()
     }
 
     func show() {
         if window == nil {
             let root = OnboardingView(
-                onGrant: { [weak self] in self?.paster.ensureAccessibilityPermission() },
+                onGrant: { [weak self] in
+                    guard let self else { return }
+                    if !self.paster.ensureAccessibilityPermission() {
+                        Self.openAccessibilitySettings()
+                    }
+                },
                 onOpenSettings: { Self.openAccessibilitySettings() },
                 onFinish: { [weak self] in self?.finish() }
             )
@@ -35,12 +42,14 @@ final class OnboardingController {
             window.center()
             self.window = window
         }
+        NSApp.unhideWithoutActivation()
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
     }
 
     private func finish() {
-        AppSettings.shared.hasCompletedOnboarding = true
+        settings.hasCompletedOnboarding = true
         window?.close()
     }
 

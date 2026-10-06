@@ -48,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popupController.anchorRectProvider = { [weak self] in
             self?.statusItemController?.statusButtonScreenRect()
         }
+        popupController.onAccessibilityRequired = { [weak self] in self?.onboardingController.show() }
 
         hotKeyManager.onToggle = { [weak self] in self?.popupController.toggle() }
         hotKeyManager.register()
