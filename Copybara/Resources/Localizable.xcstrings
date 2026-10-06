@@ -456,6 +456,70 @@
         }
       }
     },
+    "After an update, remove Copybara from Accessibility and add the installed app again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "After an update, remove Copybara from Accessibility and add the installed app again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После обновления удалите Copybara из «Универсального доступа» и снова добавьте установленное приложение."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entferne Copybara nach einem Update aus den Bedienungshilfen und füge die installierte App erneut hinzu."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Après une mise à jour, retirez Copybara de la liste Accessibilité, puis ajoutez à nouveau l’application installée."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después de actualizar, elimina Copybara de Accesibilidad y vuelve a añadir la aplicación instalada."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dopo un aggiornamento, rimuovi Copybara da Accessibilità e aggiungi nuovamente l’app installata."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Após uma atualização, remova o Copybara de Acessibilidade e adicione novamente o aplicativo instalado."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新后，请从“辅助功能”列表中移除 Copybara，然后重新添加已安装的应用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデート後は、アクセシビリティから Copybara を削除し、インストール済みのアプリをもう一度追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트 후 손쉬운 사용 목록에서 Copybara를 제거하고 설치된 앱을 다시 추가하세요."
+          }
+        }
+      }
+    },
     "All": {
       "extractionState": "manual",
       "localizations": {

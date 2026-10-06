@@ -33,11 +33,13 @@ final class SettingsWindowController {
             window.center()
             self.window = window
         }
+        NSApp.unhideWithoutActivation()
         if #available(macOS 14.0, *) {
             NSApp.activate()
         } else {
             NSApp.activate(ignoringOtherApps: true)
         }
         window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
     }
 }

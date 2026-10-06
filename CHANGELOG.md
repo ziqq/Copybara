@@ -17,6 +17,15 @@ Use and redistribution are subject to LICENSE.
 ## Unreleased
 
 
+## 0.1.4 — 2026-10-06
+- **CHANGED**: Replaced the menu-bar mascot with two clean overlapping copies.
+- **FIXED**: The popup reopens on the first click after a failed paste handoff
+  hides the application; opening Settings also restores hidden windows.
+- **FIXED**: Missing Accessibility permission reopens the permission guide even
+  after onboarding. Grant Access opens the system pane if the permission is
+  still missing; recovery instructions are translated into all ten languages.
+
+
 ## 0.1.3 — 2026-10-05
 - **ADDED**: Signed in-app updates with Sparkle: download, verify, install, and
   relaunch from Check for Updates. Versions before 0.1.3 need one manual install.

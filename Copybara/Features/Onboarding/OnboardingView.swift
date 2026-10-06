@@ -40,6 +40,10 @@ struct OnboardingView: View {
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                Text("After an update, remove Copybara from Accessibility and add the installed app again.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Button("Grant Accessibility…", action: onGrant)
                     Button("Open Settings", action: onOpenSettings)

@@ -33,9 +33,11 @@ final class PopupController {
 
     /// Supplies the on-screen rect to anchor the popup under (the status button).
     var anchorRectProvider: (() -> NSRect?)?
+    /// Shows permission recovery when a paste cannot send keyboard events.
+    var onAccessibilityRequired: (() -> Void)?
 
-    init(store: HistoryStore, paster: Paster) {
-        self.oo = PopupOO(store: store)
+    init(store: HistoryStore, paster: Paster, settings: AppSettings = .shared, snippets: SnippetStore = .shared) {
+        self.oo = PopupOO(store: store, settings: settings, snippets: snippets)
         self.paster = paster
         self.window = PopupWindow()
 
@@ -131,7 +133,7 @@ final class PopupController {
         return effect
     }
 
-    var isVisible: Bool { window.isVisible }
+    var isVisible: Bool { window.isVisible && !NSApp.isHidden }
 
     func toggle() {
         isVisible ? hide() : show()
@@ -149,6 +151,9 @@ final class PopupController {
         layoutWindow()
         installKeyMonitor()
 
+        // A failed focus handoff can hide the app. Restore it without stealing
+        // activation from the destination before presenting the next popup.
+        NSApp.unhideWithoutActivation()
         // A nonactivating panel accepts search input while keeping the target
         // app active, avoiding an activation race when an item is pasted.
         window.makeKeyAndOrderFront(nil)
@@ -502,11 +507,13 @@ final class PopupController {
         pasteWhenTargetIsFrontmost(target, generation: pasteGeneration)
     }
 
-    /// Content is already on the pasteboard. Show the system's own permission
-    /// prompt once per launch (it deep-links to the right pane); a second,
-    /// custom alert on top of it only stacked two dialogs. The popup footer
-    /// keeps pointing at the setting afterwards.
+    /// Content is already on the pasteboard. Reopen the permission guide so a
+    /// suppressed system prompt cannot leave the user without a recovery path.
     private func handleMissingAccessibility() {
+        if let onAccessibilityRequired {
+            onAccessibilityRequired()
+            return
+        }
         guard !didPromptAccessibility else { return }
         didPromptAccessibility = true
         paster.ensureAccessibilityPermission()
