@@ -18,7 +18,6 @@ final class PopupController {
     private let paster: Paster
     private let window: PopupWindow
 
-    private var keyMonitor: Any?
     /// The app to paste into. Held strongly: `frontmostApplication` hands back a
     /// fresh instance nobody else retains, so a weak reference is nil at once.
     private var previousApp: NSRunningApplication?
@@ -49,6 +48,9 @@ final class PopupController {
             }
             .store(in: &cancellables)
 
+        window.onKeyDown = { [weak self] event in
+            self?.handleKeyEvent(event) ?? false
+        }
         configureAppearance()
 
         // Keep the window sized to the current number of results. Deferred to the
@@ -149,7 +151,6 @@ final class PopupController {
         configureAppearance()
         oo.reset()
         layoutWindow()
-        installKeyMonitor()
 
         // A failed focus handoff can hide the app. Restore it without stealing
         // activation from the destination before presenting the next popup.
@@ -161,7 +162,6 @@ final class PopupController {
     }
 
     func hide() {
-        removeKeyMonitor()
         updatePreview(nil)
         window.orderOut(nil)
     }
@@ -358,87 +358,79 @@ final class PopupController {
 
     // MARK: - Keyboard
 
-    private func installKeyMonitor() {
-        removeKeyMonitor()
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self else { return event }
-            // Only the "real" modifiers — arrow keys carry .function/.numericPad,
-            // which would otherwise break exact `[]` / `.command` matches below.
-            let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
+    /// Handle keys at the panel's dispatch boundary, including events sent
+    /// directly to a nonactivating panel rather than through NSApplication.
+    private func handleKeyEvent(_ event: NSEvent) -> Bool {
+        guard window.isVisible, event.window === window else { return false }
+        // Only the "real" modifiers — arrow keys carry .function/.numericPad,
+        // which would otherwise break exact `[]` / `.command` matches below.
+        let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
 
-            // ⌘1–9 — quick-paste the Nth item.
-            if flags == .command, let digit = Int(event.charactersIgnoringModifiers ?? ""), digit >= 1, digit <= 9 {
-                if let item = self.oo.item(atNumber: digit) { self.commit(item) }
-                return nil
-            }
-
-            switch (event.keyCode, flags) {
-            case (125, []): // ↓
-                self.oo.moveSelection(by: 1)
-                self.refreshPreviewIfVisible()
-                return nil
-            case (126, []): // ↑
-                self.oo.moveSelection(by: -1)
-                self.refreshPreviewIfVisible()
-                return nil
-            case (125, .command): // ⌘↓ — jump to last
-                self.oo.selectLast()
-                self.refreshPreviewIfVisible()
-                return nil
-            case (126, .command): // ⌘↑ — jump to first
-                self.oo.selectFirst()
-                self.refreshPreviewIfVisible()
-                return nil
-            case (124, []): // → — show preview for the selected item
-                self.updatePreview(self.oo.selectedItem)
-                return nil
-            case (123, []): // ← — hide preview
-                self.updatePreview(nil)
-                return nil
-            case (36, [.option, .shift]), (76, [.option, .shift]): // ⌥⇧↩ — paste plain
-                if let item = self.oo.selectedItem { self.commit(item, plain: true) }
-                return nil
-            case (36, _), (76, _): // Return / Enter — paste
-                if let item = self.oo.selectedItem { self.commit(item) }
-                return nil
-            case (40, .command): // ⌘K — toggle the actions menu
-                self.oo.showActions.toggle()
-                return nil
-            case (37, .command): // ⌘L — cycle the content-type filter
-                self.oo.cycleScope()
-                return nil
-            case (8, .command): // ⌘C — copy the selected item without pasting
-                self.perform(.copy)
-                return nil
-            case (53, _): // Esc — close the actions menu first, else hide the popup
-                if self.oo.showActions {
-                    self.oo.showActions = false
-                } else {
-                    self.hide()
-                }
-                return nil
-            case (35, .option): // ⌥P — pin / unpin
-                self.oo.togglePinSelected()
-                return nil
-            case (51, [.shift, .option, .command]): // ⇧⌥⌘⌫ — clear all incl. pins
-                self.oo.clearAll()
-                return nil
-            case (51, [.option, .command]): // ⌥⌘⌫ — clear unpinned
-                self.oo.clearUnpinned()
-                return nil
-            case (51, .option): // ⌥⌫ — delete item
-                self.oo.deleteSelected()
-                return nil
-            default:
-                return event
-            }
+        // ⌘1–9 — quick-paste the Nth item.
+        if flags == .command, let digit = Int(event.charactersIgnoringModifiers ?? ""), digit >= 1, digit <= 9 {
+            if let item = oo.item(atNumber: digit) { commit(item) }
+            return true
         }
-    }
 
-    private func removeKeyMonitor() {
-        if let keyMonitor {
-            NSEvent.removeMonitor(keyMonitor)
-            self.keyMonitor = nil
+        switch (event.keyCode, flags) {
+        case (125, []): // ↓
+            oo.moveSelection(by: 1)
+            refreshPreviewIfVisible()
+            return true
+        case (126, []): // ↑
+            oo.moveSelection(by: -1)
+            refreshPreviewIfVisible()
+            return true
+        case (125, .command): // ⌘↓ — jump to last
+            oo.selectLast()
+            refreshPreviewIfVisible()
+            return true
+        case (126, .command): // ⌘↑ — jump to first
+            oo.selectFirst()
+            refreshPreviewIfVisible()
+            return true
+        case (124, []): // → — show preview for the selected item
+            updatePreview(oo.selectedItem)
+            return true
+        case (123, []): // ← — hide preview
+            updatePreview(nil)
+            return true
+        case (36, [.option, .shift]), (76, [.option, .shift]): // ⌥⇧↩ — paste plain
+            if let item = oo.selectedItem { commit(item, plain: true) }
+            return true
+        case (36, _), (76, _): // Return / Enter — paste
+            if let item = oo.selectedItem { commit(item) }
+            return true
+        case (40, .command): // ⌘K — toggle the actions menu
+            oo.showActions.toggle()
+            return true
+        case (37, .command): // ⌘L — cycle the content-type filter
+            oo.cycleScope()
+            return true
+        case (8, .command): // ⌘C — copy the selected item without pasting
+            perform(.copy)
+            return true
+        case (53, _): // Esc — close the actions menu first, else hide the popup
+            if oo.showActions {
+                oo.showActions = false
+            } else {
+                hide()
+            }
+            return true
+        case (35, .option): // ⌥P — pin / unpin
+            oo.togglePinSelected()
+            return true
+        case (51, [.shift, .option, .command]): // ⇧⌥⌘⌫ — clear all incl. pins
+            oo.clearAll()
+            return true
+        case (51, [.option, .command]): // ⌥⌘⌫ — clear unpinned
+            oo.clearUnpinned()
+            return true
+        case (51, .option): // ⌥⌫ — delete item
+            oo.deleteSelected()
+            return true
+        default:
+            return false
         }
     }
 

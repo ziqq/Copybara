@@ -19,7 +19,7 @@ enum PopupAction {
 /// results with a highlighted selection and a Raycast-style action footer.
 ///
 /// Keyboard navigation (↑/↓/Return/Esc) is handled by `PopupController` via a
-/// local event monitor, which updates `oo.selectedIndex` and calls `onCommit`.
+/// panel event handler, which updates `oo.selectedIndex` and calls `onCommit`.
 /// The window is sized to match `PopupMetrics.totalHeight(for:)` so few results
 /// produce a compact popup rather than a tall empty box.
 struct PopupView: View {
