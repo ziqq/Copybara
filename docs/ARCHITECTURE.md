@@ -248,5 +248,6 @@ Kept deliberately minimal:
 
 Everything else (pasteboard, Core Data, CGEvent, status item, settings via
 `UserDefaults`) uses the system frameworks directly. Updates are on-demand via the
-signed Sparkle appcast hosted on GitHub Releases (`UpdaterController`). Signing/notarization is
-optional (see `docs/RELEASE.md`).
+signed Sparkle appcast hosted on GitHub Releases (`UpdaterController`). Release
+builds use a stable certificate and verify identity across version changes;
+notarization is optional (see `docs/RELEASE.md`).

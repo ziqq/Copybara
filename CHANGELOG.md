@@ -15,6 +15,11 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+
+
+## 0.1.6 — 2026-10-06
+- **ADDED**: Certificate signing for releases and a check that different
+  versions satisfy each other's signing requirement; ad-hoc releases are rejected.
 - **CHANGED**: Removed the ellipsis from Settings in all ten menu languages.
 - **FIXED**: The update prompt without release notes wraps its version text in
   a compact window while Sparkle continues to download, verify, and install.

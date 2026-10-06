@@ -29,6 +29,10 @@ secure backup: ad-hoc builds cannot rotate a lost key using Developer ID.
    version — it creates the tag for you.)
 
 The **Release** workflow (`.github/workflows/release.yml`) then:
+- imports the Copybara signing identity into a temporary keychain from
+  `APPLE_SIGNING_CERTIFICATE_BASE64` (encrypted PKCS12) and
+  `APPLE_SIGNING_CERTIFICATE_PASSWORD` Actions secrets, then deletes that
+  keychain at the end; missing secrets stop the release,
 - builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag)
   as `build/Copybara-<version>.dmg`, then mounts it read-only to check the app,
   the `Applications` link and the code signature,
@@ -37,6 +41,8 @@ The **Release** workflow (`.github/workflows/release.yml`) then:
 - assigns the workflow run number to `CFBundleVersion` so Sparkle can order
   successive release builds,
 - signs the DMG and appcast using Sparkle 2.10.0 tools and the Actions secret,
+- verifies the pinned certificate identity and checks that changing the app's
+  version does not change its identity requirement,
 - generates notes: DMG install steps first, a file / size / SHA-256 table, the
   build-from-source fallback, the commit log since the previous tag,
 - publishes a GitHub Release with the DMG, checksum, and `appcast.xml`.
@@ -46,7 +52,21 @@ to the version-specific DMG asset. Sparkle requires valid archive and feed
 signatures before installing; downloading a DMG in a browser remains available
 for first-time installation.
 
-## Signing (optional, needs a paid account)
+## Release signing and Accessibility
+
+Starting with 0.1.6, releases use the same Apple Development certificate.
+Its public SHA1 identity is `2A1CD7C372968E01732ED7B26AC5CBB9F4014D33`; the
+private key is held only in the developer's Keychain and the encrypted Actions
+secret. `scripts/verify_signing.py` rejects ad-hoc signatures, mismatched
+certificates and versions that fail each other's designated requirement.
+
+The first migration from an ad-hoc release still needs a new Accessibility
+grant: remove the old entry with − and add `/Applications/Copybara.app` again.
+Later certificate-signed releases use the same identity. This certificate does
+not provide Developer ID notarization; the downloaded app may still need its
+quarantine flag cleared on first installation.
+
+## Local builds and notarization
 
 Without a team the DMG is **ad-hoc signed** (sealed as `dev.ustinoff.copybara`,
 no certificate), so users clear the quarantine flag:
@@ -55,9 +75,12 @@ no certificate), so users clear the quarantine flag:
 xattr -dr com.apple.quarantine /Applications/Copybara.app
 ```
 
-An ad-hoc signature is tied to the exact build, so after each update users must
-re-enable Copybara under Privacy & Security › Accessibility (remove it with −,
-then turn it on). The release notes say so; a Developer ID signature fixes it.
+An ad-hoc local build is tied to its exact binary and loses its previous
+Accessibility grant after changes. To use a stable installed certificate:
+
+```bash
+COPYBARA_CODE_SIGN_IDENTITY=<certificate-SHA1> ./scripts/build_dmg.sh
+```
 
 To ship a clean, notarized DMG, build signed and notarize:
 
