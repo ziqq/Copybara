@@ -10,16 +10,25 @@ final class UpdaterController {
     private let driver = CompactUpdateUserDriver(hostBundle: .main)
     private lazy var updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
                                          userDriver: driver, delegate: nil)
+    private var startError: Error?
 
     init() {
         do { try updater.start() }
-        catch { Log.app.error("Cannot start updater: \(error.localizedDescription, privacy: .public)") }
+        catch {
+            startError = error
+            Log.app.error("Cannot start updater: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func checkForUpdates() {
         // Present update UI after the status menu finishes tracking.
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.updater.canCheckForUpdates else { return }
+            guard let self else { return }
+            if let error = self.startError {
+                self.driver.showUpdaterError(error) {}
+                return
+            }
+            guard self.updater.canCheckForUpdates else { return }
             self.updater.checkForUpdates()
         }
     }
