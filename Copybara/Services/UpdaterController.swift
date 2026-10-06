@@ -39,9 +39,9 @@ final class UpdaterController {
 @MainActor
 final class CompactUpdateUserDriver: SPUStandardUserDriver {
     private var updateAlert: NSAlert?
-    private let presentAlert: (NSAlert) -> NSApplication.ModalResponse
+    private let presentAlert: @MainActor (NSAlert) -> NSApplication.ModalResponse
 
-    init(hostBundle: Bundle, presentAlert: @escaping (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }) {
+    init(hostBundle: Bundle, presentAlert: @escaping @MainActor (NSAlert) -> NSApplication.ModalResponse = { $0.runModal() }) {
         self.presentAlert = presentAlert
         super.init(hostBundle: hostBundle, delegate: nil)
     }
