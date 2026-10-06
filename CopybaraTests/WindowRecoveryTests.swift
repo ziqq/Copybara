@@ -15,7 +15,12 @@ final class WindowRecoveryTests: XCTestCase {
         for _ in 0..<20 where NSApp.isActive {
             try await Task.sleep(nanoseconds: 50_000_000)
         }
-        XCTAssertFalse(NSApp.isActive, "reproduce invoking the launcher from another app")
+        // A hosted macOS runner can have no other foreground application.
+        // AppKit then refuses to deactivate the sole active test host, so that
+        // session cannot exercise the background presentation scenario.
+        guard !NSApp.isActive else {
+            throw XCTSkip("Requires a WindowServer session with another active application")
+        }
 
         let window = PopupWindow()
         // Exercise real window ordering without displaying test controls or
