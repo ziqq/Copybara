@@ -7,6 +7,38 @@ import XCTest
 
 @MainActor
 final class WindowRecoveryTests: XCTestCase {
+    func testPopupAppearsInWindowServerWhileApplicationIsInactive() async throws {
+        let policy = NSApp.activationPolicy()
+        NSApp.setActivationPolicy(.accessory)
+        defer { NSApp.setActivationPolicy(policy) }
+        NSApp.deactivate()
+        for _ in 0..<20 where NSApp.isActive {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        XCTAssertFalse(NSApp.isActive, "reproduce invoking the launcher from another app")
+
+        let window = PopupWindow()
+        // Exercise real window ordering without displaying test controls or
+        // clipboard contents: the tiny panel is completely transparent.
+        window.hasShadow = false
+        window.contentView = NSView()
+        let frame = try XCTUnwrap(NSScreen.main).visibleFrame
+        window.setFrame(NSRect(x: frame.midX, y: frame.midY, width: 8, height: 8), display: false)
+        defer { window.orderOut(nil) }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.deactivate()
+
+        func isOnscreen() -> Bool {
+            let rows = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+            return rows.contains { ($0[kCGWindowNumber as String] as? Int) == window.windowNumber }
+        }
+        for _ in 0..<20 where !isOnscreen() || NSApp.isActive {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        XCTAssertTrue(isOnscreen(), "NSWindow.isVisible alone does not prove the history panel reached the screen")
+        XCTAssertFalse(NSApp.isActive, "showing history must preserve the destination app's activation")
+    }
+
     func testPopupSupportsPresentationWhileDestinationApplicationStaysActive() {
         let window = PopupWindow()
         // The launcher accepts keyboard focus while its owning app remains

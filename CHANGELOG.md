@@ -15,6 +15,9 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+
+
+## 0.1.5 — 2026-10-06
 - **FIXED**: The nonactivating history panel no longer opts into automatic
   hiding when Copybara becomes inactive while the destination app stays active.
 
