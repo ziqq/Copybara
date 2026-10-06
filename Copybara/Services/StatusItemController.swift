@@ -17,7 +17,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     var onPrimaryAction: (() -> Void)?
     /// Invoked before the context menu opens, to dismiss the search popup.
     var onOpenContextMenu: (() -> Void)?
-    /// Invoked when the user chooses "Settings…".
+    /// Invoked when the user chooses "Settings".
     var onOpenSettings: (() -> Void)?
     /// Invoked to skip recording the next copy (⌥⇧-click / menu).
     var onIgnoreNext: (() -> Void)?
@@ -135,7 +135,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         updates.target = self
         menu.addItem(updates)
 
-        let settings = NSMenuItem(title: L10n.string("Settings…"), action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L10n.string("Settings"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
 

@@ -5948,67 +5948,67 @@
         }
       }
     },
-    "Settings…": {
+    "Settings": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Settings…"
+            "value": "Settings"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Настройки…"
+            "value": "Настройки"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einstellungen …"
+            "value": "Einstellungen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Réglages…"
+            "value": "Réglages"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajustes…"
+            "value": "Ajustes"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impostazioni…"
+            "value": "Impostazioni"
           }
         },
         "pt": {
           "stringUnit": {
             "state": "translated",
-            "value": "Definições…"
+            "value": "Definições"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "设置…"
+            "value": "设置"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "設定…"
+            "value": "設定"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "설정…"
+            "value": "설정"
           }
         }
       }

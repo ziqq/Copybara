@@ -79,7 +79,7 @@ final class WindowRecoveryTests: XCTestCase {
         defer { settings.window?.close(); NSApp.unhideWithoutActivation() }
         NSApp.hide(nil)
         XCTAssertTrue(NSApp.isHidden)
-        let item = try XCTUnwrap(menu.buildMenu().items.first { $0.title == L10n.string("Settings…") })
+        let item = try XCTUnwrap(menu.buildMenu().items.first { $0.title == L10n.string("Settings") })
         menu.perform(try XCTUnwrap(item.action))
         await fulfillment(of: [opened], timeout: 3)
         XCTAssertFalse(NSApp.isHidden)
