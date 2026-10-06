@@ -15,6 +15,9 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **CHANGED**: Removed the ellipsis from Settings in all ten menu languages.
+- **FIXED**: The update prompt without release notes wraps its version text in
+  a compact window while Sparkle continues to download, verify, and install.
 
 
 ## 0.1.5 — 2026-10-06

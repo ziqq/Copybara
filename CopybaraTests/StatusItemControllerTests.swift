@@ -44,9 +44,12 @@ final class StatusItemControllerTests: XCTestCase {
         let menu = controller.buildMenu()
         let titles = menu.items.filter { !$0.isSeparatorItem }.map(\.title)
         let updates = titles.firstIndex(of: L10n.string("Check for Updates…"))!
-        XCTAssertEqual(Array(titles[updates...updates + 2]), [L10n.string("Check for Updates…"), L10n.string("Settings…"), L10n.string("Clear All")])
+        XCTAssertEqual(Array(titles[updates...updates + 2]), [L10n.string("Check for Updates…"), L10n.string("Settings"), L10n.string("Clear All")])
         XCTAssertFalse(titles.contains(L10n.string("Clear")))
         XCTAssertTrue(menu.items.allSatisfy { $0.image == nil })
+        let settings = menu.items.first { $0.keyEquivalent == "," }
+        XCTAssertEqual(settings?.title, L10n.string("Settings"))
+        XCTAssertFalse(settings?.title.contains("…") ?? true)
     }
 
     func testSettingsActionRunsAfterMenuTrackingReturns() async {
@@ -54,7 +57,7 @@ final class StatusItemControllerTests: XCTestCase {
         let opened = expectation(description: "settings callback")
         var called = false
         controller.onOpenSettings = { called = true; opened.fulfill() }
-        let item = controller.buildMenu().items.first { $0.title == L10n.string("Settings…") }!
+        let item = controller.buildMenu().items.first { $0.title == L10n.string("Settings") }!
         controller.perform(item.action!)
         XCTAssertFalse(called, "window creation must not re-enter menu tracking")
         await fulfillment(of: [opened], timeout: 2)
