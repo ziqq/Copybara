@@ -80,8 +80,9 @@ jobs:
       - name: Generate coverage report
         if: success()
         run: |
-          gem install slather --no-document
-          slather coverage --cobertura-xml
+          # Slather 2.8.6 breaks scheme coverage lookup (SlatherOrg/slather#586).
+          gem install slather --version 2.8.5 --no-document
+          slather _2.8.5_ coverage --cobertura-xml
 
       - name: Upload coverage to Codecov
         if: success()
