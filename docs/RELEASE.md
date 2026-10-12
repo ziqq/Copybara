@@ -25,10 +25,15 @@ secure backup: ad-hoc builds cannot rotate a lost key using Developer ID.
    git tag v0.2.0
    git push origin v0.2.0
    ```
-   (Or run the **Release** workflow manually via *workflow_dispatch* with the
-   version — it creates the tag for you.)
+   To publish an existing tag manually, run:
+   ```bash
+   gh workflow run release.yml --ref v0.2.0
+   ```
+   The workflow reads the version from the selected tag and rejects branch
+   refs. It does not create tags.
 
-The **Release** workflow (`.github/workflows/release.yml`) then:
+The **Release** workflow (`.github/workflows/release.yml`) uses the `release`
+environment and then:
 - imports the Copybara signing identity into a temporary keychain from
   `APPLE_SIGNING_CERTIFICATE_BASE64` (encrypted PKCS12) and
   `APPLE_SIGNING_CERTIFICATE_PASSWORD` Actions secrets, then deletes that
