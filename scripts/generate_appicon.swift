@@ -50,58 +50,77 @@ func renderIcon(size: CGFloat) -> Data {
     )
     ctx.restoreGState()
 
-    // Capybara mascot.
-    let cx = size / 2
-    let tan = NSColor(srgbRed: 0.88, green: 0.70, blue: 0.49, alpha: 1)
-    let tanDark = NSColor(srgbRed: 0.79, green: 0.58, blue: 0.38, alpha: 1)
-    let earInner = NSColor(srgbRed: 0.58, green: 0.39, blue: 0.25, alpha: 1)
-    let dark = NSColor(srgbRed: 0.25, green: 0.15, blue: 0.09, alpha: 1)
+    // A long, blunt muzzle and small ears make the capybara readable in profile.
+    // Work in unit coordinates so every asset is rendered from the same paths.
+    ctx.saveGState()
+    ctx.scaleBy(x: size, y: size)
+    let fur = NSColor(srgbRed: 0.92, green: 0.75, blue: 0.54, alpha: 1)
+    let muzzle = NSColor(srgbRed: 0.83, green: 0.62, blue: 0.40, alpha: 1)
+    let earInner = NSColor(srgbRed: 0.61, green: 0.41, blue: 0.25, alpha: 1)
+    let dark = NSColor(srgbRed: 0.27, green: 0.16, blue: 0.09, alpha: 1)
 
-    func fillRoundRect(_ rect: CGRect, _ r: CGFloat, _ color: NSColor) {
-        ctx.setFillColor(color.cgColor)
-        ctx.addPath(roundedRect(rect, r))
-        ctx.fillPath()
+    // Ear behind the head; much smaller than the previous round bear-like ears.
+    ctx.setFillColor(muzzle.cgColor)
+    ctx.fillEllipse(in: CGRect(x: 0.29, y: 0.655, width: 0.125, height: 0.15))
+    ctx.setFillColor(earInner.cgColor)
+    ctx.fillEllipse(in: CGRect(x: 0.326, y: 0.704, width: 0.054, height: 0.061))
+
+    let head = CGMutablePath()
+    head.move(to: CGPoint(x: 0.245, y: 0.255))
+    head.addCurve(to: CGPoint(x: 0.19, y: 0.33),
+                  control1: CGPoint(x: 0.205, y: 0.255), control2: CGPoint(x: 0.19, y: 0.285))
+    head.addLine(to: CGPoint(x: 0.19, y: 0.475))
+    head.addCurve(to: CGPoint(x: 0.375, y: 0.71),
+                  control1: CGPoint(x: 0.19, y: 0.635), control2: CGPoint(x: 0.255, y: 0.71))
+    head.addCurve(to: CGPoint(x: 0.57, y: 0.64),
+                  control1: CGPoint(x: 0.47, y: 0.71), control2: CGPoint(x: 0.52, y: 0.66))
+    head.addLine(to: CGPoint(x: 0.73, y: 0.605))
+    head.addCurve(to: CGPoint(x: 0.845, y: 0.49),
+                  control1: CGPoint(x: 0.81, y: 0.585), control2: CGPoint(x: 0.845, y: 0.55))
+    head.addLine(to: CGPoint(x: 0.845, y: 0.425))
+    head.addCurve(to: CGPoint(x: 0.745, y: 0.335),
+                  control1: CGPoint(x: 0.845, y: 0.37), control2: CGPoint(x: 0.815, y: 0.335))
+    head.addLine(to: CGPoint(x: 0.52, y: 0.335))
+    head.addCurve(to: CGPoint(x: 0.455, y: 0.255),
+                  control1: CGPoint(x: 0.49, y: 0.335), control2: CGPoint(x: 0.49, y: 0.255))
+    head.closeSubpath()
+    ctx.setFillColor(fur.cgColor)
+    ctx.addPath(head)
+    ctx.fillPath()
+
+    // A broad muzzle follows the silhouette rather than forming a round snout.
+    ctx.saveGState()
+    ctx.addPath(head)
+    ctx.clip()
+    let snout = CGMutablePath()
+    snout.move(to: CGPoint(x: 0.61, y: 0.585))
+    snout.addCurve(to: CGPoint(x: 0.625, y: 0.335),
+                   control1: CGPoint(x: 0.665, y: 0.49), control2: CGPoint(x: 0.59, y: 0.40))
+    snout.addLine(to: CGPoint(x: 0.90, y: 0.30))
+    snout.addLine(to: CGPoint(x: 0.90, y: 0.62))
+    snout.closeSubpath()
+    ctx.setFillColor(muzzle.cgColor)
+    ctx.addPath(snout)
+    ctx.fillPath()
+    ctx.restoreGState()
+
+    ctx.setFillColor(dark.cgColor)
+    ctx.fillEllipse(in: CGRect(x: 0.445, y: 0.565, width: 0.05, height: 0.061))
+    ctx.fillEllipse(in: CGRect(x: 0.765, y: 0.48, width: 0.04, height: 0.033))
+
+    // Omit the thin mouth at 16/32 px; the eye, nostril, and silhouette carry it.
+    if size >= 64 {
+        let mouth = CGMutablePath()
+        mouth.move(to: CGPoint(x: 0.705, y: 0.425))
+        mouth.addCurve(to: CGPoint(x: 0.843, y: 0.43),
+                       control1: CGPoint(x: 0.755, y: 0.412), control2: CGPoint(x: 0.815, y: 0.416))
+        ctx.setStrokeColor(dark.withAlphaComponent(0.65).cgColor)
+        ctx.setLineWidth(0.012)
+        ctx.setLineCap(.round)
+        ctx.addPath(mouth)
+        ctx.strokePath()
     }
-    func fillEllipse(_ rect: CGRect, _ color: NSColor) {
-        ctx.setFillColor(color.cgColor)
-        ctx.fillEllipse(in: rect)
-    }
-
-    let headW = size * 0.58
-    let headH = size * 0.50
-    let headRect = CGRect(x: cx - headW / 2, y: size * 0.27, width: headW, height: headH)
-
-    // Ears (behind the head).
-    let earW = size * 0.17
-    let earH = size * 0.16
-    for sign in [-1.0, 1.0] as [CGFloat] {
-        let earRect = CGRect(x: cx + sign * size * 0.18 - earW / 2, y: headRect.maxY - earH * 0.45, width: earW, height: earH)
-        fillEllipse(earRect, tanDark)
-        let inW = earW * 0.5, inH = earH * 0.5
-        fillEllipse(CGRect(x: earRect.midX - inW / 2, y: earRect.midY - inH / 2, width: inW, height: inH), earInner)
-    }
-
-    // Head.
-    fillRoundRect(headRect, size * 0.21, tan)
-
-    // Eyes.
-    let eyeW = size * 0.058, eyeH = size * 0.075
-    let eyeY = headRect.midY + size * 0.05
-    for sign in [-1.0, 1.0] as [CGFloat] {
-        fillEllipse(CGRect(x: cx + sign * size * 0.125 - eyeW / 2, y: eyeY, width: eyeW, height: eyeH), dark)
-    }
-
-    // Muzzle.
-    let muzW = size * 0.38, muzH = size * 0.23
-    let muzRect = CGRect(x: cx - muzW / 2, y: headRect.minY + size * 0.02, width: muzW, height: muzH)
-    fillRoundRect(muzRect, size * 0.11, tanDark)
-
-    // Nostrils.
-    let noseW = size * 0.055, noseH = size * 0.06
-    let noseY = muzRect.maxY - noseH - size * 0.03
-    for sign in [-1.0, 1.0] as [CGFloat] {
-        fillEllipse(CGRect(x: cx + sign * size * 0.065 - noseW / 2, y: noseY, width: noseW, height: noseH), dark)
-    }
+    ctx.restoreGState()
 
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!
