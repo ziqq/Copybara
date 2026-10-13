@@ -15,6 +15,10 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **CHANGED**: The native menu groups copying controls, popup position, and
+  launch at login under Settings, with checkmarks and access to the full settings.
+- **CHANGED**: The update prompt is narrower and fits its version text without
+  reserving empty vertical space.
 
 
 ## 0.1.8 — 2026-10-13
