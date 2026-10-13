@@ -101,6 +101,9 @@ final class SettingsOO: ObservableObject {
         let granted = Paster().hasAccessibilityPermission
         if granted != accessibilityGranted { accessibilityGranted = granted }
         if settings.ignoreAllCopies != ignoreAllCopies { ignoreAllCopies = settings.ignoreAllCopies }
+        if settings.popupPosition != popupPosition { popupPosition = settings.popupPosition }
+        let startup = LaunchAtLoginManager.isEnabled
+        if startup != launchAtLogin { launchAtLogin = startup }
     }
 
     private func notifyServices() {

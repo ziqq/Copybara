@@ -6,8 +6,8 @@ import AppKit
 /// Owns the menu-bar status item.
 ///
 /// Left-click opens the search popup (the primary action); right-click shows a
-/// context menu with Settings, Clear History, and Quit. The menu is rebuilt on
-/// each open so the item count stays fresh.
+/// context menu with quick settings, Clear History, and Quit. The menu is
+/// rebuilt on each open so counts and preference checkmarks stay fresh.
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let store: HistoryStore
@@ -120,23 +120,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let ignoreAll = NSMenuItem(title: L10n.string("Ignore All Copies"), action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
-        ignoreAll.target = self
-        ignoreAll.state = AppSettings.shared.ignoreAllCopies ? .on : .off
-        menu.addItem(ignoreAll)
-
-        let ignoreNext = NSMenuItem(title: L10n.string("Ignore Next Copy"), action: #selector(ignoreNextFromMenu), keyEquivalent: "")
-        ignoreNext.target = self
-        menu.addItem(ignoreNext)
-
-        menu.addItem(.separator())
-
         let updates = NSMenuItem(title: L10n.string("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
 
         let settings = NSMenuItem(title: L10n.string("Settings"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
+        settings.submenu = buildSettingsMenu()
         menu.addItem(settings)
 
         let clearAll = NSMenuItem(title: L10n.string("Clear All"), action: #selector(clearAll), keyEquivalent: "\u{8}")
@@ -151,15 +141,61 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         quit.target = self
         menu.addItem(quit)
 
+        removeDefaultIcons(from: menu)
+        return menu
+    }
+
+    private func buildSettingsMenu() -> NSMenu {
+        let menu = NSMenu(title: L10n.string("Settings"))
+        menu.autoenablesItems = false
+
+        let ignoreAll = NSMenuItem(title: L10n.string("Ignore All Copies"), action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
+        ignoreAll.target = self
+        ignoreAll.state = AppSettings.shared.ignoreAllCopies ? .on : .off
+        menu.addItem(ignoreAll)
+
+        let ignoreNext = NSMenuItem(title: L10n.string("Ignore Next Copy"), action: #selector(ignoreNextFromMenu), keyEquivalent: "")
+        ignoreNext.target = self
+        menu.addItem(ignoreNext)
+
+        menu.addItem(.separator())
+
+        let position = NSMenuItem(title: L10n.string("Open popup at"), action: nil, keyEquivalent: "")
+        let positions = NSMenu(title: position.title)
+        positions.autoenablesItems = false
+        for value in PopupPosition.allCases {
+            let item = NSMenuItem(title: value.title, action: #selector(changePopupPosition(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = value.rawValue
+            item.state = AppSettings.shared.popupPosition == value ? .on : .off
+            positions.addItem(item)
+        }
+        position.submenu = positions
+        menu.addItem(position)
+
+        let startup = NSMenuItem(title: L10n.string("Launch at login"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        startup.target = self
+        startup.isEnabled = LaunchAtLoginManager.isSupported
+        startup.state = LaunchAtLoginManager.isEnabled ? .on : .off
+        menu.addItem(startup)
+
+        menu.addItem(.separator())
+
+        let open = NSMenuItem(title: L10n.string("Open Settings"), action: #selector(openSettings), keyEquivalent: ",")
+        open.target = self
+        menu.addItem(open)
+        return menu
+    }
+
+    private func removeDefaultIcons(from menu: NSMenu) {
         for item in menu.items where !item.isSeparatorItem {
             // macOS 26 preserves default action icons when nil is assigned
             // first. Assigning an image before clearing it opts out instead.
             // https://developer.apple.com/forums/thread/800414
             item.image = NSImage()
             item.image = nil
+            if let submenu = item.submenu { removeDefaultIcons(from: submenu) }
         }
-
-        return menu
     }
 
     // MARK: - Actions
@@ -176,5 +212,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func clearAll() { store.clearAll() }
     @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }
     @objc private func ignoreNextFromMenu() { onIgnoreNext?() }
+    @objc private func changePopupPosition(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let position = PopupPosition(rawValue: raw) else { return }
+        AppSettings.shared.popupPosition = position
+    }
+    @objc private func toggleLaunchAtLogin() {
+        // Registration can prompt; let the menu finish tracking first.
+        DispatchQueue.main.async {
+            LaunchAtLoginManager.setEnabled(!LaunchAtLoginManager.isEnabled)
+        }
+    }
     @objc private func quit() { NSApp.terminate(nil) }
 }
