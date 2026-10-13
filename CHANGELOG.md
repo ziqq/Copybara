@@ -15,6 +15,8 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **ADDED**: Clear All Except Favorites in the status menu, immediately after
+  Clear All, using the existing ⌥⌘⌫ shortcut and preserving pinned clips.
 - **CHANGED**: Redrew the app icon as a capybara in profile, with a long muzzle,
   small ear, and the existing warm palette; simplified details at small sizes.
 - **CHANGED**: The native menu groups copying controls, popup position, and
