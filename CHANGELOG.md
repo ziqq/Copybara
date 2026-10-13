@@ -15,6 +15,8 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **CHANGED**: Redrew the app icon as a capybara in profile, with a long muzzle,
+  small ear, and the existing warm palette; simplified details at small sizes.
 - **CHANGED**: The native menu groups copying controls, popup position, and
   launch at login under Settings, with checkmarks and access to the full settings.
 - **CHANGED**: The update prompt is narrower and fits its version text without
