@@ -17,6 +17,15 @@ Use and redistribution are subject to LICENSE.
 ## Unreleased
 
 
+## 0.1.8 — 2026-10-13
+- **CHANGED**: Releases use pre-created version tags and the protected release
+  environment; checkout actions are pinned to immutable commits.
+- **CHANGED**: Issue and pull request notifications skip items opened by the
+  repository owner.
+- **FIXED**: CI coverage generation uses Slather 2.8.5 to avoid the scheme
+  lookup regression in 2.8.6.
+
+
 ## 0.1.7 — 2026-10-06
 - **FIXED**: The history panel handles arrows and keyboard shortcuts at its
   own event boundary, before the search field, including nonactivating dispatch.
