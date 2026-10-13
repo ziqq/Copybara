@@ -163,7 +163,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let position = NSMenuItem(title: L10n.string("Open popup at"), action: nil, keyEquivalent: "")
         let positions = NSMenu(title: position.title)
         positions.autoenablesItems = false
-        for value in PopupPosition.allCases {
+        for value in [PopupPosition.remembered, .menuBarIcon, .center, .cursor] {
             let item = NSMenuItem(title: value.title, action: #selector(changePopupPosition(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = value.rawValue
