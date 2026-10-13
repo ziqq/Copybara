@@ -15,6 +15,8 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **ADDED**: About Copybara at the top of the status menu, opening the native
+  app information panel with its icon, version, and copyright.
 - **ADDED**: Clear All Except Favorites in the status menu, immediately after
   Clear All, using the existing ⌥⌘⌫ shortcut and preserving pinned clips.
 - **CHANGED**: Redrew the app icon as a capybara in profile, with a long muzzle,
