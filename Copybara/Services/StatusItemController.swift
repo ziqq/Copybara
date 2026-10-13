@@ -135,6 +135,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         clearAll.isEnabled = count > 0
         menu.addItem(clearAll)
 
+        let clearUnpinned = NSMenuItem(title: L10n.string("Clear All Except Favorites"), action: #selector(clearUnpinned), keyEquivalent: "\u{8}")
+        clearUnpinned.keyEquivalentModifierMask = [.option, .command]
+        clearUnpinned.target = self
+        clearUnpinned.isEnabled = count > 0
+        menu.addItem(clearUnpinned)
+
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: L10n.string("Quit Copybara"), action: #selector(quit), keyEquivalent: "q")
@@ -210,6 +216,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
     @objc private func checkForUpdates() { onCheckForUpdates?() }
     @objc private func clearAll() { store.clearAll() }
+    @objc private func clearUnpinned() { store.clearUnpinned() }
     @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }
     @objc private func ignoreNextFromMenu() { onIgnoreNext?() }
     @objc private func changePopupPosition(_ sender: NSMenuItem) {
