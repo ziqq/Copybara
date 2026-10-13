@@ -7,11 +7,6 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version without the v prefix, e.g. 0.2.0'
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -24,10 +19,27 @@ jobs:
   release:
     name: Build and publish release
     runs-on: macos-15
+    environment: release
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0 # full history for the changelog
+
+      - name: Resolve version and tag
+        id: meta
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != v* ]]; then
+            echo "::error::Releases require an existing v* tag; select the tag when running this workflow."
+            exit 1
+          fi
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
+            echo "::error::Version '${VERSION}' is not semver"
+            exit 1
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Select latest Xcode
         run: |
@@ -38,23 +50,6 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
-
-      - name: Resolve version and tag
-        id: meta
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ inputs.version }}"
-            TAG="v${VERSION}"
-          else
-            TAG="${GITHUB_REF_NAME}"
-            VERSION="${TAG#v}"
-          fi
-          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
-            echo "::error::Version '${VERSION}' is not semver"
-            exit 1
-          fi
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Import Copybara signing identity
         env:
@@ -184,14 +179,6 @@ jobs:
           } > NOTES.md
           cat NOTES.md
 
-      - name: Tag (manual runs)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.meta.outputs.tag }}" -m "Copybara ${{ steps.meta.outputs.version }}"
-          git push origin "${{ steps.meta.outputs.tag }}"
-
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -200,6 +187,7 @@ jobs:
             "${{ steps.package.outputs.path }}" \
             build/appcast.xml \
             SHA256SUMS.txt \
+            --verify-tag \
             --title "Copybara ${{ steps.meta.outputs.version }}" \
             --notes-file NOTES.md
 
