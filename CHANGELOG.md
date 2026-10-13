@@ -19,8 +19,8 @@ Use and redistribution are subject to LICENSE.
   app information panel with its icon, version, and copyright.
 - **ADDED**: Clear All Except Favorites in the status menu, immediately after
   Clear All, using the existing ⌥⌘⌫ shortcut and preserving pinned clips.
-- **CHANGED**: Redrew the app icon as a capybara in profile, with a long muzzle,
-  small ear, and the existing warm palette; simplified details at small sizes.
+- **CHANGED**: The app icon uses a white two-layer C on a warm copper circle
+  and light tile; the menu bar uses the same mark as a monochrome template.
 - **CHANGED**: The native menu groups copying controls, popup position, and
   launch at login under Settings, with checkmarks and access to the full settings.
 - **CHANGED**: The update prompt is narrower and fits its version text without
