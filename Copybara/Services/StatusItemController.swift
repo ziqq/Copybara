@@ -149,14 +149,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let menu = NSMenu(title: L10n.string("Settings"))
         menu.autoenablesItems = false
 
+        let ignoreNext = NSMenuItem(title: L10n.string("Ignore Next Copy"), action: #selector(ignoreNextFromMenu), keyEquivalent: "")
+        ignoreNext.target = self
+        menu.addItem(ignoreNext)
+
         let ignoreAll = NSMenuItem(title: L10n.string("Ignore All Copies"), action: #selector(toggleIgnoreAllFromMenu), keyEquivalent: "")
         ignoreAll.target = self
         ignoreAll.state = AppSettings.shared.ignoreAllCopies ? .on : .off
         menu.addItem(ignoreAll)
-
-        let ignoreNext = NSMenuItem(title: L10n.string("Ignore Next Copy"), action: #selector(ignoreNextFromMenu), keyEquivalent: "")
-        ignoreNext.target = self
-        menu.addItem(ignoreNext)
 
         menu.addItem(.separator())
 
