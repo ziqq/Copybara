@@ -105,6 +105,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
+        let about = NSMenuItem(title: L10n.string("About Copybara"), action: #selector(openAbout), keyEquivalent: "")
+        about.target = self
+        menu.addItem(about)
+        menu.addItem(.separator())
+
         let count = store.count()
         let header = NSMenuItem(
             title: L10n.format("Copybara — %ld items", count),
@@ -206,6 +211,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     // MARK: - Actions
 
+    @objc private func openAbout() {
+        // Open the native panel after the status menu finishes tracking.
+        DispatchQueue.main.async {
+            NSApp.unhideWithoutActivation()
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.orderFrontStandardAboutPanel(nil)
+        }
+    }
     @objc private func openPopup() {
         // Show the search window after the context menu finishes tracking.
         DispatchQueue.main.async { [weak self] in self?.onPrimaryAction?() }
