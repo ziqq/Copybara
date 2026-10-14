@@ -14,7 +14,7 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
-## Unreleased
+## 0.1.9 — 2026-10-14
 - **ADDED**: About Copybara at the top of the status menu, opening the native
   app information panel with its icon, version, and copyright.
 - **ADDED**: Clear All Except Favorites in the status menu, immediately after
