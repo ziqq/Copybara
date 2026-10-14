@@ -14,7 +14,17 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
-## Unreleased
+## 0.1.9 — 2026-10-14
+- **ADDED**: About Copybara at the top of the status menu, opening the native
+  app information panel with its icon, version, and copyright.
+- **ADDED**: Clear All Except Favorites in the status menu, immediately after
+  Clear All, using the existing ⌥⌘⌫ shortcut and preserving pinned clips.
+- **CHANGED**: The app icon uses a white two-layer C on a warm copper circle
+  and light tile; the menu bar uses the same mark as a monochrome template.
+- **CHANGED**: The native menu groups copying controls, popup position, and
+  launch at login under Settings, with checkmarks and access to the full settings.
+- **CHANGED**: The update prompt is narrower and fits its version text without
+  reserving empty vertical space.
 
 
 ## 0.1.8 — 2026-10-13

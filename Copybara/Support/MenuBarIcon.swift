@@ -3,29 +3,36 @@
 
 import AppKit
 
-/// Two overlapping copies, drawn at the menu bar's native size. The template
+/// The app's two-layer C mark, drawn at the menu bar's native size. The template
 /// follows the system appearance and dims while copies are ignored.
 enum MenuBarIcon {
     static func image() -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { _ in
             NSColor.black.setStroke()
 
-            let back = NSBezierPath()
-            back.move(to: NSPoint(x: 4.3, y: 6))
-            back.line(to: NSPoint(x: 4, y: 6))
-            back.curve(to: NSPoint(x: 2, y: 8), controlPoint1: NSPoint(x: 2.9, y: 6), controlPoint2: NSPoint(x: 2, y: 6.9))
-            back.line(to: NSPoint(x: 2, y: 14))
-            back.curve(to: NSPoint(x: 4, y: 16), controlPoint1: NSPoint(x: 2, y: 15.1), controlPoint2: NSPoint(x: 2.9, y: 16))
-            back.line(to: NSPoint(x: 10, y: 16))
-            back.curve(to: NSPoint(x: 12, y: 14), controlPoint1: NSPoint(x: 11.1, y: 16), controlPoint2: NSPoint(x: 12, y: 15.1))
-            back.line(to: NSPoint(x: 12, y: 13.7))
-            back.lineWidth = 1.6
-            back.lineCapStyle = .round
-            back.stroke()
+            let outer = NSBezierPath()
+            outer.move(to: NSPoint(x: 14.2, y: 16))
+            outer.line(to: NSPoint(x: 9, y: 16))
+            outer.curve(to: NSPoint(x: 2, y: 9),
+                        controlPoint1: NSPoint(x: 5.134, y: 16), controlPoint2: NSPoint(x: 2, y: 12.866))
+            outer.curve(to: NSPoint(x: 9, y: 2),
+                        controlPoint1: NSPoint(x: 2, y: 5.134), controlPoint2: NSPoint(x: 5.134, y: 2))
+            outer.line(to: NSPoint(x: 14.2, y: 2))
 
-            let front = NSBezierPath(roundedRect: NSRect(x: 6, y: 2, width: 10, height: 10), xRadius: 2, yRadius: 2)
-            front.lineWidth = 1.6
-            front.stroke()
+            let inner = NSBezierPath()
+            inner.move(to: NSPoint(x: 14.2, y: 12.5))
+            inner.line(to: NSPoint(x: 9, y: 12.5))
+            inner.curve(to: NSPoint(x: 5.5, y: 9),
+                        controlPoint1: NSPoint(x: 7.067, y: 12.5), controlPoint2: NSPoint(x: 5.5, y: 10.933))
+            inner.curve(to: NSPoint(x: 9, y: 5.5),
+                        controlPoint1: NSPoint(x: 5.5, y: 7.067), controlPoint2: NSPoint(x: 7.067, y: 5.5))
+            inner.line(to: NSPoint(x: 14.2, y: 5.5))
+
+            for path in [outer, inner] {
+                path.lineWidth = 2
+                path.lineCapStyle = .round
+                path.stroke()
+            }
             return true
         }
         image.isTemplate = true
