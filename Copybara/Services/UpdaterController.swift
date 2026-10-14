@@ -53,8 +53,13 @@ final class CompactUpdateUserDriver: SPUStandardUserDriver {
         // expanding the window to the width of the entire sentence.
         let label = NSTextField(wrappingLabelWithString:
             L10n.format("Copybara %@ is available — you have %@.", version, current))
-        label.preferredMaxLayoutWidth = 360
-        label.frame = NSRect(x: 0, y: 0, width: 360, height: 50)
+        label.alignment = .center
+        label.textColor = .secondaryLabelColor
+        let width: CGFloat = 280
+        label.preferredMaxLayoutWidth = width
+        let bounds = NSRect(x: 0, y: 0, width: width, height: .greatestFiniteMagnitude)
+        let height = ceil(label.cell?.cellSize(forBounds: bounds).height ?? label.fittingSize.height)
+        label.frame = NSRect(x: 0, y: 0, width: width, height: height)
         alert.accessoryView = label
         let bundle = Bundle(for: SPUStandardUserDriver.self)
         alert.addButton(withTitle: bundle.localizedString(forKey: "Install Update", value: nil, table: "Sparkle"))
