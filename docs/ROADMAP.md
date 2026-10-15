@@ -65,7 +65,7 @@ recent text clip entirely from the keyboard; survives reboot via launch-at-login
 - [x] On-demand update check via GitHub Releases + DMG script + tag-based release
       workflow (`.github/workflows/release.yml`) — see `docs/RELEASE.md`.
 - [x] Signed in-app update installation via Sparkle.
-- [x] README screenshot (rendered from the real UI via a headless DEBUG mode).
+- [x] README screenshot (captured from the real Liquid Glass UI in a DEBUG preview window).
 
 ## Later (optional, opt-in)
 - [ ] Snippets/templates.

@@ -164,8 +164,8 @@ struct PopupView: View {
         HStack(spacing: 8) {
             // The warning takes the icon's place instead of the whole footer, so
             // Paste and the ⌘K actions (Delete, Pin…) stay reachable.
-            if axTrusted {
-                Image(nsImage: NSApp.applicationIconImage)
+            if axTrusted || oo.isPreview {
+                Image(nsImage: AppIconProvider.applicationIcon)
                     .resizable()
                     .frame(width: 16, height: 16)
             } else {
