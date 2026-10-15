@@ -16,6 +16,12 @@ enum ScreenshotRenderer {
             return
         }
 
+        // A headless launch can receive a stale icon from Launch Services.
+        if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+           let icon = NSImage(contentsOf: url) {
+            NSApp.applicationIconImage = icon
+        }
+
         let items = sampleItems()
 
         let scene = ZStack {
