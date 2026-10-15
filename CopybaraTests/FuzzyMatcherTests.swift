@@ -36,4 +36,36 @@ final class FuzzyMatcherTests: XCTestCase {
     func testCyrillicFuzzyMatch() {
         XCTAssertTrue(FuzzyMatcher.matches("првт", in: "Привет, мир"))
     }
+
+    func testEmojiQueryMatchesInOrderAndRejectsReversedSequence() {
+        let pattern = FuzzyMatcher.Pattern("😀b")
+        XCTAssertNotNil(pattern.score(in: "start 😀 then B"))
+        XCTAssertNil(pattern.score(in: "B before 😀"))
+        XCTAssertNil(pattern.score(in: "no emoji here"))
+        XCTAssertTrue(pattern.isContained(in: "prefix 😀B suffix"))
+        XCTAssertFalse(pattern.isContained(in: "😀 separated B"))
+    }
+
+    func testMultiCharacterCaseMappingUsesUnicodeFallback() {
+        let pattern = FuzzyMatcher.Pattern("ßa")
+        XCTAssertNotNil(pattern.score(in: "Fußball"))
+        XCTAssertNil(pattern.score(in: "only a"))
+        XCTAssertTrue(pattern.isContained(in: "ßA"))
+        XCTAssertFalse(pattern.isContained(in: "unrelated"))
+    }
+
+    func testSubstringSearchFindsMatchAfterOverlappingPrefix() {
+        let pattern = FuzzyMatcher.Pattern("ababaca")
+        XCTAssertTrue(pattern.isContained(in: "zzabababacazz"))
+        XCTAssertFalse(pattern.isContained(in: "ababababab"))
+        XCTAssertFalse(pattern.isContained(in: "ababac"))
+    }
+
+    func testPreparedEmptyPatternMatchesEmptyAndNonemptyCandidates() {
+        let pattern = FuzzyMatcher.Pattern("")
+        for candidate in ["", "anything", "😀"] {
+            XCTAssertEqual(pattern.score(in: candidate), 0)
+            XCTAssertTrue(pattern.isContained(in: candidate))
+        }
+    }
 }

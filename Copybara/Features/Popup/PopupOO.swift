@@ -93,6 +93,7 @@ final class PopupOO: ObservableObject {
     /// Cycles the content-type scope: All → Text → Images → Files → All.
     func cycleScope() {
         let all = KindScope.allCases
+        // coverage-ignore: the nil fallback is unreachable: every KindScope value is in allCases.
         let next = (all.firstIndex(of: scope).map { $0 + 1 } ?? 0) % all.count
         scope = all[next]
     }
@@ -205,6 +206,7 @@ final class PopupOO: ObservableObject {
         guard let item = selectedItem, item.kind != .snippet else { return }
         store.togglePin(id: item.id)
         pinnedOverrides[item.id] = !item.isPinned
+        // coverage-ignore: a selected non-snippet result always belongs to historyItems; no await can interleave here.
         guard let index = historyItems.firstIndex(where: { $0.id == item.id }) else { return }
         historyItems[index] = item.with(isPinned: !item.isPinned)
         historyItems = ClipSearch.sort(historyItems, by: settings.sortMode)
