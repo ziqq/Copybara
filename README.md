@@ -20,6 +20,10 @@ Use and redistribution are subject to LICENSE.
 
 <img src="docs/images/popup.png" alt="Copybara search popup" width="760">
 
+<br>
+
+<img src="docs/images/menu-settings.png" alt="Copybara menu with quick settings and popup position options" width="760">
+
 </div>
 
 ---

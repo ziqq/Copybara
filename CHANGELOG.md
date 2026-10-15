@@ -14,6 +14,13 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
+## Unreleased
+- **CHANGED**: The app icon's entire rounded-square tile uses the warm orange
+  palette, with the white two-layer C directly on the tile and no circular badge.
+- **CHANGED**: README screenshots show the current app icon, status menu,
+  quick settings, and popup position options.
+
+
 ## 0.1.9 — 2026-10-14
 - **ADDED**: About Copybara at the top of the status menu, opening the native
   app information panel with its icon, version, and copyright.
