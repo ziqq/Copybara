@@ -157,6 +157,18 @@ final class PopupKeyboardTests: XCTestCase {
         }
     }
 
+    func testPlainPasteShortcutAcceptsBothReturnAndKeypadEnter() throws {
+        for code: UInt16 in [36, 76] {
+            try withPopup { controller, window, board, search in
+                window.sendEvent(try key(code, window: window, flags: [.option, .shift], characters: "\r"))
+                XCTAssertEqual(board.string(forType: .string), "third")
+                XCTAssertNil(board.data(forType: .rtf))
+                XCTAssertFalse(controller.isVisible)
+                XCTAssertTrue(search.received.isEmpty)
+            }
+        }
+    }
+
     func testArrowPreviewTracksSelectionAndHidesOnLeftArrow() throws {
         try withPopup { _, window, _, search in
             let existing = Set(NSApp.windows.map(ObjectIdentifier.init))

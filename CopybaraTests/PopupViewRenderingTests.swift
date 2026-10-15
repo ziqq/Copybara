@@ -66,4 +66,41 @@ final class PopupViewRenderingTests: XCTestCase {
             XCTAssertEqual(try render(hosting, count: 1).height, PopupMetrics.totalHeight(for: 1), accuracy: 1)
         }
     }
+
+    func testSelectingLastResultScrollsItIntoViewWithoutGrowingPopup() throws {
+        let captures = (0..<80).map {
+            ClipCapture(kind: .text, text: "Clip \($0)", data: nil, contentHash: nil, appBundleID: nil)
+        }
+        try withPopup(captures) { oo, hosting in
+            let initialSize = try render(hosting, count: captures.count)
+            let window = PopupWindow()
+            window.alphaValue = 0
+            window.hasShadow = false
+            window.contentView = hosting
+            window.setContentSize(initialSize)
+            window.makeKeyAndOrderFront(nil)
+            defer { window.orderOut(nil) }
+            _ = try render(hosting, count: captures.count)
+            let scroll = try XCTUnwrap(descendants(of: hosting).compactMap { $0 as? NSScrollView }.first)
+            let document = try XCTUnwrap(scroll.documentView)
+            let initialTop = scroll.documentVisibleRect.minY
+            XCTAssertGreaterThan(document.bounds.height, scroll.contentSize.height,
+                                 "scrolling needs a laid-out document: \(document.frame)")
+            oo.selectLast()
+            XCTAssertEqual(try render(hosting, count: captures.count), initialSize)
+            let deadline = Date().addingTimeInterval(2)
+            while scroll.documentVisibleRect.maxY < document.bounds.maxY - 12, Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+                hosting.layoutSubtreeIfNeeded()
+            }
+            XCTAssertEqual(oo.selectedIndex, captures.count - 1)
+            XCTAssertGreaterThan(scroll.documentVisibleRect.minY, initialTop)
+            XCTAssertEqual(scroll.documentVisibleRect.maxY, document.bounds.maxY, accuracy: 12,
+                           "keyboard selection must keep the last row visible")
+        }
+    }
+
+    private func descendants(of view: NSView) -> [NSView] {
+        view.subviews.flatMap { [$0] + descendants(of: $0) }
+    }
 }
