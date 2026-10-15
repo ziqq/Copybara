@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Anton Ustinoff. All rights reserved.
 // Use and redistribution are subject to LICENSE.
 
+import AppKit
 import XCTest
 @testable import Copybara
 
@@ -195,6 +196,174 @@ final class PopupOOTests: XCTestCase {
         oo.query = "ite" // shortening must not use stale matches either
         await oo.searchTask?.value
         XCTAssertFalse(oo.results.contains { $0.id == deleted.id })
+    }
+
+    func testResetRestoresInitialSearchAndReloadsNewHistory() {
+        let (oo, store, _, _) = fixture()
+        store.insertTextSynchronously("first")
+        oo.reload()
+        oo.query = "missing"
+        oo.scope = .image
+        oo.showActions = true
+        store.insertTextSynchronously("second")
+
+        oo.reset()
+
+        XCTAssertEqual(oo.query, "")
+        XCTAssertEqual(oo.scope, .all)
+        XCTAssertFalse(oo.showActions)
+        XCTAssertEqual(oo.selectedIndex, 0)
+        XCTAssertEqual(oo.results.map(\.preview), ["second", "first"])
+    }
+
+    func testClearingHistoryKeepsSnippetsAndFavoritesUntilClearAll() throws {
+        let (oo, store, _, snippets) = fixture()
+        let snippet = Snippet(title: "Signature", content: "Best regards")
+        snippets.add(snippet)
+        store.insertTextSynchronously("favorite")
+        let favorite = try XCTUnwrap(store.recentItems().first)
+        store.togglePin(id: favorite.id)
+        store.insertTextSynchronously("ordinary")
+        oo.reload()
+
+        oo.clearUnpinned()
+        XCTAssertEqual(oo.results.map(\.id), [snippet.id, favorite.id])
+        XCTAssertEqual(store.count(), 1)
+
+        oo.clearAll()
+        XCTAssertEqual(oo.results.map(\.id), [snippet.id])
+        XCTAssertEqual(snippets.all(), [snippet])
+        XCTAssertEqual(store.count(), 0)
+    }
+
+    func testSnippetCannotBePinnedAndStillPastesItsContent() throws {
+        let (oo, _, _, snippets) = fixture()
+        let snippet = Snippet(title: "Email", content: "me@example.com")
+        snippets.add(snippet)
+        oo.reload()
+        oo.togglePinSelected()
+        let selected = try XCTUnwrap(oo.selectedItem)
+        XCTAssertEqual(selected.id, snippet.id)
+        XCTAssertFalse(selected.isPinned)
+        XCTAssertEqual(oo.withPayload(selected).textToPaste, snippet.content)
+        XCTAssertEqual(snippets.all(), [snippet])
+    }
+
+    func testPayloadIsLoadedOnlyForTheRequestedClip() throws {
+        let (oo, store, _, _) = fixture()
+        let data = Data([1, 2, 3])
+        store.insertSynchronously(ClipCapture(kind: .image, text: "image", data: data,
+                                             contentHash: data.sha256Hex, appBundleID: "com.example"))
+        oo.reload()
+        let snapshot = try XCTUnwrap(oo.selectedItem)
+        XCTAssertNil(snapshot.data)
+        XCTAssertEqual(oo.withPayload(snapshot), snapshot.with(data: data))
+        XCTAssertNil(oo.selectedItem?.data, "loading a preview must not attach payloads to the whole list")
+
+        let supplied = snapshot.with(data: Data([9]))
+        XCTAssertEqual(oo.withPayload(supplied), supplied, "an already loaded payload must be preserved")
+    }
+
+    func testThumbnailLoadsStoredPayloadAndReusesCachedImage() async throws {
+        let (oo, store, _, _) = fixture()
+        let bitmap = try XCTUnwrap(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 80, pixelsHigh: 40,
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+            isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let data = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+        store.insertSynchronously(ClipCapture(kind: .image, text: "image", data: data,
+                                             contentHash: data.sha256Hex, appBundleID: nil))
+        oo.reload()
+        let item = try XCTUnwrap(oo.selectedItem)
+        let decoded = await oo.thumbnail(for: item, maxPixel: 20)
+        let first = try XCTUnwrap(decoded)
+        XCTAssertEqual(first.size, NSSize(width: 20, height: 10))
+        store.delete(id: item.id)
+        let cached = await oo.thumbnail(for: item, maxPixel: 20)
+        XCTAssertTrue(cached === first, "the cached thumbnail must remain usable without another store read")
+    }
+
+    func testMissingAndCorruptThumbnailPayloadsReturnNil() async {
+        let (oo, _, _, _) = fixture()
+        let missing = ClipItemDO(kind: .image, preview: "missing")
+        let corrupt = ClipItemDO(kind: .image, preview: "corrupt", data: Data([0, 1]))
+        let missingImage = await oo.thumbnail(for: missing, maxPixel: 20)
+        let corruptImage = await oo.thumbnail(for: corrupt, maxPixel: 20)
+        XCTAssertNil(missingImage)
+        XCTAssertNil(corruptImage)
+    }
+
+    func testRowAppearanceGrowsOnlyNearEndAndQueryResetsWindow() async {
+        let snapshot = (0..<450).map { ClipItemDO(preview: "item \($0)") }
+        let (oo, fetched, release) = makeDelayedOO(snapshot)
+        defer { release.signal() }
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        release.signal()
+        await oo.loadTask?.value
+        oo.rowAppeared(at: 0)
+        XCTAssertEqual(oo.visibleResults.count, 200)
+        oo.rowAppeared(at: 180)
+        XCTAssertEqual(oo.visibleResults.count, 400)
+        oo.rowAppeared(at: 380)
+        XCTAssertEqual(oo.visibleResults.count, 450)
+        oo.query = "item"
+        XCTAssertEqual(oo.visibleResults.count, 200)
+    }
+
+    func testNewReloadSupersedesOlderBackgroundSnapshot() async {
+        let old = (0..<250).map { ClipItemDO(preview: "old \($0)") }
+        let fresh = ClipItemDO(preview: "fresh")
+        let fetched = expectation(description: "old snapshot captured")
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal() }
+        let (_, store, settings, snippets) = fixture()
+        var pageLoads = 0
+        let oo = PopupOO(store: store, settings: settings, snippets: snippets, loadHistory: { limit, _ in
+            if limit == 0 {
+                fetched.fulfill()
+                _ = release.wait(timeout: .now() + 5)
+                return old
+            }
+            pageLoads += 1
+            return pageLoads == 1 ? Array(old.prefix(limit)) : [fresh]
+        })
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        let oldLoad = oo.loadTask
+        oo.reload()
+        XCTAssertEqual(oo.results, [fresh])
+        release.signal()
+        await oldLoad?.value
+        XCTAssertEqual(oo.results, [fresh], "an older load must not replace the newer history")
+    }
+
+    func testNewestQueryWinsWhenBackgroundSearchesOverlap() async {
+        let snapshot = (0..<6_000).map { ClipItemDO(preview: "item \($0)") }
+        let (oo, fetched, release) = makeDelayedOO(snapshot)
+        defer { release.signal() }
+        oo.reload()
+        await fulfillment(of: [fetched], timeout: 2)
+        release.signal()
+        await oo.loadTask?.value
+        await oo.searchTask?.value
+
+        oo.query = "item"
+        let olderSearch = oo.searchTask
+        oo.query = "5999"
+        await oo.searchTask?.value
+        await olderSearch?.value
+        XCTAssertEqual(oo.results.map(\.preview), ["item 5999"])
+    }
+
+    private func fixture() -> (PopupOO, HistoryStore, AppSettings, SnippetStore) {
+        let name = "popup-coverage-\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        addTeardownBlock { defaults.removePersistentDomain(forName: name) }
+        let store = HistoryStore(stack: CoreDataStack(inMemory: true))
+        let settings = AppSettings(defaults: defaults)
+        let snippets = SnippetStore(defaults: defaults)
+        return (PopupOO(store: store, settings: settings, snippets: snippets), store, settings, snippets)
     }
 
     private func makeDelayedOO(_ snapshot: [ClipItemDO]) -> (PopupOO, XCTestExpectation, DispatchSemaphore) {
