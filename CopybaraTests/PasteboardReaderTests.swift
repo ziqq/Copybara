@@ -68,4 +68,36 @@ final class PasteboardReaderTests: XCTestCase {
         let data = try XCTUnwrap(FilePayload.archive(paths))
         XCTAssertEqual(FilePayload.paths(from: data), paths)
     }
+
+    func testWhitespaceOnlyTextIsNotRecorded() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        board.setString(" \t\r\n ", forType: .string)
+        XCTAssertNil(PasteboardReader.read(board, appBundleID: nil))
+    }
+
+    func testBrokenImageFallsBackToAvailablePlainText() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        board.setData(Data([1, 2]), forType: .png)
+        board.setString("image description", forType: .string)
+        let capture = PasteboardReader.read(board, appBundleID: "com.example")
+        XCTAssertEqual(capture?.kind, .text)
+        XCTAssertEqual(capture?.text, "image description")
+        XCTAssertEqual(capture?.appBundleID, "com.example")
+    }
+
+    func testBrokenRichTextRetainsAvailablePlainPreview() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        board.setData(Data([1, 2]), forType: .rtf)
+        board.setString("plain preview", forType: .string)
+        XCTAssertEqual(PasteboardReader.read(board, appBundleID: nil)?.text, "plain preview")
+    }
+
+    func testFilePayloadSupportsEmptyListAndRejectsInvalidArchive() throws {
+        let data = try XCTUnwrap(FilePayload.archive([]))
+        XCTAssertEqual(FilePayload.paths(from: data), [])
+        XCTAssertNil(FilePayload.paths(from: Data([1, 2])))
+    }
 }

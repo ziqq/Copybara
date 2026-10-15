@@ -33,4 +33,33 @@ final class UpdaterPresentationTests: XCTestCase {
         XCTAssertEqual(alert.buttons.count, 2, "install and skip remain available")
         alert.window.close()
     }
+
+    func testFocusRequestBringsTheActiveCompactPromptForward() {
+        var driver: CompactUpdateUserDriver!
+        var focusedWindow: NSWindow?
+        driver = CompactUpdateUserDriver(hostBundle: .main, presentAlert: { alert in
+            alert.window.alphaValue = 0
+            alert.window.hasShadow = false
+            focusedWindow = alert.window
+            driver.showUpdateInFocus()
+            XCTAssertTrue(alert.window.isVisible)
+            return .alertSecondButtonReturn
+        })
+        defer { focusedWindow?.close(); driver = nil }
+        var choices: [SPUUserUpdateChoice] = []
+        driver.showCompactUpdate(version: "1.0", current: "0.9") { choices.append($0) }
+        XCTAssertEqual(choices, [.skip])
+    }
+
+    func testLongVersionStringsRemainInWrappedPromptWithoutLosingEitherVersion() throws {
+        let version = "2026.10.15-release-candidate-with-a-long-build-identifier"
+        let current = "2026.09.01-previous-release-with-a-long-build-identifier"
+        let alert = CompactUpdateUserDriver.makeAlert(version: version, current: current)
+        defer { alert.window.close() }
+        let label = try XCTUnwrap(alert.accessoryView as? NSTextField)
+        XCTAssertTrue(label.stringValue.contains(version))
+        XCTAssertTrue(label.stringValue.contains(current))
+        XCTAssertEqual(label.preferredMaxLayoutWidth, 280)
+        XCTAssertGreaterThan(label.frame.height, label.font?.pointSize ?? 0)
+    }
 }

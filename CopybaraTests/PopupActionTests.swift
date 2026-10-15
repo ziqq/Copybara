@@ -167,4 +167,56 @@ final class PopupActionTests: XCTestCase {
             XCTAssertFalse(panel.isVisible)
         }
     }
+
+    func testActionsPopoverAppearsAndClosesWhenCopyHidesPopup() throws {
+        try withPopup([text("selected")]) { popup in
+            let window = try openActions(in: popup)
+            defer { popup.view.oo.showActions = false; window.orderOut(nil) }
+            XCTAssertGreaterThan(window.frame.height, 100)
+            popup.view.onAction(.copy)
+            let deadline = Date().addingTimeInterval(2)
+            while window.isVisible, Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertFalse(window.isVisible)
+            XCTAssertEqual(popup.board.string(forType: .string), "selected")
+        }
+    }
+
+    func testActionsMenuAdaptsVisibleRowsToTextImagesAndSnippets() throws {
+        var textHeight: CGFloat = 0, imageHeight: CGFloat = 0, snippetHeight: CGFloat = 0
+        try withPopup([text("text")]) { popup in
+            let menu = try openActions(in: popup)
+            defer { popup.view.oo.showActions = false; menu.orderOut(nil) }
+            textHeight = menu.frame.height
+        }
+        let image = ClipCapture(kind: .image, text: "Image", data: nil, contentHash: "image", appBundleID: nil)
+        try withPopup([image]) { popup in
+            let menu = try openActions(in: popup)
+            defer { popup.view.oo.showActions = false; menu.orderOut(nil) }
+            imageHeight = menu.frame.height
+        }
+        try withPopup(snippets: [Snippet(title: "Snippet", content: "content")]) { popup in
+            let menu = try openActions(in: popup)
+            defer { popup.view.oo.showActions = false; menu.orderOut(nil) }
+            snippetHeight = menu.frame.height
+        }
+        XCTAssertGreaterThan(textHeight, snippetHeight, "snippets must omit the Pin row")
+        XCTAssertGreaterThan(snippetHeight, imageHeight, "text-like snippets must include the text transformations")
+    }
+
+    private func openActions(in popup: Popup) throws -> NSWindow {
+        let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+        popup.view.oo.showActions = true
+        let deadline = Date().addingTimeInterval(2)
+        var popover: NSWindow?
+        while popover == nil, Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            popover = NSApp.windows.first { !existing.contains(ObjectIdentifier($0)) && $0.isVisible }
+        }
+        let window = try XCTUnwrap(popover)
+        window.alphaValue = 0
+        return window
+    }
 }
