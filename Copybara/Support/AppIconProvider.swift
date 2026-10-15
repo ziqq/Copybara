@@ -9,6 +9,13 @@ import AppKit
 /// Lookups touch the filesystem, so results are cached. Accessed only from the
 /// main thread (UI rendering).
 enum AppIconProvider {
+    /// Load our bundled icon directly; Launch Services may cache an older one.
+    static let applicationIcon: NSImage = {
+        guard let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+              let image = NSImage(contentsOf: url) else { return NSApp.applicationIconImage }
+        return image
+    }()
+
     private static var iconCache: [String: NSImage] = [:]
     private static var nameCache: [String: String] = [:]
 

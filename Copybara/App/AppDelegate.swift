@@ -24,10 +24,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Unit tests own isolated stores and pasteboards. Their host must not
         // start the user's clipboard monitor, shortcuts or onboarding.
         if NSClassFromString("XCTestCase") != nil { return }
+        NSApp.applicationIconImage = AppIconProvider.applicationIcon
 #if DEBUG
-        if let path = ProcessInfo.processInfo.environment["COPYBARA_SCREENSHOT"] {
-            ScreenshotRenderer.renderPopup(to: path)
-            NSApp.terminate(nil)
+        if ProcessInfo.processInfo.environment["COPYBARA_SCREENSHOT"] != nil {
+            ScreenshotRenderer.showPopup()
             return
         }
 #endif
