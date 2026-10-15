@@ -219,6 +219,54 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertEqual(store.recentItems().first?.copyCount, 1)
     }
 
+    func testWorkspaceActivationDiscardsUnreadCopyOnEnteringBlockedApp() async throws {
+        let (stack, store, settings, board) = fixture()
+        let app = NSRunningApplication.current
+        settings.blockedBundleIDs = [try XCTUnwrap(app.bundleIdentifier)]
+        let monitor = ClipboardMonitor(store: store, settings: settings, pasteboard: board,
+                                       foregroundBundleID: { "allowed" })
+        monitor.start(interval: 60)
+        defer { monitor.stop() }
+        let (unexpected, stopObserving) = observeInsert(stack, inverted: true)
+        board.clearContents()
+        board.setString("unread before blocked activation", forType: .string)
+        // NSWorkspace's notification center is local to this process. No app
+        // is actually activated and no system clipboard is used.
+        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didActivateApplicationNotification,
+            object: nil, userInfo: [NSWorkspace.applicationUserInfoKey: app])
+        monitor.poll()
+        await fulfillment(of: [unexpected], timeout: 0.1)
+        stopObserving()
+        XCTAssertEqual(store.count(), 0)
+
+        let (inserted, _) = observeInsert(stack)
+        board.clearContents()
+        board.setString("next allowed copy", forType: .string)
+        monitor.poll()
+        await fulfillment(of: [inserted], timeout: 2)
+        XCTAssertEqual(store.recentItems().map(\.preview), ["next allowed copy"])
+    }
+
+    func testWorkspaceActivationWithoutApplicationConsumesSkippedBlockedCopy() async {
+        let (stack, store, settings, board) = fixture()
+        var foreground = "blocked"
+        let monitor = ClipboardMonitor(store: store, settings: settings, pasteboard: board,
+                                       foregroundBundleID: { foreground })
+        monitor.start(interval: 60)
+        defer { monitor.stop() }
+        monitor.ignoreNextCopy()
+        board.clearContents()
+        board.setString("blocked copy", forType: .string)
+        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didActivateApplicationNotification, object: nil)
+        foreground = "allowed"
+        let (inserted, _) = observeInsert(stack)
+        board.clearContents()
+        board.setString("public copy", forType: .string)
+        monitor.poll()
+        await fulfillment(of: [inserted], timeout: 2)
+        XCTAssertEqual(store.recentItems().map(\.preview), ["public copy"])
+    }
+
     private func observeInsert(_ stack: CoreDataStack, inverted: Bool = false) -> (XCTestExpectation, () -> Void) {
         let saved = expectation(description: "clip inserted")
         saved.isInverted = inverted
