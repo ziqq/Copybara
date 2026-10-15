@@ -54,4 +54,24 @@ final class ClipRowViewTests: XCTestCase {
         try render(item)
         XCTAssertNil(ThumbnailCache.shared.cached(id: item.id, maxPixel: ClipRowView.thumbnailPixels))
     }
+
+    func testImageWithoutInlinePayloadRequestsThumbnailAsynchronously() async throws {
+        let item = ClipItemDO(kind: .image, preview: "stored image")
+        let requested = expectation(description: "row requests missing thumbnail")
+        var requestedIDs: [UUID] = []
+        let row = ClipRowView(item: item, isSelected: false, query: "", loadThumbnail: { requestedItem in
+            requestedIDs.append(requestedItem.id)
+            XCTAssertNil(requestedItem.data, "list snapshots must not need the full payload")
+            requested.fulfill()
+            return NSImage(size: NSSize(width: 36, height: 18))
+        }).frame(width: PopupMetrics.width)
+        let hosting = NSHostingView(rootView: row)
+        hosting.frame = NSRect(origin: .zero, size: hosting.fittingSize)
+        hosting.layoutSubtreeIfNeeded()
+        let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+        await fulfillment(of: [requested], timeout: 2)
+        XCTAssertEqual(requestedIDs, [item.id])
+        XCTAssertEqual(hosting.fittingSize.height, PopupMetrics.rowHeight - 4, accuracy: 1)
+    }
 }
