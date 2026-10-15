@@ -74,6 +74,31 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(items.first?.preview, "a", "the re-copied item is bumped to the top")
     }
 
+    func testNullableStoredTextProducesEmptyPreviewInFullAndPayloadFreeReads() throws {
+        let stack = CoreDataStack(inMemory: true)
+        let store = HistoryStore(stack: stack)
+        let object = NSEntityDescription.insertNewObject(forEntityName: "ClipEntity", into: stack.viewContext)
+        let id = UUID(), date = Date(timeIntervalSince1970: 2_000)
+        object.setValue(id, forKey: "id")
+        object.setValue("image", forKey: "kind")
+        object.setValue(date, forKey: "createdAt")
+        object.setValue(date, forKey: "firstCopiedAt")
+        object.setValue(Data([7, 8]), forKey: "data")
+        // Text is optional in the persisted model, even for a valid row.
+        XCTAssertNil(object.value(forKey: "text"))
+        try stack.viewContext.save()
+
+        for includePayloads in [false, true] {
+            let item = try XCTUnwrap(store.recentItems(includePayloads: includePayloads).first)
+            XCTAssertEqual(item.id, id)
+            XCTAssertEqual(item.kind, .image)
+            XCTAssertEqual(item.preview, "")
+            XCTAssertEqual(item.firstCopiedAt, date)
+            XCTAssertEqual(item.copyCount, 1)
+            XCTAssertEqual(item.data, includePayloads ? Data([7, 8]) : nil)
+        }
+    }
+
     func testSizeCapTrimsOldestNonPinned() {
         let store = makeStore(limit: 3)
         for index in 1...5 {

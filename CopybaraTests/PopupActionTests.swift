@@ -8,6 +8,21 @@ import XCTest
 
 @MainActor
 final class PopupActionTests: XCTestCase {
+    private final class TargetApplication: NSRunningApplication, @unchecked Sendable {
+        var hasExited = false
+        var identityReads = 0
+        var terminationReads = 0
+        var onExitObserved: (() -> Void)?
+        override var processIdentifier: pid_t { identityReads += 1; return 2_000_000 }
+        override var isTerminated: Bool {
+            terminationReads += 1
+            if hasExited { onExitObserved?() }
+            return hasExited
+        }
+        // The fixture never asks macOS to activate another application.
+        override var isActive: Bool { true }
+    }
+
     private struct Popup {
         let controller: PopupController
         let window: PopupWindow
@@ -17,6 +32,8 @@ final class PopupActionTests: XCTestCase {
     }
 
     private func withPopup(_ captures: [ClipCapture] = [], snippets: [Snippet] = [],
+                           permission: Bool = false,
+                           postEvent: @escaping (CGEvent, CGEventTapLocation) -> Void = { _, _ in },
                            _ body: (Popup) throws -> Void) throws {
         let name = "popup-actions-\(UUID())"
         let defaults = UserDefaults(suiteName: name)!
@@ -27,7 +44,8 @@ final class PopupActionTests: XCTestCase {
         snippetStore.save(snippets)
         let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
         let controller = PopupController(store: store,
-            paster: Paster(pasteboard: board, accessibilityPermission: { false }),
+            paster: Paster(pasteboard: board, accessibilityPermission: { permission },
+                           frontmostPID: { nil }, postEvent: postEvent),
             settings: AppSettings(defaults: defaults), snippets: snippetStore)
         controller.onAccessibilityRequired = {}
         defer {
@@ -204,6 +222,82 @@ final class PopupActionTests: XCTestCase {
         }
         XCTAssertGreaterThan(textHeight, snippetHeight, "snippets must omit the Pin row")
         XCTAssertGreaterThan(snippetHeight, imageHeight, "text-like snippets must include the text transformations")
+    }
+
+    func testReopeningPopupCancelsPendingPasteIntoPreviousApplication() throws {
+        var posted = 0
+        try withPopup([text("staged but cancelled")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            try remember(target)
+            popup.view.onAction(.paste)
+            XCTAssertEqual(popup.board.string(forType: .string), "staged but cancelled")
+            XCTAssertFalse(popup.controller.isVisible)
+
+            popup.controller.show()
+            let readsBeforeRetry = target.terminationReads
+            waitForFocusRetries()
+            XCTAssertEqual(target.terminationReads, readsBeforeRetry,
+                           "a cancelled generation must not continue checking the old destination")
+            XCTAssertTrue(popup.controller.isVisible)
+            XCTAssertEqual(posted, 0)
+            XCTAssertEqual(popup.board.string(forType: .string), "staged but cancelled")
+        }
+    }
+
+    func testTerminatedDestinationKeepsStagedTextWithoutPastingOrPrompting() throws {
+        var posted = 0
+        try withPopup([text("manual paste")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            target.hasExited = true
+            try remember(target)
+            var prompts = 0
+            popup.controller.onAccessibilityRequired = { prompts += 1 }
+            popup.view.onAction(.paste)
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertEqual(popup.board.string(forType: .string), "manual paste")
+            XCTAssertEqual(posted, 0)
+            XCTAssertEqual(prompts, 0)
+        }
+    }
+
+    func testDestinationExitingDuringFocusWaitStopsFurtherRetries() throws {
+        var posted = 0
+        try withPopup([text("manual paste")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            try remember(target)
+            popup.view.onAction(.paste)
+            XCTAssertGreaterThanOrEqual(target.terminationReads, 2,
+                                        "the live destination must enter the focus-wait path")
+            let exitObserved = expectation(description: "focus retry observes destination exit")
+            target.onExitObserved = { exitObserved.fulfill() }
+            target.hasExited = true
+            wait(for: [exitObserved], timeout: 2)
+            target.onExitObserved = nil
+            let readsAfterExit = target.terminationReads
+            waitForFocusRetries()
+            XCTAssertEqual(target.terminationReads, readsAfterExit)
+            XCTAssertEqual(posted, 0)
+            XCTAssertEqual(popup.board.string(forType: .string), "manual paste")
+            XCTAssertFalse(popup.controller.isVisible)
+        }
+    }
+
+    private func waitForFocusRetries() {
+        let elapsed = expectation(description: "several focus-retry intervals elapse")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { elapsed.fulfill() }
+        wait(for: [elapsed], timeout: 2)
+    }
+
+    private func remember(_ target: TargetApplication) throws {
+        let readsBeforeNotification = target.identityReads
+        NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didActivateApplicationNotification,
+            object: nil, userInfo: [NSWorkspace.applicationUserInfoKey: target])
+        let deadline = Date().addingTimeInterval(2)
+        while target.identityReads == readsBeforeNotification, Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+        }
+        _ = try XCTUnwrap(target.identityReads > readsBeforeNotification ? target : nil,
+                          "the workspace notification must reach the popup controller before a paste")
     }
 
     private func openActions(in popup: Popup) throws -> NSWindow {

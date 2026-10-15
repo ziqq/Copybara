@@ -95,6 +95,16 @@ final class PasteboardReaderTests: XCTestCase {
         XCTAssertEqual(PasteboardReader.read(board, appBundleID: nil)?.text, "plain preview")
     }
 
+    func testBrokenRichTextWithoutPlainPreviewIsNotRecorded() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        board.setData(Data([1, 2]), forType: .rtf)
+        XCTAssertNil(PasteboardReader.read(board, appBundleID: "com.example"))
+        board.clearContents()
+        board.setString("next ordinary copy", forType: .string)
+        XCTAssertEqual(PasteboardReader.read(board, appBundleID: "com.example")?.text, "next ordinary copy")
+    }
+
     func testFilePayloadSupportsEmptyListAndRejectsInvalidArchive() throws {
         let data = try XCTUnwrap(FilePayload.archive([]))
         XCTAssertEqual(FilePayload.paths(from: data), [])
