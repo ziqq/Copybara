@@ -145,6 +145,40 @@ final class StatusItemControllerTests: XCTestCase {
         await fulfillment(of: [opened], timeout: 2)
     }
 
+    func testAboutMenuActionOpensNativePanelAfterTrackingReturns() async throws {
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
+        let existing = Set(NSApp.windows.filter(\.isVisible).map(ObjectIdentifier.init))
+        defer {
+            for window in NSApp.windows where window.isVisible && !existing.contains(ObjectIdentifier(window)) {
+                window.close()
+            }
+        }
+        let about = try XCTUnwrap(controller.buildMenu().items.first { $0.title == L10n.string("About Copybara") })
+        controller.perform(try XCTUnwrap(about.action))
+        XCTAssertFalse(NSApp.windows.contains { !existing.contains(ObjectIdentifier($0)) && $0.isVisible })
+        let presented = expectation(description: "native About panel opened")
+        DispatchQueue.main.async { presented.fulfill() }
+        await fulfillment(of: [presented], timeout: 2)
+        let panel = try XCTUnwrap(NSApp.windows.first { !existing.contains(ObjectIdentifier($0)) && $0.isVisible })
+        panel.alphaValue = 0
+        XCTAssertNotNil(panel.contentView)
+        XCTAssertGreaterThan(panel.frame.width, 0)
+    }
+
+    func testInvalidPopupPositionMenuPayloadDoesNotChangePreference() throws {
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
+        let settings = try XCTUnwrap(controller.buildMenu().items.first { $0.title == L10n.string("Settings") }?.submenu)
+        let positions = try XCTUnwrap(settings.items.first { $0.submenu != nil }?.submenu)
+        let action = try XCTUnwrap(positions.items.first?.action)
+        let original = AppSettings.shared.popupPosition
+        let sender = NSMenuItem(title: "invalid", action: action, keyEquivalent: "")
+        for value: Any? in [nil, NSNumber(value: 42), "unknown-position"] {
+            sender.representedObject = value
+            controller.perform(action, with: sender)
+            XCTAssertEqual(AppSettings.shared.popupPosition, original)
+        }
+    }
+
     private func mouse(_ type: NSEvent.EventType, flags: NSEvent.ModifierFlags = []) -> NSEvent {
         NSEvent.mouseEvent(with: type, location: .zero, modifierFlags: flags, timestamp: 0,
                           windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 0)!

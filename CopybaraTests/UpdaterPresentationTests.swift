@@ -62,4 +62,22 @@ final class UpdaterPresentationTests: XCTestCase {
         XCTAssertEqual(label.preferredMaxLayoutWidth, 280)
         XCTAssertGreaterThan(label.frame.height, label.font?.pointSize ?? 0)
     }
+
+    func testDismissalClosesActiveCompactPromptAndRepliesOnce() {
+        var driver: CompactUpdateUserDriver!
+        driver = CompactUpdateUserDriver(hostBundle: .main, presentAlert: { alert in
+            alert.window.alphaValue = 0
+            alert.window.hasShadow = false
+            let session = NSApp.beginModalSession(for: alert.window)
+            defer { NSApp.endModalSession(session) }
+            _ = NSApp.runModalSession(session)
+            driver.dismissUpdateInstallation()
+            XCTAssertFalse(alert.window.isVisible)
+            return .abort
+        })
+        defer { driver = nil }
+        var choices: [SPUUserUpdateChoice] = []
+        driver.showCompactUpdate(version: "1.0", current: "0.9") { choices.append($0) }
+        XCTAssertEqual(choices, [.dismiss])
+    }
 }
