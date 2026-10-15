@@ -106,4 +106,33 @@ final class ClipSearchTests: XCTestCase {
         let items = ["ab one", "ab two", "ab three"].map { ClipItemDO(preview: $0) }
         XCTAssertEqual(ClipSearch.filter(items, query: "ab", mode: .fuzzy).map(\.preview), ["ab one", "ab two", "ab three"])
     }
+
+    func testEqualCopyCountsUseNewestDateWhilePinsStillSortFirst() {
+        let older = item("older", copies: 5, at: Date(timeIntervalSince1970: 10))
+        let newer = item("newer", copies: 5, at: Date(timeIntervalSince1970: 20))
+        let pinned = item("favorite", pinned: true, copies: 1, at: Date(timeIntervalSince1970: 1))
+        XCTAssertEqual(ClipSearch.sort([older, pinned, newer], by: .numberOfCopies).map(\.preview),
+                       ["favorite", "newer", "older"])
+    }
+
+    func testFirstCopiedSortUsesOriginalDateAfterRecopy() {
+        let first = ClipItemDO(preview: "recopied", createdAt: Date(timeIntervalSince1970: 100),
+                               firstCopiedAt: Date(timeIntervalSince1970: 1))
+        let second = ClipItemDO(preview: "later", createdAt: Date(timeIntervalSince1970: 20),
+                                firstCopiedAt: Date(timeIntervalSince1970: 10))
+        XCTAssertEqual(ClipSearch.sort([second, first], by: .firstCopied).map(\.id), [first.id, second.id])
+    }
+
+    func testRegexSearchUsesFullUnicodeRangeAndMatchesCaseInsensitively() {
+        let items = [item("😀 Привет 🌍"), item("😀 пока 🌍"), item("Привет")]
+        XCTAssertEqual(ClipSearch.filter(items, query: "ПРИВЕТ.*🌍$", mode: .regex).map(\.preview), ["😀 Привет 🌍"])
+    }
+
+    func testTextScopeIncludesSnippetsAlongsidePlainAndRichText() {
+        let items = [ClipItemDO(kind: .snippet, preview: "signature"),
+                     ClipItemDO(kind: .rtf, preview: "rich"),
+                     ClipItemDO(kind: .image, preview: "image")]
+        XCTAssertEqual(ClipSearch.filter(items, query: "", mode: .exact, scope: .text).map(\.preview),
+                       ["signature", "rich"])
+    }
 }
