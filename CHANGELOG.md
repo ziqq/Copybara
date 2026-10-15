@@ -18,7 +18,10 @@ Use and redistribution are subject to LICENSE.
 - **CHANGED**: The app icon's entire rounded-square tile uses the warm orange
   palette, with the white two-layer C directly on the tile and no circular badge.
 - **CHANGED**: README screenshots show the current app icon, status menu,
-  quick settings, and popup position options.
+  quick settings, and popup position options, including the real Liquid Glass
+  popup on macOS 26 and the native menu's system accent shading.
+- **FIXED**: The popup and app panels load the bundled icon directly, avoiding
+  an outdated icon cached by Launch Services.
 
 
 ## 0.1.9 — 2026-10-14

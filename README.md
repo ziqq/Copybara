@@ -5,7 +5,9 @@ Use and redistribution are subject to LICENSE.
 
 <div align="center">
 
-# 🐹 Copybara
+<img src="Copybara/Resources/Assets.xcassets/AppIcon.appiconset/icon_128.png" alt="Copybara icon" width="96">
+
+# Copybara
 
 **A fast, keyboard-first, privacy-respecting clipboard manager for macOS.**
 
@@ -18,7 +20,7 @@ Use and redistribution are subject to LICENSE.
 
 <br>
 
-<img src="docs/images/popup.png" alt="Copybara search popup" width="760">
+<img src="docs/images/popup.png" alt="Copybara search popup with Liquid Glass on macOS 26" width="760">
 
 <br>
 
