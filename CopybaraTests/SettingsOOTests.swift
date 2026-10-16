@@ -1,6 +1,8 @@
 // Copyright (c) 2026 Anton Ustinoff. All rights reserved.
 // Use and redistribution are subject to LICENSE.
 
+import AppKit
+import UniformTypeIdentifiers
 import XCTest
 @testable import Copybara
 
@@ -69,6 +71,41 @@ final class SettingsOOTests: XCTestCase {
         oo.removeBlockedApp("com.missing")
         XCTAssertEqual(oo.blockedBundleIDs, ["com.second"])
         XCTAssertEqual(settings.blockedBundleIDs, ["com.second"])
+    }
+
+    func testCancellingBlockedAppPickerPreservesBlocklistAndRestrictsSelectionToApplications() {
+        let (oo, settings) = make()
+        oo.blockedBundleIDs = ["com.example.already-blocked"]
+        let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+        let deadline = Date().addingTimeInterval(2)
+        var inspected = false
+        let cancel = Timer(timeInterval: 0.01, repeats: true) { timer in
+            let panel = NSApp.modalWindow as? NSOpenPanel ?? NSApp.windows.compactMap { $0 as? NSOpenPanel }
+                .first { !existing.contains(ObjectIdentifier($0)) }
+            if let panel {
+                panel.alphaValue = 0
+                inspected = true
+                XCTAssertTrue(panel.canChooseFiles)
+                XCTAssertFalse(panel.canChooseDirectories)
+                XCTAssertFalse(panel.allowsMultipleSelection)
+                XCTAssertEqual(panel.allowedContentTypes, [.application])
+                panel.cancel(nil)
+                timer.invalidate()
+            } else if Date() >= deadline {
+                XCTFail("The application's blocklist picker did not enter its modal session")
+                NSApp.abortModal()
+                timer.invalidate()
+            }
+        }
+        RunLoop.main.add(cancel, forMode: .common)
+        RunLoop.main.add(cancel, forMode: .modalPanel)
+        defer { cancel.invalidate() }
+
+        oo.addBlockedApp()
+
+        XCTAssertTrue(inspected)
+        XCTAssertEqual(oo.blockedBundleIDs, ["com.example.already-blocked"])
+        XCTAssertEqual(settings.blockedBundleIDs, ["com.example.already-blocked"])
     }
 
     func testSnippetEditsAndDeletionPersistAcrossSettingsInstances() {

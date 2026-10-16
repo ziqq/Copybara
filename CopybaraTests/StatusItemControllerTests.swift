@@ -7,6 +7,14 @@ import XCTest
 
 @MainActor
 final class StatusItemControllerTests: XCTestCase {
+    private final class CancelTerminationDelegate: NSObject, NSApplicationDelegate {
+        var requests = 0
+        func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+            requests += 1
+            return .terminateCancel
+        }
+    }
+
     func testDockOnlyHidesStatusItemAndRemovesPopupAnchor() {
         let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
         controller.applyVisibility(.dock)
@@ -132,6 +140,35 @@ final class StatusItemControllerTests: XCTestCase {
         controller.onPrimaryAction = { actions.append("popup") }
         controller.handleClick(event: mouse(.leftMouseUp, flags: [.option, .shift]))
         XCTAssertEqual(actions, ["ignore"])
+    }
+
+    func testStatusButtonActionRoutesToPrimaryPopupCallback() throws {
+        var button: NSStatusBarButton?
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)),
+                                              presentMenu: { _, sender in button = sender })
+        controller.handleClick(event: mouse(.rightMouseUp))
+        let sender = try XCTUnwrap(button)
+        XCTAssertTrue(sender.target === controller)
+        XCTAssertNotNil(sender.action)
+        var opened = 0
+        controller.onPrimaryAction = { opened += 1 }
+
+        sender.performClick(nil)
+
+        XCTAssertEqual(opened, 1, "the native status button must route its configured action to the popup")
+    }
+
+    func testQuitMenuRequestsTerminationAndHonorsDelegateCancellation() throws {
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
+        let item = try XCTUnwrap(controller.buildMenu().items.first { $0.title == L10n.string("Quit Copybara") })
+        let originalDelegate = NSApp.delegate
+        let delegate = CancelTerminationDelegate()
+        NSApp.delegate = delegate
+        defer { NSApp.delegate = originalDelegate }
+
+        controller.perform(try XCTUnwrap(item.action))
+
+        XCTAssertEqual(delegate.requests, 1, "Quit must pass through the application's termination policy")
     }
 
     func testShowMenuActionIsDeferredUntilTrackingReturns() async throws {

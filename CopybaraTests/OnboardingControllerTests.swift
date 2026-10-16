@@ -65,4 +65,35 @@ final class OnboardingControllerTests: XCTestCase {
             XCTAssertTrue(window.isVisible, "permission recovery is still required after dismissing onboarding")
         }
     }
+
+    func testClosedWelcomeCallbacksDoNotRetainControllerOrChangeCompletion() throws {
+        let name = "onboarding-lifetime-\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        var controller: OnboardingController? = OnboardingController(
+            paster: Paster(accessibilityPermission: { false }), settings: settings)
+        weak var released: OnboardingController?
+        released = controller
+        controller?.show()
+        let window = try XCTUnwrap(controller?.window)
+        window.alphaValue = 0
+        let hosting = try XCTUnwrap(window.contentViewController as? NSHostingController<OnboardingView>)
+        let grant = hosting.rootView.onGrant
+        let finish = hosting.rootView.onFinish
+        window.close()
+        controller = nil
+        guard released == nil else {
+            XCTFail("the closed welcome view's callbacks must not retain its controller")
+            return
+        }
+
+        // Retained UI callbacks must be harmless after their owner is gone;
+        // in particular Grant must not proceed to a system permission request.
+        grant()
+        finish()
+
+        XCTAssertFalse(settings.hasCompletedOnboarding)
+        XCTAssertFalse(window.isVisible)
+    }
 }
