@@ -8,6 +8,8 @@ import XCTest
 
 @MainActor
 final class PopupActionTests: XCTestCase {
+    private static var mouseEventNumber = 0
+
     private final class TargetApplication: NSRunningApplication, @unchecked Sendable {
         var hasExited = false
         var identityReads = 0
@@ -57,6 +59,8 @@ final class PopupActionTests: XCTestCase {
             .first { !existing.contains(ObjectIdentifier($0)) })
         window.alphaValue = 0
         window.hasShadow = false
+        // Synthetic control clicks must not start native window dragging.
+        window.isMovableByWindowBackground = false
         controller.show()
         var views = [try XCTUnwrap(window.contentView)]
         var hosting: NSHostingView<PopupView>?
@@ -80,6 +84,140 @@ final class PopupActionTests: XCTestCase {
             XCTAssertEqual(popup.board.string(forType: .string), "selected")
             XCTAssertFalse(popup.controller.isVisible)
             XCTAssertEqual(prompts, 1)
+        }
+    }
+
+    func testClickingFooterPasteStagesSelectedClip() throws {
+        try withPopup([text("paste from footer")]) { popup in
+            let committed = expectation(description: "footer paste reaches permission recovery")
+            popup.controller.onAccessibilityRequired = { committed.fulfill() }
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+            let content = try XCTUnwrap(popup.window.contentView)
+            content.layoutSubtreeIfNeeded()
+            let footerButtons = controlClickPoints(in: content).filter {
+                $0.y < PopupMetrics.footerHeight && $0.x > PopupMetrics.width / 2
+            }
+            let paste = try XCTUnwrap(footerButtons.min { $0.x < $1.x })
+            try click(paste, in: popup.window)
+            wait(for: [committed], timeout: 2)
+            XCTAssertEqual(popup.board.string(forType: .string), "paste from footer")
+            XCTAssertFalse(popup.controller.isVisible)
+        }
+    }
+
+    func testClickingTypeFilterRestoresAllResults() throws {
+        let image = ClipCapture(kind: .image, text: "image", data: nil, contentHash: "image", appBundleID: nil)
+        try withPopup([text("note"), image]) { popup in
+            popup.view.oo.scope = .image
+            let deadline = Date().addingTimeInterval(2)
+            while abs(popup.window.frame.height - PopupMetrics.totalHeight(for: 1)) > 1, Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            XCTAssertEqual(popup.view.oo.results.map(\.kind), [.image])
+            let content = try XCTUnwrap(popup.window.contentView)
+            let y = content.bounds.height - PopupMetrics.searchHeight / 2
+            try click(NSPoint(x: PopupMetrics.width - 35, y: y), in: popup.window)
+            XCTAssertEqual(popup.view.oo.scope, .all)
+            XCTAssertEqual(Set(popup.view.oo.results.map(\.kind)), [.text, .image])
+            XCTAssertTrue(popup.controller.isVisible)
+            XCTAssertNil(popup.board.string(forType: .string))
+        }
+    }
+
+    func testClickingActionsThenPasteRunsMenuActionAndClosesPopup() throws {
+        let attributed = NSAttributedString(string: "paste from actions", attributes: [.foregroundColor: NSColor.red])
+        let data = try XCTUnwrap(attributed.rtf(from: NSRange(location: 0, length: attributed.length), documentAttributes: [:]))
+        let capture = ClipCapture(kind: .rtf, text: attributed.string, data: data, contentHash: data.sha256Hex, appBundleID: nil)
+        try withPopup([capture]) { popup in
+            let committed = expectation(description: "action row committed")
+            popup.controller.onAccessibilityRequired = { committed.fulfill() }
+            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+            try click(NSPoint(x: PopupMetrics.width - 70, y: PopupMetrics.footerHeight / 2), in: popup.window)
+            let menu = try waitForPopover(excluding: existing)
+            defer { popup.view.oo.showActions = false; menu.orderOut(nil) }
+            XCTAssertTrue(popup.view.oo.showActions)
+            let content = try XCTUnwrap(menu.contentView)
+            let firstAction = try XCTUnwrap(controlClickPoints(in: content).max { $0.y < $1.y })
+            try click(firstAction, in: menu)
+            wait(for: [committed], timeout: 2)
+            XCTAssertEqual(popup.board.string(forType: .string), "paste from actions")
+            XCTAssertEqual(popup.board.data(forType: .rtf), data)
+            XCTAssertFalse(popup.view.oo.showActions)
+            XCTAssertFalse(popup.controller.isVisible)
+        }
+    }
+
+    func testRowContextMenuCopiesClickedRowInsteadOfKeyboardSelection() throws {
+        try withPopup([text("first"), text("second")]) { popup in
+            let menu = try rowMenu(at: 1, in: popup)
+            let index = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string("Copy") })
+            XCTAssertEqual(popup.view.oo.selectedItem?.preview, "second")
+            menu.performActionForItem(at: index)
+            XCTAssertEqual(popup.board.string(forType: .string), "first")
+            XCTAssertFalse(popup.controller.isVisible)
+        }
+    }
+
+    func testRowContextMenuPinAndUnpinKeepOtherRowsAndPasteboardIntact() throws {
+        try withPopup([text("first"), text("second")]) { popup in
+            let targetID = try XCTUnwrap(popup.view.oo.results.first { $0.preview == "first" }?.id)
+            let menu = try rowMenu(at: 1, in: popup)
+            let pin = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string("Pin") })
+            menu.performActionForItem(at: pin)
+            XCTAssertEqual(popup.store.recentItems().first?.id, targetID)
+            XCTAssertEqual(popup.store.recentItems().first?.isPinned, true)
+            let unpinMenu = try rowMenu(at: 0, in: popup)
+            let unpin = try XCTUnwrap(unpinMenu.items.firstIndex { $0.title == L10n.string("Unpin") })
+            unpinMenu.performActionForItem(at: unpin)
+            XCTAssertEqual(popup.store.count(), 2)
+            XCTAssertTrue(popup.store.recentItems().allSatisfy { !$0.isPinned })
+            XCTAssertNil(popup.board.string(forType: .string))
+            XCTAssertTrue(popup.controller.isVisible)
+        }
+    }
+
+    func testRowContextMenuDeletePreservesSelectedRow() throws {
+        try withPopup([text("first"), text("second")]) { popup in
+            let selectedID = popup.view.oo.selectedItem?.id
+            let menu = try rowMenu(at: 1, in: popup)
+            let delete = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string("Delete") })
+            menu.performActionForItem(at: delete)
+            XCTAssertEqual(popup.store.recentItems().map(\.preview), ["second"])
+            XCTAssertEqual(popup.view.oo.selectedItem?.id, selectedID)
+            XCTAssertNil(popup.board.string(forType: .string))
+            XCTAssertTrue(popup.controller.isVisible)
+        }
+    }
+
+    func testRowContextMenuRichAndPlainPasteUseClickedPayload() throws {
+        let attributed = NSAttributedString(string: "rich clicked row", attributes: [.foregroundColor: NSColor.red])
+        let data = try XCTUnwrap(attributed.rtf(from: NSRange(location: 0, length: attributed.length), documentAttributes: [:]))
+        let capture = ClipCapture(kind: .rtf, text: attributed.string, data: data, contentHash: data.sha256Hex, appBundleID: nil)
+        for (title, plain) in [("Paste", false), ("Paste as Plain Text", true)] {
+            try withPopup([capture, text("keyboard selection")]) { popup in
+                let committed = expectation(description: "context menu paste committed")
+                popup.controller.onAccessibilityRequired = { committed.fulfill() }
+                let menu = try rowMenu(at: 1, in: popup)
+                let index = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string(title) })
+                menu.performActionForItem(at: index)
+                wait(for: [committed], timeout: 2)
+                XCTAssertEqual(popup.board.string(forType: .string), attributed.string)
+                XCTAssertEqual(popup.board.data(forType: .rtf), plain ? nil : data)
+                XCTAssertFalse(popup.controller.isVisible)
+            }
+        }
+    }
+
+    func testSnippetContextMenuOmitsPinAndDeletePreservesHistory() throws {
+        try withPopup([text("history")], snippets: [Snippet(title: "Signature", content: "template")]) { popup in
+            let menu = try rowMenu(at: 0, in: popup)
+            XCTAssertNil(menu.item(withTitle: L10n.string("Pin")))
+            XCTAssertNil(menu.item(withTitle: L10n.string("Unpin")))
+            let delete = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string("Delete") })
+            menu.performActionForItem(at: delete)
+            XCTAssertEqual(popup.view.oo.results.map(\.preview), ["history"])
+            XCTAssertEqual(popup.store.recentItems().map(\.preview), ["history"])
+            XCTAssertTrue(popup.controller.isVisible)
         }
     }
 
@@ -288,6 +426,63 @@ final class PopupActionTests: XCTestCase {
         wait(for: [elapsed], timeout: 2)
     }
 
+    private func click(_ point: NSPoint, in window: NSWindow) throws {
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        window.contentView?.layoutSubtreeIfNeeded()
+        Self.mouseEventNumber += 2
+        let down = try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseDown, location: point, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+            context: nil, eventNumber: Self.mouseEventNumber - 1, clickCount: 1, pressure: 1))
+        let up = try XCTUnwrap(NSEvent.mouseEvent(with: .leftMouseUp, location: point, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime + 0.01, windowNumber: window.windowNumber,
+            context: nil, eventNumber: Self.mouseEventNumber, clickCount: 1, pressure: 0))
+        NSApp.sendEvent(down)
+        NSApp.sendEvent(up)
+    }
+
+    private func rowPoint(at index: Int, in popup: Popup) throws -> NSPoint {
+        let content = try XCTUnwrap(popup.window.contentView)
+        let height = PopupMetrics.totalHeight(for: popup.view.oo.results.count)
+        let deadline = Date().addingTimeInterval(2)
+        repeat {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+            content.layoutSubtreeIfNeeded()
+        } while abs(content.bounds.height - height) > 1 && Date() < deadline
+        return NSPoint(x: 180, y: content.bounds.height - PopupMetrics.searchHeight - 6 - PopupMetrics.rowHeight * (CGFloat(index) + 0.5))
+    }
+
+    private func controlClickPoints(in content: NSView) -> [NSPoint] {
+        var views = content.subviews
+        var points: [NSPoint] = []
+        while let view = views.popLast() {
+            if (16...60).contains(view.bounds.height), view.bounds.width > 40 {
+                // The left quarter lies on a plain button's label, rather
+                // than the noninteractive gap before its shortcut keycap.
+                let point = NSPoint(x: view.bounds.minX + view.bounds.width / 4, y: view.bounds.midY)
+                points.append(view.convert(point, to: nil))
+            }
+            views.append(contentsOf: view.subviews)
+        }
+        return points
+    }
+
+    private func rowMenu(at index: Int, in popup: Popup) throws -> NSMenu {
+        let point = try rowPoint(at: index, in: popup)
+        let content = try XCTUnwrap(popup.window.contentView)
+        let event = try XCTUnwrap(NSEvent.mouseEvent(with: .rightMouseDown, location: point, modifierFlags: [],
+            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: popup.window.windowNumber,
+            context: nil, eventNumber: 1, clickCount: 1, pressure: 1))
+        var hit = content.hitTest(content.convert(point, from: nil))
+        var contextMenu: NSMenu?
+        while let view = hit, contextMenu == nil {
+            contextMenu = view.menu(for: event)
+            hit = view.superview
+        }
+        let menu = try XCTUnwrap(contextMenu)
+        menu.update()
+        return menu
+    }
+
     private func remember(_ target: TargetApplication) throws {
         let readsBeforeNotification = target.identityReads
         NSWorkspace.shared.notificationCenter.post(name: NSWorkspace.didActivateApplicationNotification,
@@ -303,11 +498,17 @@ final class PopupActionTests: XCTestCase {
     private func openActions(in popup: Popup) throws -> NSWindow {
         let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
         popup.view.oo.showActions = true
+        return try waitForPopover(excluding: existing)
+    }
+
+    private func waitForPopover(excluding existing: Set<ObjectIdentifier>) throws -> NSWindow {
         let deadline = Date().addingTimeInterval(2)
         var popover: NSWindow?
         while popover == nil, Date() < deadline {
             RunLoop.main.run(until: Date().addingTimeInterval(0.01))
-            popover = NSApp.windows.first { !existing.contains(ObjectIdentifier($0)) && $0.isVisible }
+            popover = NSApp.windows.first {
+                !existing.contains(ObjectIdentifier($0)) && $0.isVisible && (240...300).contains($0.frame.width)
+            }
         }
         let window = try XCTUnwrap(popover)
         window.alphaValue = 0
