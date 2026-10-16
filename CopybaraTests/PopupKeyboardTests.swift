@@ -83,6 +83,18 @@ final class PopupKeyboardTests: XCTestCase {
         }
     }
 
+    func testUnrecognizedCommandEquivalentFallsThroughWithoutCommittingOrClosing() throws {
+        try withPopup { controller, window, board, search in
+            let commandZero = try key(29, window: window, flags: .command, characters: "0")
+            XCTAssertFalse(window.performKeyEquivalent(with: commandZero))
+            XCTAssertTrue(controller.isVisible)
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(search.received.isEmpty)
+            window.sendEvent(try key(36, window: window, characters: "\r"))
+            XCTAssertEqual(board.string(forType: .string), "third", "the rejected shortcut must preserve the selection")
+        }
+    }
+
     func testEscapeClosesPanelWithoutReachingSearch() throws {
         try withPopup { controller, window, _, search in
             window.sendEvent(try key(53, window: window, characters: "\u{1B}"))
