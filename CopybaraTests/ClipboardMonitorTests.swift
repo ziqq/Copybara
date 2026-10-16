@@ -198,6 +198,23 @@ final class ClipboardMonitorTests: XCTestCase {
         XCTAssertEqual(store.recentItems().map(\.preview), ["supported"])
     }
 
+    func testDefaultSourceProviderStoresForegroundApplicationWithNamedPasteboardCopy() async throws {
+        let (stack, store, settings, board) = fixture()
+        settings.blockedBundleIDs = []
+        let monitor = ClipboardMonitor(store: store, settings: settings, pasteboard: board)
+        let (inserted, _) = observeInsert(stack)
+        board.clearContents()
+        XCTAssertTrue(board.setString("source attribution", forType: .string))
+        let foreground = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        monitor.poll()
+        await fulfillment(of: [inserted], timeout: 2)
+
+        let item = try XCTUnwrap(store.recentItems(includePayloads: false).first)
+        XCTAssertEqual(item.preview, "source attribution")
+        XCTAssertEqual(item.appBundleID, foreground)
+        XCTAssertEqual(store.count(), 1)
+    }
+
     func testStopAndRestartControlTimerRecording() async {
         let (stack, store, settings, board) = fixture()
         let monitor = ClipboardMonitor(store: store, settings: settings, pasteboard: board, foregroundBundleID: { "allowed" })
