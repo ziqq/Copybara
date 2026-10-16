@@ -103,6 +103,12 @@ final class UpdateCheckerNetworkTests: XCTestCase {
         }
     }
 
+    func testNonnumericReleaseTagDoesNotOfferAnUpdate() async {
+        let data = Data("{\"tag_name\":\"latest\"}".utf8)
+        let outcome = await check(.http(200, data))
+        XCTAssertEqual(outcome, .upToDate(current: UpdateChecker.current()))
+    }
+
     func testHTTPFailuresReportStatusInsteadOfParsingReleaseBody() async {
         for status in [403, 429, 500] {
             let outcome = await check(.http(status, Data("{\"tag_name\":\"v999.0.0\"}".utf8)))

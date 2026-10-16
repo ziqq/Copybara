@@ -420,6 +420,86 @@ final class PopupActionTests: XCTestCase {
         }
     }
 
+    func testFocusTimeoutLeavesContentForManualPasteAndStopsRetrying() throws {
+        var posted = 0
+        try withPopup([text("focus never returned")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            defer { NSApp.unhideWithoutActivation() }
+            let target = TargetApplication()
+            try remember(target)
+            var prompts = 0
+            popup.controller.onAccessibilityRequired = { prompts += 1 }
+            popup.view.onAction(.paste)
+
+            // Allow the complete focus-recovery budget, including the fallback
+            // that hides Copybara, rather than cancelling after the first retry.
+            let elapsed = expectation(description: "focus recovery budget elapsed")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { elapsed.fulfill() }
+            wait(for: [elapsed], timeout: 4)
+            let readsAfterTimeout = target.terminationReads
+            XCTAssertGreaterThan(readsAfterTimeout, 20, "the destination must be retried through the fallback")
+            waitForFocusRetries()
+
+            XCTAssertEqual(target.terminationReads, readsAfterTimeout, "focus retries must stop after the timeout")
+            XCTAssertTrue(NSApp.isHidden, "failed activation must let the destination regain focus")
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertEqual(popup.board.string(forType: .string), "focus never returned")
+            XCTAssertEqual(posted, 0, "a different foreground application must never receive the paste")
+            XCTAssertEqual(prompts, 0, "a focus failure must not be reported as missing permission")
+        }
+    }
+
+    func testHidingPopupBeforeDeferredPreviewLayoutDoesNotShowOrphanPanel() throws {
+        try withPopup([text("preview cancelled")]) { popup in
+            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+            popup.view.onHoverPreview(try XCTUnwrap(popup.view.oo.selectedItem))
+            let panel = try XCTUnwrap(NSApp.windows.compactMap { $0 as? NSPanel }
+                .first { !existing.contains(ObjectIdentifier($0)) })
+            panel.alphaValue = 0
+            defer { panel.orderOut(nil) }
+            popup.controller.hide()
+            let laidOut = expectation(description: "deferred preview layout completed")
+            DispatchQueue.main.async { laidOut.fulfill() }
+            wait(for: [laidOut], timeout: 2)
+            XCTAssertFalse(panel.isVisible, "a queued preview must not reopen after its popup was dismissed")
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertNil(popup.board.string(forType: .string))
+        }
+    }
+
+    func testPreviewFlipsLeftWhenPopupIsAtRightScreenEdge() throws {
+        try withPopup([text("edge preview")]) { popup in
+            let mouse = NSEvent.mouseLocation
+            let screen = try XCTUnwrap(NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main)
+            let visible = screen.visibleFrame
+            let defaults = UserDefaults.standard
+            let originalArguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+            var arguments = originalArguments
+            arguments["popupPosition"] = PopupPosition.menuBarIcon.rawValue
+            defaults.setVolatileDomain(arguments, forName: UserDefaults.argumentDomain)
+            defer { defaults.setVolatileDomain(originalArguments, forName: UserDefaults.argumentDomain) }
+            // Use the normal anchor calculation so deferred layouts keep the
+            // same position, without writing the user's saved window position.
+            popup.controller.anchorRectProvider = {
+                NSRect(x: visible.maxX - 20, y: visible.maxY, width: 20, height: 20)
+            }
+            popup.controller.show()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+            popup.view.onHoverPreview(try XCTUnwrap(popup.view.oo.selectedItem))
+            let panel = try XCTUnwrap(NSApp.windows.compactMap { $0 as? NSPanel }
+                .first { !existing.contains(ObjectIdentifier($0)) })
+            panel.alphaValue = 0
+            defer { panel.orderOut(nil) }
+            let laidOut = expectation(description: "preview placed beside popup")
+            DispatchQueue.main.async { laidOut.fulfill() }
+            wait(for: [laidOut], timeout: 2)
+            XCTAssertTrue(panel.isVisible)
+            XCTAssertEqual(panel.frame.maxX, popup.window.frame.minX - 8, accuracy: 1)
+            XCTAssertTrue(visible.contains(panel.frame), "the preview must remain inside the visible screen")
+            XCTAssertNil(popup.board.string(forType: .string))
+        }
+    }
+
     private func waitForFocusRetries() {
         let elapsed = expectation(description: "several focus-retry intervals elapse")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { elapsed.fulfill() }
