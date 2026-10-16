@@ -89,4 +89,46 @@ final class PasterTests: XCTestCase {
         }
     }
 
+    func testPasteConvenienceStagesTextEvenWithoutPermission() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        var posted = false
+        let paster = Paster(pasteboard: board, accessibilityPermission: { false },
+                            postEvent: { _, _ in posted = true })
+        paster.paste(text: "ready for manual paste")
+        XCTAssertEqual(board.string(forType: .string), "ready for manual paste")
+        XCTAssertFalse(posted)
+    }
+
+    func testMissingForegroundApplicationNeverReceivesKeyEvents() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        var posted = false
+        let paster = Paster(pasteboard: board, accessibilityPermission: { true }, frontmostPID: { nil },
+                            postEvent: { _, _ in posted = true })
+        paster.pasteIntoFrontmostApp()
+        XCTAssertFalse(posted)
+    }
+
+    func testPlainFilesAndBrokenFilePayloadFallBackToPreview() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        let paster = Paster(pasteboard: board)
+        for (data, plain) in [(FilePayload.archive(["/tmp/file.txt"]), true), (Data([1, 2]), false), (nil, false)] {
+            board.setData(Data([9]), forType: .rtf)
+            paster.stage(item: ClipItemDO(kind: .file, preview: "file.txt", data: data), plain: plain)
+            XCTAssertEqual(board.string(forType: .string), "file.txt")
+            XCTAssertNil(board.data(forType: .rtf), "previous clipboard representations must be cleared")
+        }
+    }
+
+    func testMissingImagePayloadClearsPreviousClipboardContent() {
+        let board = makePasteboard()
+        defer { board.releaseGlobally() }
+        board.setString("previous", forType: .string)
+        Paster(pasteboard: board).stage(item: ClipItemDO(kind: .image, preview: "missing"))
+        XCTAssertNil(board.string(forType: .string))
+        XCTAssertNil(board.data(forType: .png))
+    }
+
 }

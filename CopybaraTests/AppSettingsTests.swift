@@ -51,4 +51,39 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.popupSavedTop, CGPoint(x: 12, y: 34))
         XCTAssertTrue(settings.hasCompletedOnboarding)
     }
+
+    func testClearingSavedPositionSurvivesReloadAndSupportsZeroCoordinates() {
+        let name = "settings-position-\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        settings.popupSavedTop = .zero
+        XCTAssertEqual(AppSettings(defaults: defaults).popupSavedTop, .zero)
+        settings.popupSavedTop = nil
+        XCTAssertNil(AppSettings(defaults: defaults).popupSavedTop)
+    }
+
+    func testUnknownPersistedEnumValuesFallBackToSupportedDefaults() {
+        let name = "settings-invalid-\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        for key in ["iconVisibility", "popupPosition", "searchMode", "sortMode"] {
+            defaults.set("removed-value", forKey: key)
+        }
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertEqual(settings.iconVisibility, .menuBar)
+        XCTAssertEqual(settings.popupPosition, .remembered)
+        XCTAssertEqual(settings.searchMode, .fuzzy)
+        XCTAssertEqual(settings.sortMode, .lastCopied)
+    }
+
+    func testHotkeyMigrationFlagPersistsWithoutChangingShortcutRegistration() {
+        let name = "settings-migration-\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        XCTAssertFalse(settings.didMigrateHotkeyToV)
+        settings.didMigrateHotkeyToV = true
+        XCTAssertTrue(AppSettings(defaults: defaults).didMigrateHotkeyToV)
+    }
 }

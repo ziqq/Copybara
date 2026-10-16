@@ -21,6 +21,48 @@ final class HistoryStoreTests: XCTestCase {
         XCTAssertEqual(items.first?.preview, "hello")
     }
 
+    @MainActor
+    func testBackgroundTextInsertPreservesSourceAndPublishesSavedHistory() async {
+        let stack = CoreDataStack(inMemory: true)
+        let store = HistoryStore(stack: stack)
+        let saved = expectation(description: "background text saved")
+        let token = NotificationCenter.default.addObserver(forName: .NSManagedObjectContextDidSave, object: nil, queue: nil) { note in
+            guard let context = note.object as? NSManagedObjectContext,
+                  context.persistentStoreCoordinator === stack.container.persistentStoreCoordinator,
+                  !(note.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject> ?? []).isEmpty else { return }
+            saved.fulfill()
+        }
+        defer { NotificationCenter.default.removeObserver(token) }
+        store.insertText("background text", appBundleID: "com.example.source")
+        await fulfillment(of: [saved], timeout: 2)
+        let items = store.recentItems(includePayloads: false)
+        XCTAssertEqual(items.map(\.preview), ["background text"])
+        XCTAssertEqual(items.first?.appBundleID, "com.example.source")
+        XCTAssertEqual(items.first?.copyCount, 1)
+    }
+
+    func testUnknownStoredKindFallsBackToReadableTextWithoutLosingPayload() throws {
+        let stack = CoreDataStack(inMemory: true)
+        let store = HistoryStore(stack: stack)
+        let object = NSEntityDescription.insertNewObject(forEntityName: "ClipEntity", into: stack.viewContext)
+        let id = UUID(), date = Date(timeIntervalSince1970: 1_000), payload = Data([1, 2])
+        object.setValue(id, forKey: "id")
+        object.setValue("future-kind", forKey: "kind")
+        object.setValue("readable preview", forKey: "text")
+        object.setValue(date, forKey: "createdAt")
+        object.setValue(payload, forKey: "data")
+        try stack.viewContext.save()
+
+        for includePayloads in [false, true] {
+            let item = try XCTUnwrap(store.recentItems(includePayloads: includePayloads).first)
+            XCTAssertEqual(item.id, id)
+            XCTAssertEqual(item.kind, .text)
+            XCTAssertEqual(item.preview, "readable preview")
+            XCTAssertEqual(item.firstCopiedAt, date)
+            XCTAssertEqual(item.data, includePayloads ? payload : nil)
+        }
+    }
+
     func testDeduplicationBumpsExistingInsteadOfDuplicating() {
         let store = makeStore()
         store.insertTextSynchronously("a")
@@ -30,6 +72,31 @@ final class HistoryStoreTests: XCTestCase {
         let items = store.recentItems()
         XCTAssertEqual(items.count, 2, "duplicate content must not create a new row")
         XCTAssertEqual(items.first?.preview, "a", "the re-copied item is bumped to the top")
+    }
+
+    func testNullableStoredTextProducesEmptyPreviewInFullAndPayloadFreeReads() throws {
+        let stack = CoreDataStack(inMemory: true)
+        let store = HistoryStore(stack: stack)
+        let object = NSEntityDescription.insertNewObject(forEntityName: "ClipEntity", into: stack.viewContext)
+        let id = UUID(), date = Date(timeIntervalSince1970: 2_000)
+        object.setValue(id, forKey: "id")
+        object.setValue("image", forKey: "kind")
+        object.setValue(date, forKey: "createdAt")
+        object.setValue(date, forKey: "firstCopiedAt")
+        object.setValue(Data([7, 8]), forKey: "data")
+        // Text is optional in the persisted model, even for a valid row.
+        XCTAssertNil(object.value(forKey: "text"))
+        try stack.viewContext.save()
+
+        for includePayloads in [false, true] {
+            let item = try XCTUnwrap(store.recentItems(includePayloads: includePayloads).first)
+            XCTAssertEqual(item.id, id)
+            XCTAssertEqual(item.kind, .image)
+            XCTAssertEqual(item.preview, "")
+            XCTAssertEqual(item.firstCopiedAt, date)
+            XCTAssertEqual(item.copyCount, 1)
+            XCTAssertEqual(item.data, includePayloads ? Data([7, 8]) : nil)
+        }
     }
 
     func testSizeCapTrimsOldestNonPinned() {
