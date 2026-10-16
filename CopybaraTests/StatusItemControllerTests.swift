@@ -153,6 +153,14 @@ final class StatusItemControllerTests: XCTestCase {
         var opened = 0
         controller.onPrimaryAction = { opened += 1 }
 
+        // The status action reads NSApp.currentEvent. Fetch the fixture from
+        // this application's queue, as the native event loop does for a click.
+        let click = mouse(.leftMouseUp)
+        NSApp.postEvent(click, atStart: true)
+        let fetched = try XCTUnwrap(NSApp.nextEvent(matching: .leftMouseUp,
+            until: Date().addingTimeInterval(1), inMode: .default, dequeue: true))
+        XCTAssertEqual(fetched.modifierFlags.intersection(.deviceIndependentFlagsMask), [])
+        XCTAssertEqual(NSApp.currentEvent?.type, .leftMouseUp)
         sender.performClick(nil)
 
         XCTAssertEqual(opened, 1, "the native status button must route its configured action to the popup")
