@@ -7,6 +7,16 @@ import XCTest
 
 @MainActor
 final class StatusItemControllerTests: XCTestCase {
+    @MainActor
+    private final class MenuTrackingObserver: NSObject {
+        var onBegin: ((NSMenu) -> Void)?
+
+        @objc func menuDidBeginTracking(_ note: Notification) {
+            guard let menu = note.object as? NSMenu else { return }
+            onBegin?(menu)
+        }
+    }
+
     private final class CancelTerminationDelegate: NSObject, NSApplicationDelegate {
         var requests = 0
         func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
@@ -45,6 +55,38 @@ final class StatusItemControllerTests: XCTestCase {
         XCTAssertTrue(actions.isEmpty)
         controller.handleClick(event: nil) // accessibility invocation
         XCTAssertEqual(actions, ["popup"])
+    }
+
+    func testRightClickTracksNativeContextMenuAndCancellationDoesNotOpenPopup() throws {
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
+        var actions: [String] = []
+        controller.onOpenContextMenu = { actions.append("dismiss") }
+        controller.onPrimaryAction = { actions.append("popup") }
+        var tracked: NSMenu?
+        var cancel: Timer?
+        let observer = MenuTrackingObserver()
+        observer.onBegin = { menu in
+            guard menu.items.first?.title == L10n.string("About Copybara"),
+                  menu.items.first?.target === controller else { return }
+            tracked = menu
+            actions.append("tracking")
+            let timer = Timer(timeInterval: 0.01, target: menu,
+                              selector: #selector(NSMenu.cancelTrackingWithoutAnimation),
+                              userInfo: nil, repeats: false)
+            cancel = timer
+            RunLoop.main.add(timer, forMode: .eventTracking)
+            RunLoop.main.add(timer, forMode: .common)
+        }
+        NotificationCenter.default.addObserver(observer,
+            selector: #selector(MenuTrackingObserver.menuDidBeginTracking(_:)),
+            name: NSMenu.didBeginTrackingNotification, object: nil)
+        defer { cancel?.invalidate(); NotificationCenter.default.removeObserver(observer) }
+
+        controller.handleClick(event: mouse(.rightMouseUp))
+
+        XCTAssertEqual(try XCTUnwrap(tracked).items.first?.title, L10n.string("About Copybara"))
+        XCTAssertEqual(actions, ["dismiss", "tracking"],
+                       "opening and dismissing the native menu must not trigger the primary action")
     }
 
     func testMenuKeepsRequestedOrderWithoutClearOrIcons() {

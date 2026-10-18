@@ -46,6 +46,26 @@ final class PopupKeyboardTests: XCTestCase {
                                       isARepeat: repeatKey, keyCode: code))
     }
 
+    func testClosedPanelKeyboardHandlerDoesNotRetainControllerOrConsumeShortcutsAfterRelease() throws {
+        weak var released: PopupController?
+        var retainedWindow: PopupWindow?
+        try withPopup { controller, window, _, _ in
+            released = controller
+            retainedWindow = window
+        }
+        guard released == nil else {
+            XCTFail("a retained closed panel must not keep its controller alive")
+            return
+        }
+        let window = try XCTUnwrap(retainedWindow)
+        let handle = try XCTUnwrap(window.onKeyDown)
+
+        XCTAssertFalse(handle(try key(36, window: window, characters: "\r")),
+                       "a stale Return callback must not consume input after its controller is gone")
+        XCTAssertFalse(handle(try key(53, window: window, characters: "\u{1B}")))
+        XCTAssertFalse(window.isVisible)
+    }
+
     func testPanelDispatchConsumesArrowsBeforeSearchAndCommitsSelection() throws {
         try withPopup { _, window, board, search in
             let arrowFlags: NSEvent.ModifierFlags = [.function, .numericPad]
