@@ -37,10 +37,13 @@ final class AppDelegateTests: XCTestCase {
         let selector = NSSelectorFromString("iconVisibilityChanged:")
 
         for policy in [NSApplication.ActivationPolicy.accessory, .regular] {
-            XCTAssertTrue(NSApp.setActivationPolicy(policy))
+            NSApp.setActivationPolicy(policy)
+            XCTAssertEqual(NSApp.activationPolicy(), policy,
+                           "the fixture must establish the policy before testing invalid notifications")
             for payload: [AnyHashable: Any]? in [nil, [:], ["value": 42], ["value": "unknown"]] {
                 let note = Notification(name: .copybaraIconVisibilityChanged, object: nil, userInfo: payload)
-                XCTAssertTrue(NSApp.sendAction(selector, to: delegate, from: note as NSNotification))
+                XCTAssertTrue(NSApp.sendAction(selector, to: delegate, from: note as NSNotification),
+                              "the notification must reach the delegate's registered selector")
                 XCTAssertEqual(NSApp.activationPolicy(), policy,
                                "an absent, mistyped or unknown visibility must not change the Dock policy")
             }
