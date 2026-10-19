@@ -36,6 +36,46 @@ final class StatusItemControllerTests: XCTestCase {
         XCTAssertTrue(controller.isVisible)
     }
 
+    func testPopupAnchorConvertsNestedButtonBoundsToScreenCoordinatesAndClearsWhenHidden() throws {
+        var button: NSStatusBarButton?
+        let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)),
+                                              presentMenu: { _, sender in button = sender })
+        controller.handleClick(event: mouse(.rightMouseUp))
+        let sender = try XCTUnwrap(button)
+        let originalParent = sender.superview, originalFrame = sender.frame, originalBounds = sender.bounds
+        let window = NSWindow(contentRect: NSRect(x: 120, y: 140, width: 200, height: 100),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.alphaValue = 0
+        defer {
+            sender.removeFromSuperview()
+            originalParent?.addSubview(sender)
+            sender.frame = originalFrame
+            sender.bounds = originalBounds
+            window.close()
+        }
+        // The fixture's status item and window are owned by this test; nesting
+        // checks coordinate conversion without requiring a visible menu bar.
+        let root = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 100))
+        let container = NSView(frame: NSRect(x: 13, y: 17, width: 140, height: 60))
+        window.contentView = root
+        root.addSubview(container)
+        container.addSubview(sender)
+        sender.frame = NSRect(x: 9, y: 5, width: 24, height: 18)
+        sender.bounds.origin = NSPoint(x: 3, y: 4)
+        XCTAssertTrue(sender.window === window)
+
+        let anchor = try XCTUnwrap(controller.statusButtonScreenRect())
+
+        XCTAssertEqual(anchor, NSRect(x: window.frame.minX + 22, y: window.frame.minY + 22,
+                                      width: 24, height: 18))
+        sender.removeFromSuperview()
+        XCTAssertNil(controller.statusButtonScreenRect(), "a detached button cannot provide a screen anchor")
+        container.addSubview(sender)
+        controller.applyVisibility(.dock)
+        XCTAssertNil(controller.statusButtonScreenRect(), "a hidden icon must not retain its last screen anchor")
+    }
+
     func testRightAndControlClicksOpenOnlyMenuAndDismissPopupFirst() {
         var actions: [String] = []
         let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)),
