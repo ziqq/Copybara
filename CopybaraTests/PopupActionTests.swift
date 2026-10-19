@@ -12,6 +12,9 @@ final class PopupActionTests: XCTestCase {
 
     private final class TargetApplication: NSRunningApplication, @unchecked Sendable {
         var hasExited = false
+        var isForeground = true
+        var exitsOnActivation = false
+        var activationOptions: [NSApplication.ActivationOptions] = []
         var identityReads = 0
         var terminationReads = 0
         var onExitObserved: (() -> Void)?
@@ -21,8 +24,13 @@ final class PopupActionTests: XCTestCase {
             if hasExited { onExitObserved?() }
             return hasExited
         }
-        // The fixture never asks macOS to activate another application.
-        override var isActive: Bool { true }
+        override var isActive: Bool { isForeground }
+        // Capture requests without asking macOS to activate another application.
+        override func activate(options: NSApplication.ActivationOptions = []) -> Bool {
+            activationOptions.append(options)
+            if exitsOnActivation { hasExited = true }
+            return false
+        }
     }
 
     private struct Popup {
@@ -379,6 +387,64 @@ final class PopupActionTests: XCTestCase {
             XCTAssertTrue(popup.controller.isVisible)
             XCTAssertEqual(posted, 0)
             XCTAssertEqual(popup.board.string(forType: .string), "staged but cancelled")
+        }
+    }
+
+    func testAlreadyActiveDestinationIsNotAskedToActivateAgain() throws {
+        var posted = 0
+        try withPopup([text("keep destination active")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            try remember(target)
+            popup.controller.onAccessibilityRequired = { XCTFail("activation must not request permission recovery") }
+
+            popup.view.onAction(.paste)
+
+            XCTAssertTrue(target.activationOptions.isEmpty)
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertEqual(popup.board.string(forType: .string), "keep destination active")
+            XCTAssertEqual(posted, 0)
+        }
+    }
+
+    func testRejectedDestinationActivationWaitsForFocusWithoutPostingKeys() throws {
+        var posted = 0
+        try withPopup([text("activation rejected")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            target.isForeground = false
+            try remember(target)
+            popup.controller.onAccessibilityRequired = { XCTFail("activation refusal is not a missing permission") }
+
+            popup.view.onAction(.paste)
+            let initialReads = target.terminationReads
+            waitForFocusRetries()
+
+            XCTAssertEqual(target.activationOptions, [[]], "request activation once, then wait for actual focus")
+            XCTAssertGreaterThan(target.terminationReads, initialReads)
+            XCTAssertEqual(posted, 0, "a rejected activation must not send the paste chord elsewhere")
+            XCTAssertEqual(popup.board.string(forType: .string), "activation rejected")
+            XCTAssertFalse(popup.controller.isVisible)
+        }
+    }
+
+    func testDestinationExitingDuringActivationStopsWithoutFocusRetries() throws {
+        var posted = 0
+        try withPopup([text("destination exited")], permission: true, postEvent: { _, _ in posted += 1 }) { popup in
+            let target = TargetApplication()
+            target.isForeground = false
+            target.exitsOnActivation = true
+            try remember(target)
+            popup.controller.onAccessibilityRequired = { XCTFail("a destination exit must not request permission recovery") }
+
+            popup.view.onAction(.paste)
+            let readsAfterExit = target.terminationReads
+            waitForFocusRetries()
+
+            XCTAssertTrue(target.hasExited)
+            XCTAssertEqual(target.activationOptions, [[]])
+            XCTAssertEqual(target.terminationReads, readsAfterExit, "an exited destination must not enter the retry loop")
+            XCTAssertEqual(posted, 0)
+            XCTAssertEqual(popup.board.string(forType: .string), "destination exited")
+            XCTAssertFalse(popup.controller.isVisible)
         }
     }
 
