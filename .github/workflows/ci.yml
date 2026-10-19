@@ -83,6 +83,23 @@ jobs:
           # Slather 2.8.6 breaks scheme coverage lookup (SlatherOrg/slather#586).
           gem install slather --version 2.8.5 --no-document
           slather _2.8.5_ coverage --cobertura-xml
+          python3 - <<'PY'
+          import glob, json, os, subprocess, xml.etree.ElementTree as ET
+          result, = glob.glob(".build/DerivedData/Logs/Test/*.xcresult")
+          report = json.loads(subprocess.check_output(
+              ["xcrun", "xccov", "view", "--report", "--json", result], text=True))
+          app = next(target for target in report["targets"] if target["name"] == "Copybara.app")
+          cobertura = ET.parse(".build/coverage/cobertura.xml").getroot()
+          summary = (
+              f"Coverage (Xcode, Copybara.app): {app['lineCoverage'] * 100:.2f}% "
+              f"({app['coveredLines']}/{app['executableLines']})\n"
+              f"Coverage (Slather, existing exclusions): "
+              f"{float(cobertura.attrib['line-rate']) * 100:.2f}%\n"
+          )
+          print(summary, end="")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as output:
+              output.write("\n" + summary)
+          PY
 
       - name: Upload coverage to Codecov
         if: success()
