@@ -239,6 +239,32 @@ final class PopupActionTests: XCTestCase {
         }
     }
 
+    func testClickingAnotherRowStagesThatRowAndShowsPermissionRecoveryOnce() throws {
+        try withPopup([text("first"), text("second")]) { popup in
+            NSApp.activate(ignoringOtherApps: true)
+            popup.window.makeKeyAndOrderFront(nil)
+            let deadline = Date().addingTimeInterval(2)
+            while (!NSApp.isActive || !popup.window.isKeyWindow), Date() < deadline {
+                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
+            }
+            XCTAssertTrue(NSApp.isActive)
+            XCTAssertTrue(popup.window.isKeyWindow, "a row gesture must start in the active search popup")
+            XCTAssertEqual(popup.view.oo.selectedItem?.preview, "second")
+            let clickedIndex = try XCTUnwrap(popup.view.oo.results.firstIndex { $0.preview == "first" })
+            var prompts = 0
+            let committed = expectation(description: "the row gesture reaches permission recovery")
+            popup.controller.onAccessibilityRequired = { prompts += 1; committed.fulfill() }
+
+            try click(rowPoint(at: clickedIndex, in: popup), in: popup.window)
+            wait(for: [committed], timeout: 2)
+
+            XCTAssertEqual(popup.board.string(forType: .string), "first")
+            XCTAssertEqual(prompts, 1)
+            XCTAssertFalse(popup.controller.isVisible)
+            XCTAssertEqual(popup.store.count(), 2, "pasting a row must not delete history")
+        }
+    }
+
     func testPlainPasteActionLoadsRichPayloadButStripsFormatting() throws {
         let attributed = NSAttributedString(string: "rich text", attributes: [.foregroundColor: NSColor.red])
         let data = try XCTUnwrap(attributed.rtf(from: NSRange(location: 0, length: attributed.length), documentAttributes: [:]))

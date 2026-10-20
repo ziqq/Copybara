@@ -7,12 +7,15 @@ import Sparkle
 /// Checks for updates on demand and lets Sparkle verify, install, and relaunch.
 @MainActor
 final class UpdaterController {
-    private let driver = CompactUpdateUserDriver(hostBundle: .main)
-    private lazy var updater = SPUUpdater(hostBundle: .main, applicationBundle: .main,
-                                         userDriver: driver, delegate: nil)
+    private let driver: CompactUpdateUserDriver
+    private let updater: SPUUpdater
     private var startError: Error?
 
-    init() {
+    init(hostBundle: Bundle = .main) {
+        let driver = CompactUpdateUserDriver(hostBundle: hostBundle)
+        self.driver = driver
+        self.updater = SPUUpdater(hostBundle: hostBundle, applicationBundle: .main,
+                                  userDriver: driver, delegate: nil)
         do { try updater.start() }
         catch {
             startError = error
