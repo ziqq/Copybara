@@ -28,11 +28,17 @@ enum LaunchAtLoginManager {
             Log.app.info("Launch at login requires macOS 13+")
             return
         }
+        setEnabled(enabled, register: { try SMAppService.mainApp.register() },
+                   unregister: { try SMAppService.mainApp.unregister() })
+    }
+
+    /// Keeps error handling shared with tests that must not register a real login item.
+    static func setEnabled(_ enabled: Bool, register: () throws -> Void, unregister: () throws -> Void) {
         do {
             if enabled {
-                try SMAppService.mainApp.register()
+                try register()
             } else {
-                try SMAppService.mainApp.unregister()
+                try unregister()
             }
         } catch {
             Log.app.error("Launch-at-login toggle failed: \(error.localizedDescription, privacy: .public)")
