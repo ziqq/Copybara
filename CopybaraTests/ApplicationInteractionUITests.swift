@@ -104,6 +104,44 @@ final class ApplicationInteractionTests: XCTestCase {
         }
     }
 
+    func testClosingSettingsWhileRecordingPreservesShortcutAndReleasesTextInput() throws {
+        try withApplication { app, _ in
+            let status = app.statusItems.firstMatch
+            status.rightClick()
+            app.menuItems["Settings"].hover()
+            app.menuItems["Open Settings"].click()
+            let settings = app.windows["Copybara Settings"]
+            XCTAssertTrue(settings.waitForExistence(timeout: 3))
+            app.activate()
+            let recorder = settings.searchFields.firstMatch
+            XCTAssertTrue(recorder.exists)
+            let original = recorder.value as? String
+
+            recorder.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).click()
+            settings.buttons[XCUIIdentifierCloseWindow].click()
+            XCTAssertTrue(settings.waitForNonExistence(timeout: 3))
+            status.rightClick()
+            app.menuItems["Settings"].hover()
+            app.menuItems["Open Settings"].click()
+            XCTAssertTrue(settings.waitForExistence(timeout: 3))
+            XCTAssertEqual(recorder.value as? String, original)
+            XCTAssertEqual(recorder.placeholderValue, "Record Shortcut")
+            verifyShortcutRecordingCancellation(in: settings, app: app)
+            let addSnippet = settings.buttons["Add Snippet"]
+            reveal(addSnippet, in: settings)
+            let titleFields = settings.textFields.count
+            addSnippet.click()
+            XCTAssertEqual(settings.textFields.count, titleFields + 1)
+            let title = settings.textFields.element(boundBy: titleFields)
+            reveal(title, in: settings)
+            app.activate()
+            title.click()
+            app.typeKey("r", modifierFlags: [])
+            XCTAssertEqual(title.value as? String, "r", "closing while recording must release the key-event monitor")
+            settings.buttons[XCUIIdentifierCloseWindow].click()
+        }
+    }
+
     private func verifyShortcutRecordingCancellation(in settings: XCUIElement, app: XCUIApplication) {
         app.activate()
         let recorder = settings.searchFields.firstMatch
