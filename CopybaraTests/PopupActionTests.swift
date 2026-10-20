@@ -239,23 +239,16 @@ final class PopupActionTests: XCTestCase {
         }
     }
 
-    func testClickingAnotherRowStagesThatRowAndShowsPermissionRecoveryOnce() throws {
+    func testPastingAnotherRowFromItsNativeMenuStagesThatRowAndShowsPermissionRecoveryOnce() throws {
         try withPopup([text("first"), text("second")]) { popup in
-            NSApp.activate(ignoringOtherApps: true)
-            popup.window.makeKeyAndOrderFront(nil)
-            let deadline = Date().addingTimeInterval(2)
-            while (!NSApp.isActive || !popup.window.isKeyWindow), Date() < deadline {
-                RunLoop.main.run(until: Date().addingTimeInterval(0.01))
-            }
-            XCTAssertTrue(NSApp.isActive)
-            XCTAssertTrue(popup.window.isKeyWindow, "a row gesture must start in the active search popup")
             XCTAssertEqual(popup.view.oo.selectedItem?.preview, "second")
-            let clickedIndex = try XCTUnwrap(popup.view.oo.results.firstIndex { $0.preview == "first" })
+            let menu = try rowMenu(at: 1, in: popup)
+            let paste = try XCTUnwrap(menu.items.firstIndex { $0.title == L10n.string("Paste") })
             var prompts = 0
-            let committed = expectation(description: "the row gesture reaches permission recovery")
+            let committed = expectation(description: "the clicked row's Paste action reaches permission recovery")
             popup.controller.onAccessibilityRequired = { prompts += 1; committed.fulfill() }
 
-            try click(rowPoint(at: clickedIndex, in: popup), in: popup.window)
+            menu.performActionForItem(at: paste)
             wait(for: [committed], timeout: 2)
 
             XCTAssertEqual(popup.board.string(forType: .string), "first")

@@ -101,8 +101,10 @@ final class OnboardingControllerTests: XCTestCase {
 
             XCTAssertEqual(urls.count, 1)
             XCTAssertEqual(urls.first?.scheme, "x-apple.systempreferences")
-            XCTAssertEqual(urls.first?.path, "com.apple.preference.security")
-            XCTAssertEqual(urls.first?.query, "Privacy_Accessibility")
+            // Foundation versions split opaque URL components differently;
+            // System Settings receives the complete URL in either case.
+            XCTAssertEqual(urls.first?.absoluteString,
+                           "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
         }
     }
 
@@ -160,7 +162,10 @@ final class OnboardingControllerTests: XCTestCase {
         let controller = OnboardingController(paster: Paster(accessibilityPermission: {
             permissionReads += 1
             return true
-        }), settings: settings)
+        }), settings: settings, requestPermission: {
+            permissionReads += 1
+            return true
+        })
         controller.show()
         let window = try XCTUnwrap(controller.window)
         window.alphaValue = 0
