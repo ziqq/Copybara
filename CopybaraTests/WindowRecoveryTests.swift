@@ -51,6 +51,7 @@ final class WindowRecoveryTests: XCTestCase {
         // presentation contract even if NSWindow.isVisible still reports true.
         XCTAssertTrue(window.styleMask.contains(.nonactivatingPanel))
         XCTAssertTrue(window.canBecomeKey)
+        XCTAssertFalse(window.canBecomeMain, "the clipboard panel must not replace the destination's main window")
         XCTAssertFalse(window.hidesOnDeactivate,
                        "the history popup must remain onscreen while the destination app is active")
     }

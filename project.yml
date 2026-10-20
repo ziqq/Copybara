@@ -70,6 +70,8 @@ targets:
       Release: Config/Signing.xcconfig
     sources:
       - path: CopybaraTests
+        excludes:
+          - ApplicationInteractionUITests.swift
     dependencies:
       - target: Copybara
     settings:
@@ -80,15 +82,34 @@ targets:
         # Tests only run on modern macOS; avoids XCTest "built for newer version" warnings.
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
+  CopybaraUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: CopybaraTests/ApplicationInteractionUITests.swift
+    dependencies:
+      - target: Copybara
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        TEST_TARGET_NAME: Copybara
+
 schemes:
   Copybara:
     build:
       targets:
         Copybara: all
         CopybaraTests: [test]
+        CopybaraUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
+      environmentVariables:
+        CFFIXED_USER_HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
+        HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
+        COPYBARA_APP_PATH: "$(BUILT_PRODUCTS_DIR)/Copybara.app"
       targets:
         - CopybaraTests
+        - CopybaraUITests

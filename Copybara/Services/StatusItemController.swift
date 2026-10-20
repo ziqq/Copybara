@@ -12,6 +12,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private let store: HistoryStore
     private let presentMenu: (NSMenu, NSStatusBarButton) -> Void
+    private let isLaunchAtLoginEnabled: () -> Bool
+    private let setLaunchAtLogin: (Bool) -> Void
 
     /// Invoked on left-click — opens/toggles the popup.
     var onPrimaryAction: (() -> Void)?
@@ -24,11 +26,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     /// Invoked to check for app updates.
     var onCheckForUpdates: (() -> Void)?
 
-    init(store: HistoryStore, presentMenu: @escaping (NSMenu, NSStatusBarButton) -> Void = { menu, button in
+    init(store: HistoryStore,
+         isLaunchAtLoginEnabled: @escaping () -> Bool = { LaunchAtLoginManager.isEnabled },
+         setLaunchAtLogin: @escaping (Bool) -> Void = { LaunchAtLoginManager.setEnabled($0) },
+         presentMenu: @escaping (NSMenu, NSStatusBarButton) -> Void = { menu, button in
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
     }) {
         self.store = store
         self.presentMenu = presentMenu
+        self.isLaunchAtLoginEnabled = isLaunchAtLoginEnabled
+        self.setLaunchAtLogin = setLaunchAtLogin
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
         configureButton()
@@ -187,7 +194,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let startup = NSMenuItem(title: L10n.string("Launch at login"), action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         startup.target = self
         startup.isEnabled = LaunchAtLoginManager.isSupported
-        startup.state = LaunchAtLoginManager.isEnabled ? .on : .off
+        startup.state = isLaunchAtLoginEnabled() ? .on : .off
         menu.addItem(startup)
 
         menu.addItem(.separator())
@@ -239,8 +246,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
     @objc private func toggleLaunchAtLogin() {
         // Registration can prompt; let the menu finish tracking first.
-        DispatchQueue.main.async {
-            LaunchAtLoginManager.setEnabled(!LaunchAtLoginManager.isEnabled)
+        DispatchQueue.main.async { [isLaunchAtLoginEnabled, setLaunchAtLogin] in
+            setLaunchAtLogin(!isLaunchAtLoginEnabled())
         }
     }
     @objc private func quit() { NSApp.terminate(nil) }
