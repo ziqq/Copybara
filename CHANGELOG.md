@@ -14,7 +14,7 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
-## Unreleased
+## 0.1.10 — 2026-10-20
 - **CHANGED**: The app icon's entire rounded-square tile uses the warm orange
   palette, with the white two-layer C directly on the tile and no circular badge.
 - **CHANGED**: README screenshots show the current app icon, status menu,
