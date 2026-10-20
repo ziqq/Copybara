@@ -38,10 +38,10 @@ final class SettingsOO: ObservableObject {
     }
     @Published var launchAtLogin: Bool {
         didSet {
-            guard launchAtLogin != LaunchAtLoginManager.isEnabled else { return }
-            LaunchAtLoginManager.setEnabled(launchAtLogin)
+            guard launchAtLogin != isLaunchAtLoginEnabled() else { return }
+            setLaunchAtLogin(launchAtLogin)
             // Reflect what the system actually did (registration can fail).
-            let actual = LaunchAtLoginManager.isEnabled
+            let actual = isLaunchAtLoginEnabled()
             if actual != launchAtLogin {
                 DispatchQueue.main.async { self.launchAtLogin = actual }
             }
@@ -78,10 +78,16 @@ final class SettingsOO: ObservableObject {
 
     private let settings: AppSettings
     private let snippetStore: SnippetStore
+    private let isLaunchAtLoginEnabled: () -> Bool
+    private let setLaunchAtLogin: (Bool) -> Void
 
-    init(settings: AppSettings = .shared, snippetStore: SnippetStore = .shared) {
+    init(settings: AppSettings = .shared, snippetStore: SnippetStore = .shared,
+         isLaunchAtLoginEnabled: @escaping () -> Bool = { LaunchAtLoginManager.isEnabled },
+         setLaunchAtLogin: @escaping (Bool) -> Void = { LaunchAtLoginManager.setEnabled($0) }) {
         self.settings = settings
         self.snippetStore = snippetStore
+        self.isLaunchAtLoginEnabled = isLaunchAtLoginEnabled
+        self.setLaunchAtLogin = setLaunchAtLogin
         self.snippets = snippetStore.all()
         self.historySize = settings.historySize
         self.historyRetentionDays = settings.historyRetentionDays
@@ -90,7 +96,7 @@ final class SettingsOO: ObservableObject {
         self.useLiquidGlass = settings.useLiquidGlass
         self.searchMode = settings.searchMode
         self.sortMode = settings.sortMode
-        self.launchAtLogin = LaunchAtLoginManager.isEnabled
+        self.launchAtLogin = isLaunchAtLoginEnabled()
         self.ignoreAllCopies = settings.ignoreAllCopies
         self.blockedBundleIDs = settings.blockedBundleIDs
     }
@@ -102,7 +108,7 @@ final class SettingsOO: ObservableObject {
         if granted != accessibilityGranted { accessibilityGranted = granted }
         if settings.ignoreAllCopies != ignoreAllCopies { ignoreAllCopies = settings.ignoreAllCopies }
         if settings.popupPosition != popupPosition { popupPosition = settings.popupPosition }
-        let startup = LaunchAtLoginManager.isEnabled
+        let startup = isLaunchAtLoginEnabled()
         if startup != launchAtLogin { launchAtLogin = startup }
     }
 

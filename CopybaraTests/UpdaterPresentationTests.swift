@@ -8,6 +8,54 @@ import Sparkle
 
 @MainActor
 final class UpdaterPresentationTests: XCTestCase {
+    func testNativeCompactPromptButtonsReturnTheirChoicesAndEndModalSession() {
+        let sparkle = Bundle(for: SPUStandardUserDriver.self)
+        for (title, expected) in [("Install Update", SPUUserUpdateChoice.install),
+                                  ("Skip This Version", .skip)] {
+            let buttonTitle = sparkle.localizedString(forKey: title, value: nil, table: "Sparkle")
+            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+            let driver = CompactUpdateUserDriver(hostBundle: .main)
+            var clicked = false
+            var prompt: NSWindow?
+            let deadline = Date().addingTimeInterval(3)
+            let timer = Timer(timeInterval: 0.02, repeats: true) { timer in
+                MainActor.assumeIsolated {
+                    if let window = NSApp.modalWindow,
+                       !existing.contains(ObjectIdentifier(window)),
+                       let button = window.contentView.flatMap({ self.buttons(in: $0).first { $0.title == buttonTitle } }) {
+                        prompt = window
+                        window.alphaValue = 0
+                        clicked = true
+                        timer.invalidate()
+                        button.performClick(nil)
+                    } else if Date() >= deadline {
+                        timer.invalidate()
+                        XCTFail("the native update prompt did not expose its \(title) button")
+                        NSApp.abortModal()
+                    }
+                }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            RunLoop.main.add(timer, forMode: .modalPanel)
+            defer { timer.invalidate(); prompt?.close() }
+            var choices: [SPUUserUpdateChoice] = []
+
+            // Use the production runModal presenter: the native button, rather
+            // than an injected return value, must finish the session and reply.
+            driver.showCompactUpdate(version: "1.0", current: "0.9") { choices.append($0) }
+
+            XCTAssertTrue(clicked)
+            XCTAssertEqual(choices, [expected])
+            XCTAssertNil(NSApp.modalWindow)
+            driver.dismissUpdateInstallation()
+            XCTAssertEqual(choices, [expected], "cleanup must not reply to the update a second time")
+        }
+    }
+
+    private func buttons(in view: NSView) -> [NSButton] {
+        (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+    }
+
     func testCompactPromptReturnsExactlyOneInstallationChoice() {
         for (response, choice) in [(NSApplication.ModalResponse.alertFirstButtonReturn, SPUUserUpdateChoice.install),
                                    (.alertSecondButtonReturn, .skip), (.abort, .dismiss)] {

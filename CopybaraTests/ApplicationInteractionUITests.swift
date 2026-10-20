@@ -50,7 +50,7 @@ final class ApplicationInteractionTests: XCTestCase {
     }
 
     func testSettingsButtonsAndUpdaterRunThroughApplicationDelegate() throws {
-        try withApplication { app, source in
+        try withApplication { app, _ in
             let status = app.statusItems.firstMatch
             status.rightClick()
             app.menuItems["Settings"].hover()
@@ -66,13 +66,18 @@ final class ApplicationInteractionTests: XCTestCase {
             reveal(addApp, in: settings)
             addApp.click()
             app.typeKey("g", modifierFlags: [.command, .shift])
-            app.typeText(source)
+            // A system app gives the picker a short, stable path. Reading its
+            // bundle id only changes this test application's isolated blocklist.
+            let applicationPath = "/System/Applications/Calculator.app"
+            let selectedBundle = try XCTUnwrap(Bundle(path: applicationPath))
+            app.typeText(applicationPath)
             app.typeKey(.return, modifierFlags: [])
             app.dialogs["open-panel"].buttons["OKButton"].click()
             XCTAssertTrue(app.dialogs["open-panel"].waitForNonExistence(timeout: 3))
-            let bundleID = try XCTUnwrap(Bundle(url: URL(fileURLWithPath: source))?.bundleIdentifier)
-            let name = FileManager.default.displayName(atPath: source).replacingOccurrences(of: ".app", with: "")
-            let expectedNames = [bundleID, name]
+            let bundleID = try XCTUnwrap(selectedBundle.bundleIdentifier)
+            let name = FileManager.default.displayName(atPath: applicationPath).replacingOccurrences(of: ".app", with: "")
+            let bundleNames = ["CFBundleDisplayName", "CFBundleName"].compactMap { selectedBundle.infoDictionary?[$0] as? String }
+            let expectedNames = [bundleID, name] + bundleNames
             let blocked = settings.staticTexts.matching(NSPredicate(format: "value IN %@ OR label IN %@", expectedNames, expectedNames)).firstMatch
             reveal(blocked, in: settings)
             XCTAssertTrue(blocked.exists)
