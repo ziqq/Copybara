@@ -57,11 +57,17 @@ final class ApplicationInteractionTests: XCTestCase {
             app.menuItems["Open Settings"].click()
             let settings = app.windows["Copybara Settings"]
             XCTAssertTrue(settings.waitForExistence(timeout: 3))
+            verifyShortcutRecordingCancellation(in: settings, app: app)
             let addSnippet = settings.buttons["Add Snippet"]
             reveal(addSnippet, in: settings)
             let titleFields = settings.textFields.count
             addSnippet.click()
             XCTAssertEqual(settings.textFields.count, titleFields + 1)
+            let title = settings.textFields.element(boundBy: titleFields)
+            reveal(title, in: settings)
+            title.click()
+            title.typeText("Shortcut test")
+            XCTAssertEqual(title.value as? String, "Shortcut test", "cancelled recording must release ordinary text input")
             let addApp = settings.buttons["Add App to Blocklist…"]
             reveal(addApp, in: settings)
             addApp.click()
@@ -96,6 +102,31 @@ final class ApplicationInteractionTests: XCTestCase {
             cancel.click()
             XCTAssertTrue(cancel.waitForNonExistence(timeout: 3))
         }
+    }
+
+    private func verifyShortcutRecordingCancellation(in settings: XCUIElement, app: XCUIApplication) {
+        app.activate()
+        let recorder = settings.searchFields.firstMatch
+        XCTAssertTrue(recorder.waitForExistence(timeout: 3))
+        XCTAssertEqual(recorder.placeholderValue, "Record Shortcut")
+        let original = recorder.value as? String
+        for key in [XCUIKeyboardKey.escape, .tab] {
+            recorder.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).click()
+            app.typeKey("a", modifierFlags: [])
+            XCTAssertEqual(recorder.value as? String, original, "plain text must be rejected while recording a shortcut")
+
+            app.typeKey(key, modifierFlags: [])
+
+            XCTAssertEqual(recorder.placeholderValue, "Record Shortcut")
+            XCTAssertEqual(recorder.value as? String, original, "cancelling must preserve the disabled shortcut")
+            XCTAssertTrue(settings.exists)
+        }
+        recorder.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).click()
+        app.typeKey("a", modifierFlags: [])
+        XCTAssertEqual(recorder.value as? String, original, "recording must not accept an unmodified letter")
+        settings.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5)).click()
+        XCTAssertEqual(recorder.placeholderValue, "Record Shortcut")
+        XCTAssertEqual(recorder.value as? String, original, "clicking outside must cancel rather than save a binding")
     }
 
     private func reveal(_ element: XCUIElement, in window: XCUIElement) {
