@@ -42,12 +42,15 @@ Accessibility on first paste. See the README for details.
 ```bash
 xcodebuild -project Copybara.xcodeproj -scheme Copybara \
   -destination 'platform=macOS' -enableCodeCoverage YES \
-  'PRODUCT_BUNDLE_IDENTIFIER=dev.ustinoff.copybara.coverage.$(PRODUCT_NAME:rfc1034identifier)' test
+  'PRODUCT_BUNDLE_IDENTIFIER=dev.ustinoff.copybara.coverage.$(PRODUCT_NAME:rfc1034identifier)' \
+  CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES test
 ```
 
 The test action uses a build-directory home, and this command gives the host a
 separate preferences domain. Shared-state integration tests require both so they
 can exercise menu actions and settings without touching an installed Copybara.
+The UI test runner uses ad hoc signing, a temporary app home, and prebuilt history
+fixtures with clipboard recording and global shortcuts disabled.
 
 CI runs the same tests with coverage on every push and PR. Please add or update
 tests for behavior changes — pure logic (`ClipSearch`, `FuzzyMatcher`,
