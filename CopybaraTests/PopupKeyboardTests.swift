@@ -2,6 +2,7 @@
 // Use and redistribution are subject to LICENSE.
 
 import AppKit
+import SwiftUI
 import XCTest
 @testable import Copybara
 
@@ -45,6 +46,26 @@ final class PopupKeyboardTests: XCTestCase {
                                       isARepeat: repeatKey, keyCode: code))
     }
 
+    func testClosedPanelKeyboardHandlerDoesNotRetainControllerOrConsumeShortcutsAfterRelease() throws {
+        weak var released: PopupController?
+        var retainedWindow: PopupWindow?
+        try withPopup { controller, window, _, _ in
+            released = controller
+            retainedWindow = window
+        }
+        guard released == nil else {
+            XCTFail("a retained closed panel must not keep its controller alive")
+            return
+        }
+        let window = try XCTUnwrap(retainedWindow)
+        let handle = try XCTUnwrap(window.onKeyDown)
+
+        XCTAssertFalse(handle(try key(36, window: window, characters: "\r")),
+                       "a stale Return callback must not consume input after its controller is gone")
+        XCTAssertFalse(handle(try key(53, window: window, characters: "\u{1B}")))
+        XCTAssertFalse(window.isVisible)
+    }
+
     func testPanelDispatchConsumesArrowsBeforeSearchAndCommitsSelection() throws {
         try withPopup { _, window, board, search in
             let arrowFlags: NSEvent.ModifierFlags = [.function, .numericPad]
@@ -82,10 +103,123 @@ final class PopupKeyboardTests: XCTestCase {
         }
     }
 
+    func testUnrecognizedCommandEquivalentFallsThroughWithoutCommittingOrClosing() throws {
+        try withPopup { controller, window, board, search in
+            let commandZero = try key(29, window: window, flags: .command, characters: "0")
+            XCTAssertFalse(window.performKeyEquivalent(with: commandZero))
+            XCTAssertTrue(controller.isVisible)
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(search.received.isEmpty)
+            window.sendEvent(try key(36, window: window, characters: "\r"))
+            XCTAssertEqual(board.string(forType: .string), "third", "the rejected shortcut must preserve the selection")
+        }
+    }
+
     func testEscapeClosesPanelWithoutReachingSearch() throws {
         try withPopup { controller, window, _, search in
             window.sendEvent(try key(53, window: window, characters: "\u{1B}"))
             XCTAssertFalse(controller.isVisible)
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testCommandNumberPastesRequestedRowAndIgnoresMissingRow() throws {
+        try withPopup { controller, window, board, search in
+            XCTAssertTrue(window.performKeyEquivalent(with: try key(25, window: window, flags: .command, characters: "9")))
+            XCTAssertTrue(controller.isVisible)
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(window.performKeyEquivalent(with: try key(19, window: window, flags: .command, characters: "2")))
+            XCTAssertEqual(board.string(forType: .string), "second")
+            XCTAssertFalse(controller.isVisible)
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testEscapeDismissesActionsBeforeClosingPopup() throws {
+        try withPopup { controller, window, _, search in
+            XCTAssertTrue(window.performKeyEquivalent(with: try key(40, window: window, flags: .command, characters: "k")))
+            window.sendEvent(try key(53, window: window))
+            XCTAssertTrue(controller.isVisible)
+            window.sendEvent(try key(53, window: window))
+            XCTAssertFalse(controller.isVisible)
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testDeleteShortcutRemovesSelectedRowBeforePaste() throws {
+        try withPopup { _, window, board, search in
+            window.sendEvent(try key(51, window: window, flags: .option))
+            window.sendEvent(try key(36, window: window))
+            XCTAssertEqual(board.string(forType: .string), "second")
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testClearUnpinnedShortcutKeepsFavorite() throws {
+        try withPopup { _, window, board, search in
+            window.sendEvent(try key(35, window: window, flags: .option, characters: "p"))
+            window.sendEvent(try key(125, window: window))
+            window.sendEvent(try key(51, window: window, flags: [.option, .command]))
+            window.sendEvent(try key(36, window: window))
+            XCTAssertEqual(board.string(forType: .string), "third")
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testClearAllShortcutAlsoRemovesFavorite() throws {
+        try withPopup { controller, window, board, search in
+            window.sendEvent(try key(35, window: window, flags: .option, characters: "p"))
+            window.sendEvent(try key(51, window: window, flags: [.shift, .option, .command]))
+            window.sendEvent(try key(36, window: window))
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(controller.isVisible, "Return on an empty list must not commit anything")
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testScopeShortcutPreventsPastingHiddenTextRows() throws {
+        try withPopup { controller, window, board, search in
+            for _ in 0..<2 {
+                XCTAssertTrue(window.performKeyEquivalent(with: try key(37, window: window, flags: .command, characters: "l")))
+            }
+            window.sendEvent(try key(36, window: window))
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(controller.isVisible)
+            XCTAssertTrue(search.received.isEmpty)
+        }
+    }
+
+    func testPlainPasteShortcutAcceptsBothReturnAndKeypadEnter() throws {
+        for code: UInt16 in [36, 76] {
+            try withPopup { controller, window, board, search in
+                window.sendEvent(try key(code, window: window, flags: [.option, .shift], characters: "\r"))
+                XCTAssertEqual(board.string(forType: .string), "third")
+                XCTAssertNil(board.data(forType: .rtf))
+                XCTAssertFalse(controller.isVisible)
+                XCTAssertTrue(search.received.isEmpty)
+            }
+        }
+    }
+
+    func testArrowPreviewTracksSelectionAndHidesOnLeftArrow() throws {
+        try withPopup { _, window, _, search in
+            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+            window.sendEvent(try key(124, window: window))
+            let panel = try XCTUnwrap(NSApp.windows.compactMap { $0 as? NSPanel }
+                .first { !existing.contains(ObjectIdentifier($0)) })
+            panel.alphaValue = 0
+            defer { panel.orderOut(nil) }
+            let hosting = try XCTUnwrap(panel.contentView as? NSHostingView<PreviewCard>)
+            XCTAssertEqual(hosting.rootView.item.preview, "third")
+            let shown = expectation(description: "preview ordered after layout")
+            DispatchQueue.main.async { shown.fulfill() }
+            wait(for: [shown], timeout: 2)
+            XCTAssertTrue(panel.isVisible)
+
+            window.sendEvent(try key(125, window: window))
+            XCTAssertEqual(hosting.rootView.item.preview, "second")
+            window.sendEvent(try key(123, window: window))
+            XCTAssertFalse(panel.isVisible)
             XCTAssertTrue(search.received.isEmpty)
         }
     }

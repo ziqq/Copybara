@@ -240,7 +240,9 @@ final class HistoryStore {
     /// Number of stored clips, without materializing them.
     func count() -> Int {
         let request = NSFetchRequest<NSManagedObject>(entityName: Self.entityName)
-        return (try? stack.viewContext.count(for: request)) ?? 0
+        let count = (try? stack.viewContext.count(for: request)) ?? 0
+        // A failed incremental-store count can return NSNotFound without throwing.
+        return count == NSNotFound ? 0 : count
     }
 
     // MARK: - Helpers
