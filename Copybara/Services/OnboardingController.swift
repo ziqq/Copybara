@@ -9,11 +9,17 @@ import SwiftUI
 final class OnboardingController {
     private let paster: Paster
     private let settings: AppSettings
+    private let requestPermission: () -> Bool
+    private let openSettings: () -> Void
     private(set) var window: NSWindow?
 
-    init(paster: Paster, settings: AppSettings = .shared) {
+    init(paster: Paster, settings: AppSettings = .shared,
+         requestPermission: (() -> Bool)? = nil,
+         openSettings: (() -> Void)? = nil) {
         self.paster = paster
         self.settings = settings
+        self.requestPermission = requestPermission ?? paster.ensureAccessibilityPermission
+        self.openSettings = openSettings ?? { Self.openAccessibilitySettings() }
     }
 
     /// Also restores permission guidance when an update loses Accessibility.
@@ -27,11 +33,11 @@ final class OnboardingController {
             let root = OnboardingView(
                 onGrant: { [weak self] in
                     guard let self else { return }
-                    if !self.paster.ensureAccessibilityPermission() {
-                        Self.openAccessibilitySettings()
+                    if !self.requestPermission() {
+                        self.openSettings()
                     }
                 },
-                onOpenSettings: { Self.openAccessibilitySettings() },
+                onOpenSettings: openSettings,
                 onFinish: { [weak self] in self?.finish() }
             )
             let hosting = NSHostingController(rootView: root)
@@ -54,8 +60,8 @@ final class OnboardingController {
     }
 
     /// Opens the Accessibility pane of System Settings.
-    static func openAccessibilitySettings() {
+    static func openAccessibilitySettings(openURL: (URL) -> Bool = { NSWorkspace.shared.open($0) }) {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
-        NSWorkspace.shared.open(url)
+        _ = openURL(url)
     }
 }

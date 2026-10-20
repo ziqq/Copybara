@@ -8,6 +8,104 @@ import XCTest
 
 @MainActor
 final class OnboardingControllerTests: XCTestCase {
+    func testRejectedGrantOpensRecoveryAndLaterGrantedPermissionStillRequiresExplicitFinish() throws {
+        let name = "onboarding-recovery-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        var trusted = false, requests = 0, opened = 0
+        let controller = OnboardingController(paster: Paster(accessibilityPermission: { trusted }), settings: settings,
+            requestPermission: { requests += 1; return trusted }, openSettings: { opened += 1 })
+        controller.showIfNeeded()
+        let window = try XCTUnwrap(controller.window)
+        window.alphaValue = 0
+        defer { window.close() }
+        let view = try XCTUnwrap(window.contentViewController as? NSHostingController<OnboardingView>).rootView
+
+        view.onGrant()
+        view.onGrant()
+        XCTAssertEqual(requests, 2)
+        XCTAssertEqual(opened, 2, "each rejected grant must provide the recovery path")
+        XCTAssertTrue(window.isVisible)
+        XCTAssertFalse(settings.hasCompletedOnboarding)
+
+        trusted = true
+        view.onGrant()
+        XCTAssertEqual(requests, 3)
+        XCTAssertEqual(opened, 2, "granted permission must not reopen System Settings")
+        XCTAssertTrue(window.isVisible)
+        XCTAssertFalse(settings.hasCompletedOnboarding)
+        view.onFinish()
+        XCTAssertTrue(settings.hasCompletedOnboarding)
+        XCTAssertFalse(window.isVisible)
+        controller.showIfNeeded()
+        XCTAssertFalse(window.isVisible)
+    }
+
+    func testManualSettingsActionDoesNotRequestPermissionOrCompleteOnboarding() throws {
+        let name = "onboarding-manual-settings-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        var requests = 0, opened = 0
+        let controller = OnboardingController(paster: Paster(accessibilityPermission: { false }), settings: settings,
+            requestPermission: { requests += 1; return false }, openSettings: { opened += 1 })
+        controller.show()
+        let window = try XCTUnwrap(controller.window)
+        window.alphaValue = 0
+        defer { window.close() }
+        let view = try XCTUnwrap(window.contentViewController as? NSHostingController<OnboardingView>).rootView
+
+        view.onOpenSettings()
+
+        XCTAssertEqual(opened, 1)
+        XCTAssertEqual(requests, 0)
+        XCTAssertFalse(settings.hasCompletedOnboarding)
+        XCTAssertTrue(window.isVisible)
+    }
+
+    func testInjectedCallbacksKeepControllerLifetimeAndStaleGrantHarmless() throws {
+        let name = "onboarding-injected-lifetime-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        var requests = 0, opened = 0
+        var controller: OnboardingController? = OnboardingController(
+            paster: Paster(accessibilityPermission: { false }), settings: settings,
+            requestPermission: { requests += 1; return false }, openSettings: { opened += 1 })
+        weak var released = controller
+        controller?.show()
+        let window = try XCTUnwrap(controller?.window)
+        window.alphaValue = 0
+        let view = try XCTUnwrap(window.contentViewController as? NSHostingController<OnboardingView>).rootView
+        window.close()
+        controller = nil
+        XCTAssertNil(released)
+
+        view.onGrant()
+        view.onFinish()
+        XCTAssertEqual(requests, 0)
+        XCTAssertEqual(opened, 0)
+        XCTAssertFalse(settings.hasCompletedOnboarding)
+        // The independent Settings action must not capture the closed controller.
+        view.onOpenSettings()
+        XCTAssertEqual(opened, 1)
+        XCTAssertFalse(window.isVisible)
+    }
+
+    func testAccessibilityRecoveryOpensTheCorrectPaneEvenWhenWorkspaceRejectsIt() {
+        for accepted in [true, false] {
+            var urls: [URL] = []
+
+            OnboardingController.openAccessibilitySettings { url in urls.append(url); return accepted }
+
+            XCTAssertEqual(urls.count, 1)
+            XCTAssertEqual(urls.first?.scheme, "x-apple.systempreferences")
+            XCTAssertEqual(urls.first?.path, "com.apple.preference.security")
+            XCTAssertEqual(urls.first?.query, "Privacy_Accessibility")
+        }
+    }
+
     private func withController(trusted: Bool, _ body: (OnboardingController, AppSettings) throws -> Void) throws {
         let name = "onboarding-\(UUID())"
         let defaults = UserDefaults(suiteName: name)!
