@@ -53,6 +53,33 @@ final class OnboardingControllerTests: XCTestCase {
         }
     }
 
+    func testGrantWithExistingPermissionKeepsWelcomeOpenUntilExplicitFinish() throws {
+        let name = "onboarding-already-trusted-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        let settings = AppSettings(defaults: defaults)
+        var permissionReads = 0
+        let controller = OnboardingController(paster: Paster(accessibilityPermission: {
+            permissionReads += 1
+            return true
+        }), settings: settings)
+        controller.show()
+        let window = try XCTUnwrap(controller.window)
+        window.alphaValue = 0
+        defer { window.close() }
+        let hosting = try XCTUnwrap(window.contentViewController as? NSHostingController<OnboardingView>)
+        let readsBeforeGrant = permissionReads
+
+        hosting.rootView.onGrant()
+
+        XCTAssertEqual(permissionReads, readsBeforeGrant + 1)
+        XCTAssertTrue(window.isVisible)
+        XCTAssertFalse(settings.hasCompletedOnboarding, "granting permission must not replace the explicit finish action")
+        hosting.rootView.onFinish()
+        XCTAssertTrue(settings.hasCompletedOnboarding)
+        XCTAssertFalse(window.isVisible)
+    }
+
     func testDismissingGuidanceWithoutPermissionDoesNotClaimPermissionWasGranted() throws {
         try withController(trusted: false) { controller, settings in
             controller.showIfNeeded()

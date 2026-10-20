@@ -276,7 +276,8 @@ final class PopupController {
         }
 
         window.setFrameOrigin(origin)
-        lastProgrammaticOrigin = origin
+        // AppKit may align the requested origin to device pixels.
+        lastProgrammaticOrigin = window.frame.origin
     }
 
     /// Raycast-style default: horizontally centered, in the upper third.
