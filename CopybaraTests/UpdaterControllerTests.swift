@@ -36,6 +36,57 @@ final class UpdaterControllerTests: XCTestCase {
         override func stopLoading() {}
     }
 
+    func testRetainedUpdaterStartsOnlyOneDeferredCheckAndShowsUnsupportedFeedError() throws {
+        try IsolatedTestHost.require()
+        let defaults = UserDefaults.standard
+        let bundleID = try XCTUnwrap(Bundle.main.bundleIdentifier)
+        let originalPreferences = defaults.persistentDomain(forName: bundleID)
+        let originalArguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        var arguments = originalArguments
+        arguments["SUHasLaunchedBefore"] = true
+        arguments["SUEnableAutomaticChecks"] = false
+        arguments["SUAutomaticallyUpdate"] = false
+        // Sparkle uses its own URLSession and rejects file feeds. This gives a
+        // bounded failure without contacting the real feed or downloading an update.
+        arguments["SUFeedURL"] = FileManager.default.temporaryDirectory
+            .appendingPathComponent("missing-appcast-\(UUID()).xml").absoluteString
+        defaults.setVolatileDomain(arguments, forName: UserDefaults.argumentDomain)
+        defer {
+            if let originalPreferences { defaults.setPersistentDomain(originalPreferences, forName: bundleID) }
+            else { defaults.removePersistentDomain(forName: bundleID) }
+            defaults.setVolatileDomain(originalArguments, forName: UserDefaults.argumentDomain)
+        }
+        let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+        var errorWindows = 0
+        let timer = Timer(timeInterval: 0.02, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                guard let modal = NSApp.modalWindow, !existing.contains(ObjectIdentifier(modal)) else { return }
+                modal.alphaValue = 0
+                errorWindows += 1
+                NSApp.abortModal()
+                modal.close()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        RunLoop.main.add(timer, forMode: .modalPanel)
+        defer {
+            timer.invalidate()
+            for window in NSApp.windows where !existing.contains(ObjectIdentifier(window)) { window.close() }
+        }
+        let updater = UpdaterController()
+        updater.checkForUpdates()
+        updater.checkForUpdates()
+        XCTAssertEqual(errorWindows, 0, "menu tracking must finish before the check begins")
+        let deadline = Date().addingTimeInterval(5)
+        while errorWindows == 0 && Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        }
+        withExtendedLifetime(updater) {
+            XCTAssertEqual(errorWindows, 1, "the two queued checks must share one session and surface its failure once")
+            XCTAssertNil(NSApp.modalWindow)
+        }
+    }
+
     func testReleasedUpdaterDiscardsQueuedChecksWithoutNetworkUIOrPreferenceWrites() async throws {
         let defaults = UserDefaults.standard
         let originalArguments = defaults.volatileDomain(forName: UserDefaults.argumentDomain)

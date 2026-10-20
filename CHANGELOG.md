@@ -22,6 +22,8 @@ Use and redistribution are subject to LICENSE.
   popup on macOS 26 and the native menu's system accent shading.
 - **FIXED**: The popup and app panels load the bundled icon directly, avoiding
   an outdated icon cached by Launch Services.
+- **FIXED**: A failed history count returns zero instead of showing Core Data's
+  `NSNotFound` sentinel as the number of clips.
 
 
 ## 0.1.9 — 2026-10-14

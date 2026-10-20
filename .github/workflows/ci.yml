@@ -46,6 +46,7 @@ jobs:
             -configuration Debug \
             -derivedDataPath .build/DerivedData \
             -enableCodeCoverage YES \
+            'PRODUCT_BUNDLE_IDENTIFIER=dev.ustinoff.copybara.coverage.$(PRODUCT_NAME:rfc1034identifier)' \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
             clean test \
             | xcbeautify --report junit --report-path .build/reports

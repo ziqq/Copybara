@@ -90,5 +90,8 @@ schemes:
       config: Debug
     test:
       config: Debug
+      environmentVariables:
+        CFFIXED_USER_HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
+        HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
       targets:
         - CopybaraTests
