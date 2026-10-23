@@ -80,7 +80,9 @@ enum ClipSearch {
             var matches: [ClipItemDO] = []
             var scores: [Int] = []
             for item in items {
-                guard let score = pattern.score(in: item.preview) else { continue }
+                // A comment match counts as much as a content match.
+                let noteScore = item.note.flatMap { pattern.score(in: $0) }
+                guard let score = [pattern.score(in: item.preview), noteScore].compactMap({ $0 }).max() else { continue }
                 matches.append(item)
                 scores.append(score)
             }
@@ -90,16 +92,20 @@ enum ClipSearch {
 
         case .exact:
             let pattern = FuzzyMatcher.Pattern(query)
-            let matches = items.filter { pattern.isContained(in: $0.preview) }
+            let matches = items.filter { item in
+                pattern.isContained(in: item.preview) || item.note.map { pattern.isContained(in: $0) } == true
+            }
             return Result(matches: matches, ranked: matches)
 
         case .regex:
             guard let regex = try? NSRegularExpression(pattern: query, options: [.caseInsensitive]) else {
                 return Result(matches: [], ranked: [])
             }
+            func matches(_ text: String) -> Bool {
+                regex.firstMatch(in: text, options: [], range: NSRange(text.startIndex..., in: text)) != nil
+            }
             let matches = items.filter { item in
-                let range = NSRange(item.preview.startIndex..., in: item.preview)
-                return regex.firstMatch(in: item.preview, options: [], range: range) != nil
+                matches(item.preview) || item.note.map(matches) == true
             }
             return Result(matches: matches, ranked: matches)
         }

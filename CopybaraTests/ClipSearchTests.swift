@@ -135,4 +135,11 @@ final class ClipSearchTests: XCTestCase {
         XCTAssertEqual(ClipSearch.filter(items, query: "", mode: .exact, scope: .text).map(\.preview),
                        ["signature", "rich"])
     }
+
+    func testEveryModeMatchesComments() {
+        let items = [ClipItemDO(preview: "040914", isPinned: true, note: "Wi-Fi router"), item("other")]
+        for mode in [SearchMode.fuzzy, .exact, .regex] {
+            XCTAssertEqual(ClipSearch.filter(items, query: "router", mode: mode).map(\.preview), ["040914"], "\(mode)")
+        }
+    }
 }

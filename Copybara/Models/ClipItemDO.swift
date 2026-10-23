@@ -25,6 +25,9 @@ struct ClipItemDO: Identifiable, Hashable {
     /// Text to paste when it differs from `preview` (e.g. a snippet whose row
     /// shows a title but pastes its content). Falls back to `preview`.
     let pasteText: String?
+    /// User comment on a clip (e.g. "Wi-Fi password"); shown in the row
+    /// and matched by search.
+    let note: String?
 
     /// The text placed on the pasteboard for text-like kinds.
     var textToPaste: String { pasteText ?? preview }
@@ -39,7 +42,8 @@ struct ClipItemDO: Identifiable, Hashable {
         appBundleID: String? = nil,
         copyCount: Int = 1,
         data: Data? = nil,
-        pasteText: String? = nil
+        pasteText: String? = nil,
+        note: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -51,6 +55,7 @@ struct ClipItemDO: Identifiable, Hashable {
         self.copyCount = copyCount
         self.data = data
         self.pasteText = pasteText
+        self.note = note
     }
 
     /// Kinds whose paste/preview needs the binary payload, not just `preview`.
@@ -60,7 +65,7 @@ struct ClipItemDO: Identifiable, Hashable {
     func with(data: Data?) -> ClipItemDO {
         ClipItemDO(
             id: id, kind: kind, preview: preview, createdAt: createdAt, firstCopiedAt: firstCopiedAt, isPinned: isPinned,
-            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
+            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText, note: note
         )
     }
 
@@ -68,7 +73,15 @@ struct ClipItemDO: Identifiable, Hashable {
     func with(isPinned: Bool) -> ClipItemDO {
         ClipItemDO(
             id: id, kind: kind, preview: preview, createdAt: createdAt, firstCopiedAt: firstCopiedAt, isPinned: isPinned,
-            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText
+            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText, note: note
+        )
+    }
+
+    /// This item with a different comment (copies every other field).
+    func with(note: String?) -> ClipItemDO {
+        ClipItemDO(
+            id: id, kind: kind, preview: preview, createdAt: createdAt, firstCopiedAt: firstCopiedAt, isPinned: isPinned,
+            appBundleID: appBundleID, copyCount: copyCount, data: data, pasteText: pasteText, note: note
         )
     }
 
@@ -77,6 +90,13 @@ struct ClipItemDO: Identifiable, Hashable {
     /// multi-kilobyte clip. Computed on demand: only visible rows need it, and
     /// precomputing it for a 100k-clip history dominated load time.
     var rowText: String { Self.singleLine(preview) }
+
+    /// `note` flattened to one line, or nil when there is no comment.
+    var noteText: String? {
+        guard let note else { return nil }
+        let line = Self.singleLine(note)
+        return line.isEmpty ? nil : line
+    }
 
     private static func singleLine(_ text: String, limit: Int = 300) -> String {
         var line = ""

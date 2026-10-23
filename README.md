@@ -61,6 +61,7 @@ exactly one job well. That is the entire scope of Copybara.
 
 ### v0.2 — power-user features
 - Pin favorite items, delete individual clips, quick-paste with <kbd>⌘1</kbd>–<kbd>9</kbd>.
+- Add comments to clips (<kbd>⌥N</kbd>) — shown in the list and matched by search.
 - Images, rich text (RTF), and file references; paste-without-formatting (<kbd>⌥⇧↩</kbd>).
 - Ignore passwords (`ConcealedType`), transient types, and an app blocklist.
 - Side preview panel on hover / <kbd>→</kbd>, with source app, time, and copy count.
