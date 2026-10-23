@@ -18,7 +18,7 @@ enum ScreenshotRenderer {
                           height: PopupMetrics.totalHeight(for: items.count) + 104)
         let scene = ZStack {
             backdrop
-            PopupView(oo: .preview(items), autoFocus: false,
+            PopupView(oo: .preview(items, hovered: items[2].id), autoFocus: false,
                       useGlass: LiquidGlass.isSupported, onCommit: { _ in }, onAction: { _ in })
                 .padding(52)
         }
@@ -74,9 +74,9 @@ enum ScreenshotRenderer {
             ClipItemDO(kind: .text, preview: "https://github.com/ziqq/Copybara",
                        createdAt: ago(75), appBundleID: "com.apple.Safari"),
             ClipItemDO(kind: .text, preview: "git commit -m \"feat(m2): search modes\"",
-                       createdAt: ago(240), appBundleID: "com.apple.Terminal"),
+                       createdAt: ago(240), appBundleID: "com.apple.Terminal", note: "Release commit"),
             ClipItemDO(kind: .text, preview: "#C2703D", createdAt: ago(3600),
-                       isPinned: true, copyCount: 4),
+                       isPinned: true, copyCount: 4, note: "Brand accent"),
             ClipItemDO(kind: .image, preview: "Image 1200×800", createdAt: ago(900),
                        data: sampleImagePNG()),
             ClipItemDO(kind: .file, preview: "Copybara.dmg", createdAt: ago(7200)),

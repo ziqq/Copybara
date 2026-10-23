@@ -381,4 +381,34 @@ final class PopupOOTests: XCTestCase {
         return (oo, fetched, release)
     }
 
+    func testAnyHistoryClipTakesASearchableComment() throws {
+        let oo = makeOO(["secret", "other"])
+        oo.select(try XCTUnwrap(oo.results.first { $0.preview == "secret" }))
+        oo.beginEditingNoteSelected()
+        XCTAssertEqual(oo.noteEditingItem?.preview, "secret")
+        oo.noteDraft = " Wi-Fi router "
+        oo.commitNote()
+
+        XCTAssertNil(oo.noteEditingItem)
+        XCTAssertEqual(oo.selectedItem?.note, "Wi-Fi router")
+        oo.query = "router"
+        XCTAssertEqual(oo.results.map(\.preview), ["secret"])
+        oo.reload()
+        XCTAssertEqual(oo.results.first?.note, "Wi-Fi router", "the comment is persisted")
+        XCTAssertEqual(oo.results.first?.isPinned, false, "commenting does not pin")
+    }
+
+    func testSnippetsTakeNoComment() {
+        XCTAssertFalse(PopupOO.canEditNote(ClipItemDO(kind: .snippet, preview: "Signature")))
+        XCTAssertTrue(PopupOO.canEditNote(ClipItemDO(preview: "text")))
+    }
+
+    func testCancelledCommentEditLeavesCommentUnchanged() throws {
+        let oo = makeOO(["secret"])
+        oo.beginEditingNoteSelected()
+        oo.noteDraft = "draft"
+        oo.cancelNoteEditing()
+        XCTAssertNil(oo.noteEditingItem)
+        XCTAssertNil(oo.results.first?.note)
+    }
 }

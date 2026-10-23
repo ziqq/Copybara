@@ -14,6 +14,16 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
+## Unreleased
+- **ADDED**: Comments on clips. Press ⌥N (or choose Add Comment… in the ⌘K or
+  right-click menu) to label any history clip; the comment leads its row, appears
+  in the preview card, and is matched by search in every mode. Return saves, Esc
+  cancels, and saving an empty comment removes it.
+- **CHANGED**: The row under the pointer is highlighted with a soft tint and
+  outline, so the hover target is visible next to the keyboard selection.
+- **CHANGED**: README screenshot shows comments and the hover highlight.
+
+
 ## 0.1.10 — 2026-10-20
 - **CHANGED**: The app icon's entire rounded-square tile uses the warm orange
   palette, with the white two-layer C directly on the tile and no circular badge.

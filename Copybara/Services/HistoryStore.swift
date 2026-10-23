@@ -103,6 +103,23 @@ final class HistoryStore {
         }
     }
 
+    /// Sets (or, with an empty/blank `note`, clears) the comment of one item.
+    /// Runs synchronously on the view context, like `togglePin(id:)`.
+    func setNote(id: UUID, note: String?) {
+        let context = stack.viewContext
+        context.performAndWait {
+            guard let object = object(with: id, in: context) else { return }
+            object.setValue(Self.normalizedNote(note), forKey: "note")
+            try? context.save()
+        }
+    }
+
+    /// Trims a comment; blank comments are stored as nil.
+    static func normalizedNote(_ note: String?) -> String? {
+        guard let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
     /// Deletes a single item by id.
     func delete(id: UUID) {
         let context = stack.viewContext
@@ -203,7 +220,7 @@ final class HistoryStore {
     private func listRows(limit: Int, sort: [NSSortDescriptor]) -> [ClipItemDO] {
         let request = NSFetchRequest<NSDictionary>(entityName: Self.entityName)
         request.resultType = .dictionaryResultType
-        request.propertiesToFetch = ["id", "kind", "text", "createdAt", "firstCopiedAt", "isPinned", "appBundleID", "copyCount"]
+        request.propertiesToFetch = ["id", "kind", "text", "createdAt", "firstCopiedAt", "isPinned", "appBundleID", "copyCount", "note"]
         request.sortDescriptors = sort
         request.fetchLimit = limit
 
@@ -221,7 +238,8 @@ final class HistoryStore {
                 firstCopiedAt: row["firstCopiedAt"] as? Date,
                 isPinned: row["isPinned"] as? Bool ?? false,
                 appBundleID: row["appBundleID"] as? String,
-                copyCount: row["copyCount"] as? Int ?? 1
+                copyCount: row["copyCount"] as? Int ?? 1,
+                note: row["note"] as? String
             )
         }
     }
@@ -291,7 +309,8 @@ final class HistoryStore {
             isPinned: object.value(forKey: "isPinned") as? Bool ?? false,
             appBundleID: object.value(forKey: "appBundleID") as? String,
             copyCount: object.value(forKey: "copyCount") as? Int ?? 1,
-            data: object.value(forKey: "data") as? Data
+            data: object.value(forKey: "data") as? Data,
+            note: object.value(forKey: "note") as? String
         )
     }
 }
