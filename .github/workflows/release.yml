@@ -53,13 +53,23 @@ jobs:
 
       - name: Import Copybara signing identity
         env:
-          CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
+          CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+          CERTIFICATE_SHA1: ${{ vars.DEVELOPER_ID_CERTIFICATE_SHA1 }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: |
           set -euo pipefail
           umask 077
-          : "${CERTIFICATE_BASE64:?APPLE_SIGNING_CERTIFICATE_BASE64 is required}"
-          : "${CERTIFICATE_PASSWORD:?APPLE_SIGNING_CERTIFICATE_PASSWORD is required}"
+          : "${CERTIFICATE_BASE64:?DEVELOPER_ID_CERTIFICATE_BASE64 is required}"
+          : "${CERTIFICATE_PASSWORD:?DEVELOPER_ID_CERTIFICATE_PASSWORD is required}"
+          : "${CERTIFICATE_SHA1:?DEVELOPER_ID_CERTIFICATE_SHA1 is required}"
+          : "${APPLE_TEAM_ID:?APPLE_TEAM_ID is required}"
+          : "${APPLE_ID:?APPLE_ID is required}"
+          : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD is required}"
+          [[ "$CERTIFICATE_SHA1" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo "Invalid signing certificate SHA1"; exit 1; }
+          [[ "$APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]] || { echo "Invalid Apple team ID"; exit 1; }
           KEYCHAIN="$RUNNER_TEMP/copybara-signing.keychain-db"
           KEYCHAIN_PASSWORD=$(openssl rand -hex 32)
           echo "::add-mask::$KEYCHAIN_PASSWORD"
@@ -69,33 +79,39 @@ jobs:
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          ISSUER="$RUNNER_TEMP/AppleWWDRCAG3.cer"
-          curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o "$ISSUER"
-          printf '%s  %s\n' dcf21878c77f4198e4b4614f03d696d89c66c66008d4244e1b99161aac91601f "$ISSUER" | shasum -a 256 -c -
+          ISSUER="$RUNNER_TEMP/DeveloperIDG2CA.cer"
+          curl -fsSL https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer -o "$ISSUER"
+          printf '%s  %s\n' f16cd3c54c7f83cea4bf1a3e6a0819c8aaa8e4a1528fd144715f350643d2df3a "$ISSUER" | shasum -a 256 -c -
           security import "$ISSUER" -k "$KEYCHAIN"
           security import "$CERTIFICATE" -P "$CERTIFICATE_PASSWORD" -k "$KEYCHAIN" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
-          security find-identity -v -p codesigning "$KEYCHAIN"
+          security find-identity -v -p codesigning "$KEYCHAIN" \
+            | grep -Ei "${CERTIFICATE_SHA1} \"Developer ID Application:.*\(${APPLE_TEAM_ID}\)\""
 
-      - name: Build DMG
+      - name: Build and notarize DMG
         env:
           COPYBARA_VERSION: ${{ steps.meta.outputs.version }}
           COPYBARA_BUILD_NUMBER: ${{ github.run_number }}
-          COPYBARA_CODE_SIGN_IDENTITY: 2A1CD7C372968E01732ED7B26AC5CBB9F4014D33
+          COPYBARA_CODE_SIGN_IDENTITY: ${{ vars.DEVELOPER_ID_CERTIFICATE_SHA1 }}
+          COPYBARA_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          COPYBARA_NOTARIZE: '1'
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
         run: ./scripts/build_dmg.sh
 
       - name: Check signature survives a version change
         env:
-          COPYBARA_CODE_SIGN_IDENTITY: 2A1CD7C372968E01732ED7B26AC5CBB9F4014D33
+          COPYBARA_CODE_SIGN_IDENTITY: ${{ vars.DEVELOPER_ID_CERTIFICATE_SHA1 }}
+          COPYBARA_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           APP="build/DerivedData/Build/Products/Release/Copybara.app"
           NEXT="$RUNNER_TEMP/Copybara-next.app"
           ditto "$APP" "$NEXT"
           /usr/libexec/PlistBuddy -c 'Set :CFBundleVersion 999999' "$NEXT/Contents/Info.plist"
-          codesign --force --sign "$COPYBARA_CODE_SIGN_IDENTITY" "$NEXT"
-          python3 scripts/verify_signing.py "$APP" --identity "$COPYBARA_CODE_SIGN_IDENTITY" --reference "$NEXT"
+          codesign --force --sign "$COPYBARA_CODE_SIGN_IDENTITY" --options runtime --timestamp "$NEXT"
+          python3 scripts/verify_signing.py "$APP" --identity "$COPYBARA_CODE_SIGN_IDENTITY" --team-id "$COPYBARA_TEAM_ID" --reference "$NEXT"
 
       - name: Package
         id: package
@@ -141,22 +157,18 @@ jobs:
             echo
             echo "1. Download **${{ steps.package.outputs.name }}** and open it."
             echo "2. Drag **Copybara** onto **Applications**."
-            echo "3. This build uses Apple Development signing and is not notarized."
-            echo "   If macOS blocks the first launch, clear the quarantine flag:"
+            echo "3. Launch it and grant Accessibility on the first paste. Requires macOS 12+."
             echo
-            echo '```bash'
-            echo "xattr -dr com.apple.quarantine /Applications/Copybara.app"
-            echo '```'
-            echo
-            echo "4. Launch it and grant Accessibility on the first paste. Requires macOS 12+."
+            echo "The app and DMG are signed with Developer ID Application and notarized by Apple."
+            echo "Both include a stapled ticket, verified before publication."
             echo
             echo "**Updates:** this version includes an in-app installer. From the next release,"
             echo "choose Check for Updates, then Install Update — Copybara verifies the update,"
             echo "replaces the app and relaunches. Versions before 0.1.3 need one manual install."
             echo
-            echo "> **Migrating from 0.1.5 or earlier:** remove Copybara from System Settings"
-            echo "> › Privacy & Security › Accessibility with **−**, then add the installed"
-            echo "> app again. Version 0.1.6 replaces ad-hoc signing with a stable certificate."
+            echo "> **Migrating from an Apple Development or ad-hoc release:** the signing"
+            echo "> requirement changes. If pasting stops, remove Copybara from System Settings"
+            echo "> › Privacy & Security › Accessibility with **−**, then add the installed app again."
             echo
             echo "| File | Size | SHA-256 |"
             echo "|---|---|---|"
@@ -190,6 +202,15 @@ jobs:
             --verify-tag \
             --title "Copybara ${{ steps.meta.outputs.version }}" \
             --notes-file NOTES.md
+
+      - name: Save notarization receipts
+        if: always() && hashFiles('build/notarization/**/*.json') != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: notarization-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/notarization/**/*.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Remove temporary signing keychain
         if: always()
