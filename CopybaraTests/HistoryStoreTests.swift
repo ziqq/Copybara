@@ -329,4 +329,16 @@ final class HistoryStoreTests: XCTestCase {
         }
     }
 
+    func testSetNoteTrimsPersistsAndClearsBlankComments() {
+        let store = makeStore()
+        store.insertTextSynchronously("040914")
+        let id = store.recentItems()[0].id
+
+        store.setNote(id: id, note: "  Wi-Fi router \n")
+        XCTAssertEqual(store.recentItems().first?.note, "Wi-Fi router")
+        XCTAssertEqual(store.recentItems(includePayloads: false).first?.note, "Wi-Fi router")
+
+        store.setNote(id: id, note: "   ")
+        XCTAssertNil(store.recentItems().first?.note)
+    }
 }

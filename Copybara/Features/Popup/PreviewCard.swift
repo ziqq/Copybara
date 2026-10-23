@@ -11,6 +11,11 @@ struct PreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             header
+            if let note = item.note {
+                Label(note, systemImage: "text.bubble")
+                    .font(.system(size: 12, weight: .medium))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             Divider()
             content
         }

@@ -4,7 +4,7 @@
 import SwiftUI
 
 /// A single clip row in the popup list: source-app icon, the (match-highlighted)
-/// content, and trailing metadata (copy count, relative time, pin). Hovering
+/// comment and content, and trailing metadata (copy count, relative time, pin). Hovering
 /// shows a tooltip preview with the full content and details.
 struct ClipRowView: View {
     let item: ClipItemDO
@@ -16,6 +16,8 @@ struct ClipRowView: View {
     var onDelete: (() -> Void)? = nil
     /// Loads the thumbnail for image clips (payloads aren't in list snapshots).
     var loadThumbnail: ((ClipItemDO) async -> NSImage?)? = nil
+    /// Draws the row as hovered without a pointer (screenshots).
+    var showsHover = false
 
     @State private var isHovered = false
     @State private var thumbnail: NSImage?
@@ -41,12 +43,21 @@ struct ClipRowView: View {
         }
         .padding(.horizontal, 12)
         .frame(height: PopupMetrics.rowHeight - 4)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? Color.accentColor : Color.clear)
-        )
+        .background(Self.rowBackground(isSelected: isSelected, isHovered: isHovered || showsHover))
         .contentShape(Rectangle())
-        .onHover { isHovered = $0 }
+        .onHover { hovering in
+            withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering }
+        }
+    }
+
+    /// Selection fills the row with the accent; the hovered row gets a soft
+    /// tint and hairline so the pointer target stays visible next to it.
+    static func rowBackground(isSelected: Bool, isHovered: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let hovered = isHovered && !isSelected
+        return shape
+            .fill(isSelected ? Color.accentColor : Color.primary.opacity(hovered ? 0.09 : 0))
+            .overlay(shape.strokeBorder(Color.primary.opacity(hovered ? 0.12 : 0), lineWidth: 1))
     }
 
     // MARK: - Icon
@@ -99,8 +110,16 @@ struct ClipRowView: View {
 
     // MARK: - Text + highlight
 
+    /// A clip's comment leads the row; its content follows, dimmed.
     private var highlightedText: Text {
-        let text = item.rowText
+        let content = highlighted(item.rowText)
+        guard let note = item.noteText else { return content }
+        return highlighted(note).fontWeight(.semibold)
+            + Text("  ")
+            + content.foregroundColor(isSelected ? Color.white.opacity(0.75) : .secondary)
+    }
+
+    private func highlighted(_ text: String) -> Text {
         guard !query.isEmpty,
               let range = text.range(of: query, options: .caseInsensitive) else {
             return Text(text)

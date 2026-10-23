@@ -223,4 +223,23 @@ final class PopupKeyboardTests: XCTestCase {
             XCTAssertTrue(search.received.isEmpty)
         }
     }
+
+    func testCommentEditorOwnsTypingAndReturnWithoutPasting() throws {
+        try withPopup { controller, window, board, search in
+            window.sendEvent(try key(45, window: window, flags: .option, characters: "n")) // comment on "third"
+            window.sendEvent(try key(0, window: window, characters: "a"))
+            window.sendEvent(try key(125, window: window, flags: [.function, .numericPad]))
+            XCTAssertEqual(search.received.map(\.keyCode), [0, 125], "the comment field gets typing and arrows")
+
+            window.sendEvent(try key(36, window: window, characters: "\r")) // save, not paste
+            XCTAssertNil(board.string(forType: .string))
+            XCTAssertTrue(controller.isVisible)
+
+            window.sendEvent(try key(45, window: window, flags: .option, characters: "n"))
+            window.sendEvent(try key(53, window: window, characters: "\u{1B}")) // cancel the edit only
+            XCTAssertTrue(controller.isVisible)
+            window.sendEvent(try key(53, window: window, characters: "\u{1B}"))
+            XCTAssertFalse(controller.isVisible)
+        }
+    }
 }

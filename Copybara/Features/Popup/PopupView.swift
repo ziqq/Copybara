@@ -11,6 +11,7 @@ enum PopupAction {
     case pasteTransformed(TextTransform)
     case copy
     case pin
+    case editNote
     case delete
     case clearAll
 }
@@ -38,6 +39,7 @@ struct PopupView: View {
     var onAction: (PopupAction) -> Void = { _ in }
 
     @FocusState private var searchFocused: Bool
+    @FocusState private var noteFocused: Bool
     @State private var previewItem: ClipItemDO?
     @State private var axTrusted: Bool = Paster().hasAccessibilityPermission
 
@@ -45,7 +47,11 @@ struct PopupView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            searchField
+            if oo.noteEditingItem != nil {
+                noteField
+            } else {
+                searchField
+            }
             Divider()
             resultsArea
             Divider()
@@ -62,6 +68,12 @@ struct PopupView: View {
             }
         }
         .onChange(of: previewItem) { onHoverPreview($0) }
+        .onChange(of: oo.noteEditingItem?.id) { editing in
+            // Hand focus to whichever field is now showing once it exists.
+            DispatchQueue.main.async {
+                if editing != nil { noteFocused = true } else if autoFocus { searchFocused = true }
+            }
+        }
         .onReceive(axTimer) { _ in
             let trusted = Paster().hasAccessibilityPermission
             if trusted != axTrusted { axTrusted = trusted }
@@ -99,6 +111,34 @@ struct PopupView: View {
         .frame(height: PopupMetrics.searchHeight)
     }
 
+    // MARK: - Comment editor
+
+    /// Replaces the search field while a clip's comment is edited.
+    /// Return saves and Esc cancels (routed by `PopupController`).
+    private var noteField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+            TextField(L10n.string("Comment for this clip…"), text: $oo.noteDraft)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .focused($noteFocused)
+            HStack(spacing: 6) {
+                keycap("↩")
+                Text(L10n.string("Save")).font(.system(size: 11))
+                keycap("esc")
+            }
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 14)
+        .frame(height: PopupMetrics.searchHeight)
+    }
+
+    private func noteActionTitle(for item: ClipItemDO?) -> String {
+        item?.note == nil ? "Add Comment…" : "Edit Comment…"
+    }
+
     // MARK: - Results
 
     @ViewBuilder
@@ -125,7 +165,8 @@ struct PopupView: View {
                                 onDelete: { oo.delete(item) },
                                 loadThumbnail: { [oo] in
                                     await oo.thumbnail(for: $0, maxPixel: ClipRowView.thumbnailPixels)
-                                }
+                                },
+                                showsHover: item.id == oo.previewHoveredID
                             )
                                 .onTapGesture { onCommit(item) }
                                 .onAppear { oo.rowAppeared(at: index) }
@@ -234,6 +275,9 @@ struct PopupView: View {
             if oo.selectedItem?.kind != .snippet {
                 actionRow(oo.selectedItem?.isPinned == true ? "Unpin" : "Pin", keys: "⌥P", action: .pin)
             }
+            if PopupOO.canEditNote(oo.selectedItem) {
+                actionRow(noteActionTitle(for: oo.selectedItem), keys: "⌥N", action: .editNote)
+            }
             actionRow("Delete", keys: "⌥⌫", action: .delete)
             Divider()
             actionRow("Clear History", keys: nil, action: .clearAll)
@@ -285,6 +329,9 @@ struct PopupView: View {
         if item.kind != .snippet {
             Divider()
             Button(L10n.string(item.isPinned ? "Unpin" : "Pin")) { run(.pin, on: item) }
+            if PopupOO.canEditNote(item) {
+                Button(L10n.string(noteActionTitle(for: item))) { run(.editNote, on: item) }
+            }
         }
         Divider()
         Button("Delete") { oo.delete(item) }

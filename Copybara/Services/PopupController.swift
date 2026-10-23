@@ -367,6 +367,21 @@ final class PopupController {
         // which would otherwise break exact `[]` / `.command` matches below.
         let flags = event.modifierFlags.intersection([.command, .option, .control, .shift])
 
+        // While a comment is edited, only Return/Esc are ours; everything else
+        // (arrows, ⌘A, ⌘V…) belongs to the comment field.
+        if oo.noteEditingItem != nil {
+            switch event.keyCode {
+            case 36, 76: // Return / Enter — save the comment
+                oo.commitNote()
+                return true
+            case 53: // Esc — discard the edit, keep the popup open
+                oo.cancelNoteEditing()
+                return true
+            default:
+                return false
+            }
+        }
+
         // ⌘1–9 — quick-paste the Nth item.
         if flags == .command, let digit = Int(event.charactersIgnoringModifiers ?? ""), digit >= 1, digit <= 9 {
             if let item = oo.item(atNumber: digit) { commit(item) }
@@ -421,6 +436,9 @@ final class PopupController {
         case (35, .option): // ⌥P — pin / unpin
             oo.togglePinSelected()
             return true
+        case (45, .option): // ⌥N — comment on a pinned clip
+            oo.beginEditingNoteSelected()
+            return true
         case (51, [.shift, .option, .command]): // ⇧⌥⌘⌫ — clear all incl. pins
             oo.clearAll()
             return true
@@ -455,6 +473,8 @@ final class PopupController {
             stage(item)
         case .pin:
             oo.togglePinSelected()
+        case .editNote:
+            oo.beginEditingNoteSelected()
         case .delete:
             oo.deleteSelected()
         case .clearAll:
