@@ -32,6 +32,11 @@ final class PopupOO: ObservableObject {
     /// How many results the list renders; grows as the user scrolls or moves
     /// the selection toward the end.
     @Published private(set) var displayLimit = PopupOO.pageSize
+    /// The clip whose comment is being edited, if any. While set, the
+    /// search field gives way to the comment field.
+    @Published private(set) var noteEditingItem: ClipItemDO?
+    /// The comment text being edited.
+    @Published var noteDraft: String = ""
 
     /// Rows rendered per page of the list window, and history rows fetched
     /// synchronously when the popup opens.
@@ -45,6 +50,7 @@ final class PopupOO: ObservableObject {
     private let loadHistory: (Int, SortMode) -> [ClipItemDO]
     private var deletedIDs: Set<UUID> = []
     private var pinnedOverrides: [UUID: Bool] = [:]
+    private var noteOverrides: [UUID: String?] = [:]
     private(set) var loadTask: Task<Void, Never>?
     private(set) var searchTask: Task<Void, Never>?
     private var snippetItems: [ClipItemDO] = []
@@ -60,6 +66,8 @@ final class PopupOO: ObservableObject {
     /// True for preview/screenshot instances so `onAppear` doesn't reload over
     /// the injected sample data.
     private(set) var isPreview = false
+    /// Row drawn as hovered in previews and screenshots, which have no pointer.
+    private(set) var previewHoveredID: UUID?
 
     init(store: HistoryStore, settings: AppSettings = .shared, snippets: SnippetStore = .shared,
          loadHistory: ((Int, SortMode) -> [ClipItemDO])? = nil) {
@@ -87,6 +95,7 @@ final class PopupOO: ObservableObject {
         scope = .all
         selectedIndex = 0
         showActions = false
+        cancelNoteEditing()
         reload()
     }
 
@@ -105,6 +114,7 @@ final class PopupOO: ObservableObject {
         loadGeneration += 1
         deletedIDs.removeAll()
         pinnedOverrides.removeAll()
+        noteOverrides.removeAll()
         let generation = loadGeneration
         let mode = settings.sortMode
         // Snippets are always available, shown above the sorted history.
@@ -121,12 +131,13 @@ final class PopupOO: ObservableObject {
                 guard let self, generation == self.loadGeneration else { return }
                 // A fetched snapshot may predate a local delete or pin. Apply
                 // those edits while retaining the older pages it just loaded.
-                if self.deletedIDs.isEmpty && self.pinnedOverrides.isEmpty {
+                if self.deletedIDs.isEmpty && self.pinnedOverrides.isEmpty && self.noteOverrides.isEmpty {
                     self.historyItems = everything // already sorted by the store
                 } else {
                     let reconciled = everything.compactMap { item -> ClipItemDO? in
                         guard !self.deletedIDs.contains(item.id) else { return nil }
-                        return self.pinnedOverrides[item.id].map { item.with(isPinned: $0) } ?? item
+                        let pinned = self.pinnedOverrides[item.id].map { item.with(isPinned: $0) } ?? item
+                        return self.noteOverrides[item.id].map { pinned.with(note: $0) } ?? pinned
                     }
                     self.historyItems = self.pinnedOverrides.isEmpty ? reconciled : ClipSearch.sort(reconciled, by: mode)
                 }
@@ -215,6 +226,42 @@ final class PopupOO: ObservableObject {
         select(historyItems[historyItems.firstIndex { $0.id == item.id }!])
     }
 
+    /// Whether `item` can carry a comment: any history clip. Snippets live in
+    /// their own store and are titled already.
+    static func canEditNote(_ item: ClipItemDO?) -> Bool {
+        guard let item else { return false }
+        return item.kind != .snippet
+    }
+
+    /// Opens the comment editor for the selected clip.
+    func beginEditingNoteSelected() {
+        guard let item = selectedItem, Self.canEditNote(item) else { return }
+        showActions = false
+        noteDraft = item.note ?? ""
+        noteEditingItem = item
+    }
+
+    /// Saves the draft as the edited clip's comment (blank clears it).
+    func commitNote() {
+        guard let item = noteEditingItem else { return }
+        let note = HistoryStore.normalizedNote(noteDraft)
+        cancelNoteEditing()
+        guard note != item.note else { return }
+        store.setNote(id: item.id, note: note)
+        noteOverrides[item.id] = .some(note)
+        if let index = historyItems.firstIndex(where: { $0.id == item.id }) {
+            historyItems[index] = historyItems[index].with(note: note)
+        }
+        lastSearch = nil
+        refilter(keepSelection: true)
+    }
+
+    /// Closes the comment editor without saving.
+    func cancelNoteEditing() {
+        noteEditingItem = nil
+        noteDraft = ""
+    }
+
     /// Deletes the selected item, keeping the selection near its old position.
     func deleteSelected() {
         guard let item = selectedItem else { return }
@@ -257,9 +304,10 @@ final class PopupOO: ObservableObject {
 
 #if DEBUG
     /// Builds an OO with fixed results, for SwiftUI previews and screenshots.
-    static func preview(_ items: [ClipItemDO]) -> PopupOO {
+    static func preview(_ items: [ClipItemDO], hovered: UUID? = nil) -> PopupOO {
         let oo = PopupOO(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
         oo.isPreview = true
+        oo.previewHoveredID = hovered
         oo.historyItems = items
         oo.results = items
         return oo
