@@ -14,7 +14,7 @@ Use and redistribution are subject to LICENSE.
 - [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
 
 
-## 0.1.11 — 2026-10-23
+## 0.1.11 — 2026-10-24
 - **ADDED**: Comments on clips. Press ⌥N (or choose Add Comment… in the ⌘K or
   right-click menu) to label any history clip; the comment leads its row, appears
   in the preview card, and is matched by search in every mode. Return saves, Esc
