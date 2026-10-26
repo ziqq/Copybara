@@ -23,6 +23,19 @@ cd "$ROOT"
 
 APP_NAME="Copybara"
 BUILD_DIR="$ROOT/build"
+NOTARIZE="${COPYBARA_NOTARIZE:-0}"
+
+if [ "$NOTARIZE" = 1 ]; then
+  : "${COPYBARA_CODE_SIGN_IDENTITY:?A Developer ID Application certificate SHA1 is required}"
+  : "${COPYBARA_TEAM_ID:?The Developer ID team is required}"
+  : "${APPLE_ID:?The notarization Apple ID is required}"
+  : "${APPLE_APP_PASSWORD:?An app-specific notarization password is required}"
+  [[ "$COPYBARA_CODE_SIGN_IDENTITY" =~ ^[0-9A-Fa-f]{40}$ ]] || { echo "Invalid signing certificate SHA1"; exit 1; }
+  [[ "$COPYBARA_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]] || { echo "Invalid Developer ID team"; exit 1; }
+elif [ "$NOTARIZE" != 0 ]; then
+  echo "COPYBARA_NOTARIZE must be 0 or 1"
+  exit 1
+fi
 
 command -v xcodegen >/dev/null || { echo "Install xcodegen: brew install xcodegen"; exit 1; }
 xcodegen generate
@@ -38,6 +51,10 @@ else
   # Overrides any team from Config/Local.xcconfig.
   echo "No DEVELOPMENT_TEAM set — building an ad-hoc signed app (no certificate)."
   SIGN_ARGS=(CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=)
+fi
+
+if [ "$NOTARIZE" = 1 ]; then
+  SIGN_ARGS+=(ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp)
 fi
 
 # Version: explicit override (e.g. from a release tag), else project.yml.
@@ -66,7 +83,25 @@ xcodebuild \
 APP_PATH="$BUILD_DIR/DerivedData/Build/Products/Release/$APP_NAME.app"
 [ -d "$APP_PATH" ] || { echo "Build failed: $APP_PATH not found"; exit 1; }
 
-if [ -n "${COPYBARA_CODE_SIGN_IDENTITY:-}" ]; then
+if [ "$NOTARIZE" = 1 ]; then
+  # Sign inside-out. Sparkle's helpers retain their existing entitlements;
+  # --deep is for verification, never for signing nested code.
+  SPARKLE="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+  for CODE in \
+    "$SPARKLE/Versions/B/XPCServices/Downloader.xpc" \
+    "$SPARKLE/Versions/B/XPCServices/Installer.xpc" \
+    "$SPARKLE/Versions/B/Autoupdate" \
+    "$SPARKLE/Versions/B/Updater.app" \
+    "$SPARKLE" \
+    "$APP_PATH"; do
+    [ -e "$CODE" ] || { echo "Missing release code: $CODE"; exit 1; }
+    codesign --force --sign "$COPYBARA_CODE_SIGN_IDENTITY" --options runtime --timestamp \
+      --preserve-metadata=identifier,entitlements "$CODE"
+  done
+  python3 scripts/verify_signing.py "$APP_PATH" --identity "$COPYBARA_CODE_SIGN_IDENTITY" --team-id "$COPYBARA_TEAM_ID"
+  # Staple the app before packaging so the installed app also works offline.
+  ./scripts/notarize.sh "$APP_PATH" "$BUILD_DIR/notarization/app"
+elif [ -n "${COPYBARA_CODE_SIGN_IDENTITY:-}" ]; then
   python3 scripts/verify_signing.py "$APP_PATH" --identity "$COPYBARA_CODE_SIGN_IDENTITY"
 fi
 
@@ -81,6 +116,12 @@ rm -f "$DMG"
 hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG" >/dev/null
 rm -rf "$STAGING"
 
+if [ "$NOTARIZE" = 1 ]; then
+  codesign --force --sign "$COPYBARA_CODE_SIGN_IDENTITY" --timestamp "$DMG"
+  codesign --verify --strict "$DMG"
+  ./scripts/notarize.sh "$DMG" "$BUILD_DIR/notarization/dmg"
+fi
+
 # Check the image itself, not just the staging folder.
 MOUNT=$(mktemp -d)
 trap 'hdiutil detach "$MOUNT" -quiet >/dev/null 2>&1 || true; rmdir "$MOUNT" 2>/dev/null || true' EXIT
@@ -88,6 +129,11 @@ hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT" "$DMG" >/dev/null
 [ -d "$MOUNT/$APP_NAME.app" ] || { echo "DMG check failed: $APP_NAME.app missing"; exit 1; }
 [ -L "$MOUNT/Applications" ] || { echo "DMG check failed: Applications link missing"; exit 1; }
 codesign --verify --deep --strict "$MOUNT/$APP_NAME.app"
+if [ "$NOTARIZE" = 1 ]; then
+  python3 scripts/verify_signing.py "$MOUNT/$APP_NAME.app" --identity "$COPYBARA_CODE_SIGN_IDENTITY" --team-id "$COPYBARA_TEAM_ID"
+  xcrun stapler validate "$MOUNT/$APP_NAME.app"
+  spctl --assess --type execute --verbose=2 "$MOUNT/$APP_NAME.app"
+fi
 echo "Signature verified inside the DMG."
 
 echo "Created $DMG ($(du -h "$DMG" | cut -f1 | tr -d ' '))"
