@@ -11,7 +11,13 @@ Use and redistribution are subject to LICENSE.
 - [ ] Configurable per-app ignore/allow rules.
 - [ ] Diagnostics: on-device crash/hang reporting via MetricKit, opt-in log export
       (no third-party telemetry).
-- [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
+
+
+## Unreleased
+- **CHANGED**: Releases are signed with Developer ID Application and notarized
+  by Apple, so the downloaded app opens without clearing the quarantine flag.
+  The signing requirement changes once: if pasting stops after updating, remove
+  Copybara from Accessibility with − and add it again.
 
 
 ## 0.1.11 — 2026-10-24
