@@ -10,6 +10,14 @@ or a published application release.
 - Separate sandboxed Store configuration without Sparkle or GitHub updater.
 - Local Store archive: `build/ReleaseCandidate/Copybara-AppStore-0.1.12.xcarchive`.
   The archive is ad-hoc signed for validation, not upload-ready.
+- Xcode export with authorized provisioning updates succeeded:
+  `build/ReleaseCandidate/AppStoreExport/Copybara.pkg`. The exported app uses
+  Cloud Managed Apple Distribution and the Copybara Store profile for
+  `YR2NM5B2YZ`; the package is signed by the owner's
+  `3rd Party Mac Developer Installer` certificate. Both architectures are
+  included. Signature verification passed; Sandbox is enabled, debug
+  `get-task-allow` and Sparkle are absent, and migration resources are present.
+  SHA-256: `b056836c89b65c606fa9b5a0b6e95101c03c60c83975e622ab7b78f88b8c821c`.
 - EN/RU metadata, review notes and three native screenshots per locale. Upload
   PNGs are 2880 × 1800 RGB without alpha; web JPEGs show the same compositions.
 - Existing unit suite: 314 reported cases, one skipped, zero failures. The
@@ -23,9 +31,6 @@ or a published application release.
 
 ## Remaining release gates
 
-- Export using the owner's App Store distribution certificate and provisioning
-  profile. Local export without provisioning updates reports missing
-  `Mac Installer Distribution` and a profile for `dev.ustinoff.copybara`.
 - App Store Connect record, final privacy/age/category answers and submission.
 - Current 0.1.12 Developer ID app notarization and signed/stapled DMG acceptance.
   The Apple submission `f30f28f0-2c49-47a1-8504-388a27d92dea` remains in progress;
