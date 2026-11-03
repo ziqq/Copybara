@@ -27,7 +27,7 @@ esac
 
 AUTH=(--apple-id "$APPLE_ID" --team-id "$COPYBARA_TEAM_ID" --password "$APPLE_APP_PASSWORD")
 SUBMIT_EXIT=0
-xcrun notarytool submit "$PAYLOAD" "${AUTH[@]}" --wait --timeout 30m --output-format json \
+xcrun notarytool submit "$PAYLOAD" "${AUTH[@]}" --no-s3-acceleration --wait --timeout 30m --output-format json \
   > "$REPORT_DIR/submission.json" || SUBMIT_EXIT=$?
 SUBMISSION_ID=$(python3 - "$REPORT_DIR/submission.json" <<'PY_SUBMISSION'
 import json, sys, uuid

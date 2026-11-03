@@ -62,6 +62,8 @@ environment and then:
 Checksums and Sparkle signatures are generated only after both tickets are
 stapled. Notarization failure, a missing timestamp, a different certificate,
 `get-task-allow`, or a failed Gatekeeper assessment prevents publication.
+Uploads use `--no-s3-acceleration`: the standard S3 endpoint completed a local
+upload after the accelerated endpoint timed out before its upload receipt.
 
 The feed URL is the latest release's `appcast.xml` asset. Its enclosure points
 to the version-specific DMG asset. Sparkle requires valid archive and feed

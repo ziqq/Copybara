@@ -18,6 +18,16 @@ or a published application release.
   included. Signature verification passed; Sandbox is enabled, debug
   `get-task-allow` and Sparkle are absent, and migration resources are present.
   SHA-256: `b056836c89b65c606fa9b5a0b6e95101c03c60c83975e622ab7b78f88b8c821c`.
+- Direct-download app and DMG notarization: `Accepted`, no issues. App
+  submission: `b8bc53d9-b1d2-4282-8d2b-b856affc0b36`; DMG submission:
+  `601ff1d2-bf98-4afd-9fda-bf1aa4ca8a1f`. Both tickets are stapled; Gatekeeper
+  accepts the DMG and the app mounted from it. The image includes the
+  `/Applications` link and the owner's verified Developer ID signature.
+  DMG: `build/ReleaseCandidate/Copybara-0.1.12.dmg`.
+  SHA-256: `67d27bea27355e4d7de4edb230a3d0a5093c0b96361c24f966f7eac2f88520be`.
+  The first attempt timed out during S3 Transfer Acceleration upload; a new
+  upload with `--no-s3-acceleration` completed and was accepted. The release
+  script now uses that official endpoint too.
 - EN/RU metadata, review notes and three native screenshots per locale. Upload
   PNGs are 2880 × 1800 RGB without alpha; web JPEGs show the same compositions.
 - Existing unit suite: 314 reported cases, one skipped, zero failures. The
@@ -36,9 +46,6 @@ or a published application release.
 ## Remaining release gates
 
 - App Store Connect record, final privacy/age/category answers and submission.
-- Current 0.1.12 Developer ID app notarization and signed/stapled DMG acceptance.
-  The Apple submission `f30f28f0-2c49-47a1-8504-388a27d92dea` remains in progress;
-  a previous 0.1.7 acceptance does not validate this candidate.
 - Electron insertion acceptance, older supported macOS runtime
   validation, and switching back from Store to direct distribution.
 - Full local UI-suite validation: the current run reports a failure in
