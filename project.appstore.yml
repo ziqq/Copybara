@@ -14,6 +14,7 @@ targets:
     sources:REPLACE:
       - path: Copybara
         excludes:
+          - Resources/Info.plist
           - Services/UpdaterController.swift
           - Services/UpdateChecker.swift
       - path: LICENSE

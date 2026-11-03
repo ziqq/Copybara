@@ -17,7 +17,10 @@ or a published application release.
   `3rd Party Mac Developer Installer` certificate. Both architectures are
   included. Signature verification passed; Sandbox is enabled, debug
   `get-task-allow` and Sparkle are absent, and migration resources are present.
-  SHA-256: `b056836c89b65c606fa9b5a0b6e95101c03c60c83975e622ab7b78f88b8c821c`.
+  SHA-256: `07e8a3c8f370c5a082ee7f7f5e9c369d0429a5e62e6e3fad1ff0cc7429108f9c`.
+- Xcode upload to App Store Connect succeeded for 0.1.12 (14). Server
+  validation required the Utilities category and exclusion of the source
+  `Resources/Info.plist` from copied resources; both packaging fixes are applied.
 - Direct-download app and DMG notarization: `Accepted`, no issues. App
   submission: `b8bc53d9-b1d2-4282-8d2b-b856affc0b36`; DMG submission:
   `601ff1d2-bf98-4afd-9fda-bf1aa4ca8a1f`. Both tickets are stapled; Gatekeeper
@@ -36,25 +39,33 @@ or a published application release.
   native NSTextView receiver passed on macOS 26.7.2 with App Sandbox enforced.
 - The same sandboxed Paster also passed insertion into a separate Chrome
   profile and local textarea (exact 36-character match; clipboard restored).
+- Sandboxed Paster insertion into an isolated Electron 43.7.7 BrowserWindow
+  passed with an exact 36-character match and clipboard restoration. The
+  official Electron binary checksum was verified before execution.
 - One-time OS sandbox migration passed with a real Core Data record, pin,
   comment, 2 MiB external payload, snippet and history-size preference.
 - Protected GitHub `release` environment contains the owner's Developer ID
   PKCS12/password, Apple ID/app-specific password, certificate SHA1 and Team ID.
   Existing Sparkle and legacy signing secrets were preserved. Only names and
   public variables were read back; a real CI notarization is still required.
+- All three existing UI tests passed on macOS 26.7.2 with the ABC input source,
+  zero failures. The earlier failures reproduce with Russian input: ordinary
+  letters from XCTest do not arrive, while Esc and Tab do. Diagnostic logging
+  confirmed that the shortcut recorder removes its event monitor correctly.
+  Neither production UI code nor test files needed changes. The input-source
+  requirement is documented in `CONTRIBUTING.md`.
+- Store listing name selected by the owner: `Copybara: Clipboard History`
+  (`Copybara` alone is already taken). The Store version will be free.
+- App Store Connect draft 6830139807 contains saved EN/RU descriptions,
+  keywords, support/marketing links, three screenshots per locale and review
+  information. Localized subtitles and Utilities category are saved; the age
+  questionnaire calculated 4+. No App Review submission has been made.
 
 ## Remaining release gates
 
 - App Store Connect record, final privacy/age/category answers and submission.
-- Electron insertion acceptance, older supported macOS runtime
-  validation, and switching back from Store to direct distribution.
-- Full local UI-suite validation: the current run reports a failure in
-  `testClosingSettingsWhileRecordingPreservesShortcutAndReleasesTextInput`
-  (expected `r`, received empty text). The unit-only result above does not
-  cover this failure. A separate rerun reproduced it on macOS 26.7.2. The other
-  full-suite UI failure is an event-synthesis timeout in
-  `testSettingsButtonsAndUpdaterRunThroughApplicationDelegate`. The remote
-  macOS 15 CI passes; this does not close the local macOS 26 failures.
+- Older supported macOS runtime validation and switching back from Store to
+  direct distribution.
 
 The migration moves data into the Store container once. It does not provide
 shared live history or automatic reverse migration between channels.
