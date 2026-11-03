@@ -16,6 +16,8 @@ or a published application release.
   skipped inactive-application WindowServer case needs a separate active app.
 - Fresh manual Accessibility grant and real Paster insertion into an isolated
   native NSTextView receiver passed on macOS 26.7.2 with App Sandbox enforced.
+- The same sandboxed Paster also passed insertion into a separate Chrome
+  profile and local textarea (exact 36-character match; clipboard restored).
 - One-time OS sandbox migration passed with a real Core Data record, pin,
   comment, 2 MiB external payload, snippet and history-size preference.
 
@@ -30,12 +32,15 @@ or a published application release.
   a previous 0.1.7 acceptance does not validate this candidate.
 - Configure the new protected release environment signing/notarization values
   listed in `docs/RELEASE.md`; never commit private keys or passwords.
-- Browser and Electron insertion acceptance, older supported macOS runtime
+- Electron insertion acceptance, older supported macOS runtime
   validation, and switching back from Store to direct distribution.
 - Full local UI-suite validation: the current run reports a failure in
   `testClosingSettingsWhileRecordingPreservesShortcutAndReleasesTextInput`
   (expected `r`, received empty text). The unit-only result above does not
-  cover this failure; confirm it in an unattended WindowServer session.
+  cover this failure. A separate rerun reproduced it on macOS 26.7.2. The other
+  full-suite UI failure is an event-synthesis timeout in
+  `testSettingsButtonsAndUpdaterRunThroughApplicationDelegate`. The remote
+  macOS 15 CI passes; this does not close the local macOS 26 failures.
 
 The migration moves data into the Store container once. It does not provide
 shared live history or automatic reverse migration between channels.
