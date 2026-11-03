@@ -59,11 +59,16 @@ or a published application release.
 - App Store Connect draft 6830139807 contains saved EN/RU descriptions,
   keywords, support/marketing links, three screenshots per locale and review
   information. Localized subtitles and Utilities category are saved; the age
-  questionnaire calculated 4+. No App Review submission has been made.
+  questionnaire calculated 4+. Build 14 has finished processing, its export
+  questions are resolved, and it is attached to the version. The free price
+  schedule and availability for 175 territories are configured. Privacy URLs
+  are saved for both locales; the data-not-collected declaration awaits the
+  owner's final confirmation. No App Review submission has been made.
 
 ## Remaining release gates
 
-- App Store Connect record, final privacy/age/category answers and submission.
+- Owner confirmation of the privacy declaration, DSA trader status, and final
+  App Review submission approval.
 - Older supported macOS runtime validation and switching back from Store to
   direct distribution.
 
