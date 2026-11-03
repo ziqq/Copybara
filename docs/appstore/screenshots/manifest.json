@@ -1,0 +1,44 @@
+[
+  {
+    "file": "en/01-history.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "en",
+    "scene": "history"
+  },
+  {
+    "file": "en/02-pins.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "en",
+    "scene": "pins"
+  },
+  {
+    "file": "en/03-settings.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "en",
+    "scene": "settings"
+  },
+  {
+    "file": "ru/01-history.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "ru",
+    "scene": "history"
+  },
+  {
+    "file": "ru/02-pins.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "ru",
+    "scene": "pins"
+  },
+  {
+    "file": "ru/03-settings.png",
+    "width": 2880,
+    "height": 1800,
+    "locale": "ru",
+    "scene": "settings"
+  }
+]

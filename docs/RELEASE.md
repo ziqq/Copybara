@@ -112,6 +112,50 @@ mounted app and DMG. PR build/test CI runs without production credentials; a
 green PR does **not** prove notarization. Do not create a release merely to test
 credentials or publish before this validation.
 
+## Mac App Store builds
+
+The two channels use the same application sources and bundle identifier:
+
+- `project.yml` generates `Copybara.xcodeproj` for direct distribution. It keeps
+  Sparkle, the appcast settings and the in-app update check.
+- `project.appstore.yml` generates `CopybaraAppStore.xcodeproj` for the Mac App
+  Store. It enables App Sandbox, excludes Sparkle and the legacy GitHub update
+  checker, uses an Info.plist without Sparkle settings and omits the update menu
+  item. Updates for this build are distributed through the Mac App Store.
+
+Generate the store project separately:
+
+```bash
+xcodegen generate --spec project.appstore.yml
+open CopybaraAppStore.xcodeproj
+```
+
+Select the owner's paid team in Xcode, then archive the Copybara scheme using
+Apple's App Store distribution signing. Developer ID signing is for direct
+distribution and local experiments, not an App Store submission. Keep the
+existing tag-based DMG release workflow for direct downloads.
+
+The store scheme builds the app only. Run the existing regression suite using
+the direct-distribution project; it includes Sparkle-specific tests.
+
+This build configuration is not evidence of App Review approval. Automatic
+pasting still uses Accessibility and posted keyboard events, so validate it on
+supported macOS versions and explain the behavior to App Review. A local probe
+on macOS 26.7.2 confirmed that the existing Paster inserts text into another
+native application with App Sandbox enforced, including after a fresh manual
+Accessibility grant. If Copybara is absent from the list, use + to add
+`/Applications/Copybara.app`, then enable it. This does not establish behavior
+on older macOS versions or successful insertion in every browser/Electron app.
+
+The Store bundle includes `container-migration.plist`. On first sandbox launch,
+macOS moves the existing `Application Support/Copybara` directory and bundle
+preferences into the sandbox container. An isolated real Core Data probe
+validated a pinned record, its comment, a 2 MiB external payload, a snippet and
+the history-size preference. This is a one-time direct-download → Store move,
+not synchronization between both channels. Returning to the direct-download
+build does not automatically copy the Store history back. Back up local app
+data before switching channels; do not run both builds concurrently.
+
 ## Local builds and notarization
 
 Without a team the DMG is **ad-hoc signed** (sealed as `dev.ustinoff.copybara`,

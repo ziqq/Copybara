@@ -14,6 +14,12 @@ Use and redistribution are subject to LICENSE.
 
 
 ## Unreleased
+- **ADDED**: A separate sandboxed Mac App Store build without Sparkle or the
+  in-app update check; the direct-download build keeps its existing updater.
+- **ADDED**: One-time migration of local history and preferences into the App
+  Sandbox container when switching from the direct-download build.
+- **ADDED**: English and Russian landing pages, privacy information and native
+  App Store screenshots.
 - **CHANGED**: Releases are signed with Developer ID Application and notarized
   by Apple, so the downloaded app opens without clearing the quarantine flag.
   The signing requirement changes once: if pasting stops after updating, remove

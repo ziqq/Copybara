@@ -51,6 +51,18 @@ jobs:
             clean test \
             | xcbeautify --report junit --report-path .build/reports
 
+      - name: Build Mac App Store variant
+        run: |
+          xcodegen generate --spec project.appstore.yml
+          xcodebuild \
+            -project CopybaraAppStore.xcodeproj \
+            -scheme Copybara \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath .build/AppStoreDerivedData \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=YES \
+            build
+
       - name: Test report summary
         if: success() || failure()
         run: |

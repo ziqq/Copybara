@@ -23,8 +23,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     var onOpenSettings: (() -> Void)?
     /// Invoked to skip recording the next copy (⌥⇧-click / menu).
     var onIgnoreNext: (() -> Void)?
+#if !APP_STORE
     /// Invoked to check for app updates.
     var onCheckForUpdates: (() -> Void)?
+#endif
 
     init(store: HistoryStore,
          isLaunchAtLoginEnabled: @escaping () -> Bool = { LaunchAtLoginManager.isEnabled },
@@ -132,9 +134,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+#if !APP_STORE
         let updates = NSMenuItem(title: L10n.string("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
         updates.target = self
         menu.addItem(updates)
+#endif
 
         let settings = NSMenuItem(title: L10n.string("Settings"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
@@ -234,7 +238,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         // Let NSMenu finish tracking before creating and activating a window.
         DispatchQueue.main.async { [weak self] in self?.onOpenSettings?() }
     }
+#if !APP_STORE
     @objc private func checkForUpdates() { onCheckForUpdates?() }
+#endif
     @objc private func clearAll() { store.clearAll() }
     @objc private func clearUnpinned() { store.clearUnpinned() }
     @objc private func toggleIgnoreAllFromMenu() { toggleIgnoreAll() }
