@@ -28,6 +28,10 @@ or a published application release.
   profile and local textarea (exact 36-character match; clipboard restored).
 - One-time OS sandbox migration passed with a real Core Data record, pin,
   comment, 2 MiB external payload, snippet and history-size preference.
+- Protected GitHub `release` environment contains the owner's Developer ID
+  PKCS12/password, Apple ID/app-specific password, certificate SHA1 and Team ID.
+  Existing Sparkle and legacy signing secrets were preserved. Only names and
+  public variables were read back; a real CI notarization is still required.
 
 ## Remaining release gates
 
@@ -35,8 +39,6 @@ or a published application release.
 - Current 0.1.12 Developer ID app notarization and signed/stapled DMG acceptance.
   The Apple submission `f30f28f0-2c49-47a1-8504-388a27d92dea` remains in progress;
   a previous 0.1.7 acceptance does not validate this candidate.
-- Configure the new protected release environment signing/notarization values
-  listed in `docs/RELEASE.md`; never commit private keys or passwords.
 - Electron insertion acceptance, older supported macOS runtime
   validation, and switching back from Store to direct distribution.
 - Full local UI-suite validation: the current run reports a failure in
