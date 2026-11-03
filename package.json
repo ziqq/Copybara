@@ -1,0 +1,23 @@
+{
+  "name": "copybara-landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "landing:dev": "vite --config landing/vite.config.ts",
+    "landing:typecheck": "tsc -p landing/tsconfig.json",
+    "landing:build": "npm run landing:typecheck && node scripts/landing.mjs"
+  },
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/nunjucks": "3.2.6",
+    "nunjucks": "3.2.4",
+    "sass": "1.105.1",
+    "typescript": "5.9.3",
+    "vite": "8.3.4"
+  }
+}
