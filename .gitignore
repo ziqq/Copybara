@@ -51,3 +51,7 @@ iOSInjectionProject/
 
 # Local signing team (see Config/Signing.xcconfig)
 Config/Local.xcconfig
+
+# Landing build tools and generated GitHub Pages output
+node_modules/
+dist/

@@ -1,0 +1,61 @@
+{# Copyright (c) 2026 Anton Ustinoff. Use and redistribution are subject to LICENSE. #}
+{% extends 'layouts/_layout.njk' %}
+{% set pageKey = 'index' %}
+{% block content %}
+<main>
+  <section class="hero" aria-labelledby="intro">
+    <p class="eyebrow">{{ t.hero.eyebrow }}</p>
+    <h1 id="intro">{{ t.hero.title }}</h1>
+    <p class="lead">{{ t.hero.lead }}</p>
+    <p>{{ t.hero.body }}</p>
+    <div class="actions">
+      <a class="button" href="{{ links.download }}">{{ t.hero.download }}</a>
+      <a class="button secondary" href="{{ links.guide }}">{{ t.hero.guide }}</a>
+    </div>
+    <p class="notice">{{ t.hero.note }}</p>
+  </section>
+  <figure class="preview app-preview">
+    <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/01-history.jpg" alt="{{ t.hero.alt }}" width="1440" height="900" fetchpriority="high" />
+    <figcaption>{{ t.hero.caption }}</figcaption>
+  </figure>
+  <section class="features" aria-label="{{ t.features.label }}">
+    {% for item in t.features.items %}
+    <article><h2>{{ item.title }}</h2><p>{{ item.text }}</p></article>
+    {% endfor %}
+  </section>
+  <section class="how-it-works" id="how-it-works" aria-labelledby="steps-title">
+    <h2 id="steps-title">{{ t.steps.title }}</h2>
+    <ol class="steps">
+      {% for item in t.steps.items %}
+      <li><h3>{{ item.title }}</h3><p>{{ item.text }}</p></li>
+      {% endfor %}
+    </ol>
+  </section>
+  <section class="product-detail" aria-labelledby="pins-title">
+    <div><h2 id="pins-title">{{ t.pins.title }}</h2><p>{{ t.pins.text }}</p></div>
+    <figure class="preview menu-preview">
+      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/02-pins.jpg" alt="{{ t.pins.alt }}" width="1440" height="900" loading="lazy" />
+      <figcaption>{{ t.pins.caption }}</figcaption>
+    </figure>
+  </section>
+  <section class="product-detail" aria-labelledby="menu-title">
+    <div><h2 id="menu-title">{{ t.gallery.title }}</h2><p>{{ t.gallery.text }}</p></div>
+    <figure class="preview menu-preview">
+      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/03-settings.jpg" alt="{{ t.gallery.alt }}" width="1440" height="900" loading="lazy" />
+      <figcaption>{{ t.gallery.caption }}</figcaption>
+    </figure>
+  </section>
+  <section class="data-use" aria-labelledby="privacy-title">
+    <p class="eyebrow">{{ t.data.eyebrow }}</p>
+    <h2 id="privacy-title">{{ t.data.title }}</h2>
+    {% for paragraph in t.data.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
+    <a href="{{ links.privacy }}">{{ t.data.link }}</a>
+  </section>
+  <section class="support" id="support" aria-labelledby="support-title">
+    <h2 id="support-title">{{ t.support.title }}</h2>
+    <p>{{ t.support.text }}</p>
+    <div class="actions"><a class="button secondary" href="{{ links.issues }}">{{ t.support.issues }}</a><a href="{{ links.email }}">{{ t.support.email }}</a></div>
+    <p class="notice">{{ t.support.caution }}</p>
+  </section>
+</main>
+{% endblock %}
