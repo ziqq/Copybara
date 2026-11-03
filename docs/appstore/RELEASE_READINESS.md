@@ -62,13 +62,13 @@ or a published application release.
   questionnaire calculated 4+. Build 14 has finished processing, its export
   questions are resolved, and it is attached to the version. The free price
   schedule and availability for 175 territories are configured. Privacy URLs
-  are saved for both locales; the data-not-collected declaration awaits the
-  owner's final confirmation. No App Review submission has been made.
+  are saved for both locales; the owner-approved data-not-collected declaration
+  is published. DSA non-trader status is active for the owner's personal project.
+  The free-app agreement is active. No App Review submission has been made.
 
 ## Remaining release gates
 
-- Owner confirmation of the privacy declaration, DSA trader status, and final
-  App Review submission approval.
+- Final App Review submission approval.
 - Older supported macOS runtime validation and switching back from Store to
   direct distribution.
 
