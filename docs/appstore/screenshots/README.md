@@ -8,6 +8,9 @@ invented and no user clipboard content is used.
 - `en/` and `ru/`: upload PNGs, 2880 × 1800 pixels, RGB, no alpha channel.
 - `web/en/` and `web/ru/`: the same compositions at 1440 × 900, JPEG quality 85,
   for the landing page. Use these instead of the large upload PNGs.
+- `web/en/*-window.png` and `web/ru/*-window.png`: native-window crops from the
+  original PNG captures for the landing page, without presentation titles or
+  backgrounds. No app UI is changed.
 - `contact-sheet.png`: review only, English above Russian.
 - `manifest.json`: upload file order, language and dimensions.
 
