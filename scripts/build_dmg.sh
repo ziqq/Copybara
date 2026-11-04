@@ -54,7 +54,7 @@ else
 fi
 
 if [ "$NOTARIZE" = 1 ]; then
-  SIGN_ARGS+=(ENABLE_HARDENED_RUNTIME=YES OTHER_CODE_SIGN_FLAGS=--timestamp)
+  SIGN_ARGS+=(ENABLE_HARDENED_RUNTIME=YES CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO OTHER_CODE_SIGN_FLAGS=--timestamp)
 fi
 
 # Version: explicit override (e.g. from a release tag), else project.yml.
@@ -95,8 +95,13 @@ if [ "$NOTARIZE" = 1 ]; then
     "$SPARKLE" \
     "$APP_PATH"; do
     [ -e "$CODE" ] || { echo "Missing release code: $CODE"; exit 1; }
+    METADATA_ARGS=(--preserve-metadata=identifier,entitlements)
+    if [ "$CODE" = "$SPARKLE/Versions/B/Autoupdate" ]; then
+      # Replace the linker's ad-hoc UUID identifier before timestamped signing.
+      METADATA_ARGS=(--identifier org.sparkle-project.Sparkle.Autoupdate --preserve-metadata=entitlements)
+    fi
     codesign --force --sign "$COPYBARA_CODE_SIGN_IDENTITY" --options runtime --timestamp \
-      --preserve-metadata=identifier,entitlements "$CODE"
+      "${METADATA_ARGS[@]}" "$CODE"
   done
   python3 scripts/verify_signing.py "$APP_PATH" --identity "$COPYBARA_CODE_SIGN_IDENTITY" --team-id "$COPYBARA_TEAM_ID"
   # Staple the app before packaging so the installed app also works offline.

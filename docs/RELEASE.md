@@ -34,13 +34,18 @@ secure backup: ad-hoc builds cannot rotate a lost key using Developer ID.
 
 The **Release** workflow (`.github/workflows/release.yml`) uses the `release`
 environment and then:
-- imports the Copybara signing identity into a temporary keychain from
-  `APPLE_SIGNING_CERTIFICATE_BASE64` (encrypted PKCS12) and
-  `APPLE_SIGNING_CERTIFICATE_PASSWORD` Actions secrets, then deletes that
-  keychain at the end; missing secrets stop the release,
-- builds a Release DMG (`scripts/build_dmg.sh`, version injected from the tag)
-  as `build/Copybara-<version>.dmg`, then mounts it read-only to check the app,
-  the `Applications` link and the code signature,
+- imports the owner's Developer ID Application identity into a temporary keychain
+  from the `DEVELOPER_ID_CERTIFICATE_BASE64` (encrypted PKCS12) and
+  `DEVELOPER_ID_CERTIFICATE_PASSWORD` environment secrets; missing signing or
+  notarization configuration stops the release,
+- signs the app and Sparkle's nested helpers inside-out with hardened runtime
+  and a secure timestamp, retaining the helpers' existing entitlements,
+- submits the app to Apple's notary service, requires `Accepted`, retrieves the
+  notary log, staples and validates the ticket, and checks Gatekeeper,
+- packages the stapled app in `build/Copybara-<version>.dmg`
+  (`scripts/build_dmg.sh`, version injected from the tag), signs, notarizes and
+  staples that image, then mounts it read-only to check both tickets, the app,
+  the `Applications` link, signatures and Gatekeeper,
 - computes `SHA256SUMS.txt` (by bare file name: `shasum -a 256 -c` works next
   to the download),
 - assigns the workflow run number to `CFBundleVersion` so Sparkle can order
@@ -50,7 +55,15 @@ environment and then:
   version does not change its identity requirement,
 - generates notes: DMG install steps first, a file / size / SHA-256 table, the
   build-from-source fallback, the commit log since the previous tag,
-- publishes a GitHub Release with the DMG, checksum, and `appcast.xml`.
+- publishes a GitHub Release with the DMG, checksum, and `appcast.xml`,
+- saves the app and DMG notary submission receipts and logs as a workflow
+  artifact for 30 days and removes the temporary signing keychain.
+
+Checksums and Sparkle signatures are generated only after both tickets are
+stapled. Notarization failure, a missing timestamp, a different certificate,
+`get-task-allow`, or a failed Gatekeeper assessment prevents publication.
+Uploads use `--no-s3-acceleration`: the standard S3 endpoint completed a local
+upload after the accelerated endpoint timed out before its upload receipt.
 
 The feed URL is the latest release's `appcast.xml` asset. Its enclosure points
 to the version-specific DMG asset. Sparkle requires valid archive and feed
@@ -59,33 +72,91 @@ for first-time installation.
 
 ## Release signing and Accessibility
 
-Starting with 0.1.6, releases use the same Apple Development certificate.
-Its public SHA1 identity is `2A1CD7C372968E01732ED7B26AC5CBB9F4014D33`; the
-private key is held only in the developer's Keychain and the encrypted Actions
-secret. `scripts/verify_signing.py` rejects ad-hoc signatures, mismatched
-certificates and versions that fail each other's designated requirement.
+Releases from 0.1.6 initially used an Apple Development certificate. The
+production workflow now requires the owner's **Developer ID Application**
+certificate from the G2 authority. `scripts/verify_signing.py` verifies the
+configured public certificate SHA1 and Team ID, Developer ID certificate type,
+hardened runtime, secure timestamp, sealed bundle, nested Sparkle code and
+mutual designated requirements across version changes.
 
-The first migration from an ad-hoc release still needs a new Accessibility
-grant: remove the old entry with − and add `/Applications/Copybara.app` again.
-Later certificate-signed releases use the same identity. This certificate does
-not provide Developer ID notarization; the downloaded app may still need its
-quarantine flag cleared on first installation.
+The first migration from Apple Development or ad-hoc signing changes the
+signing requirement. If pasting stops, remove the old Accessibility grant with
+− and add `/Applications/Copybara.app` again. The version-change check applies
+to successive Developer ID builds; it does not prove continuity with the old
+Apple Development identity. The existing Sparkle Ed25519 key and feed remain
+unchanged.
 
-## Release configuration
+## Production configuration
 
-The workflow uses these existing Actions secrets, available to the protected
-`release` environment:
+Configure these **new** values in the protected `release` environment:
 
-| Name | Purpose |
-|---|---|
-| `APPLE_SIGNING_CERTIFICATE_BASE64` | Base64 of the owner's encrypted Apple Development PKCS12, including its private key |
-| `APPLE_SIGNING_CERTIFICATE_PASSWORD` | Password for that PKCS12 |
-| `SPARKLE_PRIVATE_KEY` | Existing Ed25519 key for the update archive and appcast |
+| Kind | Name | Purpose |
+|---|---|---|
+| Secret | `DEVELOPER_ID_CERTIFICATE_BASE64` | Base64 of the owner's encrypted Developer ID Application PKCS12, including its private key |
+| Secret | `DEVELOPER_ID_CERTIFICATE_PASSWORD` | Password for that PKCS12 |
+| Variable | `DEVELOPER_ID_CERTIFICATE_SHA1` | Public SHA1 of that certificate, 40 hexadecimal characters |
+| Variable | `APPLE_TEAM_ID` | The owner's 10-character Developer ID Team ID |
+| Secret | `APPLE_ID` | The owner's Apple ID authorized for notarization in this team |
+| Secret | `APPLE_APP_PASSWORD` | An app-specific password for that Apple ID |
 
-The public certificate SHA1 is pinned in the workflow. No Developer ID
-certificate, notarization credentials, or new repository variables are required
-for this release path. PR build/test CI does not use the release credentials;
-a green PR does not verify certificate import or a signed release DMG.
+Create a Developer ID Application certificate using **G2 Sub-CA**. The old G1
+intermediate expires on February 1, 2027; newly issued G2 leaf certificates must
+be renewed annually. See [Apple's certificate guidance](https://developer.apple.com/help/account/certificates/replace-developer-id-certificates).
+Use only the repository owner's identity. Do not substitute another team or
+fall back to Apple Development signing for a production release. Preserve the
+existing `APPLE_SIGNING_CERTIFICATE_BASE64`,
+`APPLE_SIGNING_CERTIFICATE_PASSWORD`, and `SPARKLE_PRIVATE_KEY` secrets.
+
+Before merging the workflow migration, provision the owner's credentials and
+verify an end-to-end Developer ID build: both app and DMG submissions must be
+`Accepted`, both stapled tickets must validate, and Gatekeeper must accept the
+mounted app and DMG. PR build/test CI runs without production credentials; a
+green PR does **not** prove notarization. Do not create a release merely to test
+credentials or publish before this validation.
+
+## Mac App Store builds
+
+The two channels use the same application sources and bundle identifier:
+
+- `project.yml` generates `Copybara.xcodeproj` for direct distribution. It keeps
+  Sparkle, the appcast settings and the in-app update check.
+- `project.appstore.yml` generates `CopybaraAppStore.xcodeproj` for the Mac App
+  Store. It enables App Sandbox, excludes Sparkle and the legacy GitHub update
+  checker, uses an Info.plist without Sparkle settings and omits the update menu
+  item. Updates for this build are distributed through the Mac App Store.
+
+Generate the store project separately:
+
+```bash
+xcodegen generate --spec project.appstore.yml
+open CopybaraAppStore.xcodeproj
+```
+
+Select the owner's paid team in Xcode, then archive the Copybara scheme using
+Apple's App Store distribution signing. Developer ID signing is for direct
+distribution and local experiments, not an App Store submission. Keep the
+existing tag-based DMG release workflow for direct downloads.
+
+The store scheme builds the app only. Run the existing regression suite using
+the direct-distribution project; it includes Sparkle-specific tests.
+
+This build configuration is not evidence of App Review approval. Automatic
+pasting still uses Accessibility and posted keyboard events, so validate it on
+supported macOS versions and explain the behavior to App Review. A local probe
+on macOS 26.7.2 confirmed that the existing Paster inserts text into another
+native application with App Sandbox enforced, including after a fresh manual
+Accessibility grant. If Copybara is absent from the list, use + to add
+`/Applications/Copybara.app`, then enable it. This does not establish behavior
+on older macOS versions or successful insertion in every browser/Electron app.
+
+The Store bundle includes `container-migration.plist`. On first sandbox launch,
+macOS moves the existing `Application Support/Copybara` directory and bundle
+preferences into the sandbox container. An isolated real Core Data probe
+validated a pinned record, its comment, a 2 MiB external payload, a snippet and
+the history-size preference. This is a one-time direct-download → Store move,
+not synchronization between both channels. Returning to the direct-download
+build does not automatically copy the Store history back. Back up local app
+data before switching channels; do not run both builds concurrently.
 
 ## Local builds and notarization
 
@@ -103,10 +174,10 @@ Accessibility grant after changes. To use a stable installed certificate:
 COPYBARA_CODE_SIGN_IDENTITY=<certificate-SHA1> ./scripts/build_dmg.sh
 ```
 
-Notarization is optional and separate from the GitHub Release workflow. To
-notarize a local build, use a Developer ID Application certificate and Team ID,
-and load `APPLE_ID` and `APPLE_APP_PASSWORD` into the environment through a
-secure prompt or secret manager. Then run:
+To validate a production build locally without publishing, set the public
+certificate identity and Team ID, and load `APPLE_ID` and
+`APPLE_APP_PASSWORD` into the environment through a secure prompt or secret
+manager. Then run:
 
 ```bash
 COPYBARA_NOTARIZE=1 \
@@ -115,9 +186,9 @@ COPYBARA_TEAM_ID=<your-team-ID> \
 ./scripts/build_dmg.sh
 ```
 
-This opts into signing, notarization, stapling and verification for the app
-and DMG. Receipts and logs are written to `build/notarization/`. No release is
-created. Never commit or print the app-specific password, or place it in
+This runs the same signing, notarization, stapling and verification path as
+production. Receipts and logs are written to `build/notarization/`. No release
+is created. Never commit or print the app-specific password, or place it in
 shell history.
 
 See [Apple's notarization requirements](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)

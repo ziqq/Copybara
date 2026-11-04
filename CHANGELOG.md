@@ -11,7 +11,19 @@ Use and redistribution are subject to LICENSE.
 - [ ] Configurable per-app ignore/allow rules.
 - [ ] Diagnostics: on-device crash/hang reporting via MetricKit, opt-in log export
       (no third-party telemetry).
-- [ ] Signed, notarized DMG (optional; needs a paid Apple Developer account).
+
+
+## Unreleased
+- **ADDED**: A separate sandboxed Mac App Store build without Sparkle or the
+  in-app update check; the direct-download build keeps its existing updater.
+- **ADDED**: One-time migration of local history and preferences into the App
+  Sandbox container when switching from the direct-download build.
+- **ADDED**: English and Russian landing pages, privacy information and native
+  App Store screenshots.
+- **CHANGED**: Releases are signed with Developer ID Application and notarized
+  by Apple, so the downloaded app opens without clearing the quarantine flag.
+  The signing requirement changes once: if pasting stops after updating, remove
+  Copybara from Accessibility with − and add it again.
 
 
 ## 0.1.11 — 2026-10-24
@@ -150,7 +162,7 @@ Use and redistribution are subject to LICENSE.
 - **FIXED**: Square corners showed around the Liquid Glass popup.
 - **FIXED**: Paste went into Copybara itself instead of the app you were in —
   the target app is now kept for the paste and gets focus back reliably.
-- **FIXED**: Paste into Chromium/Electron apps (Claude, Discord, VS Code, Telegram).
+- **FIXED**: Paste into Chromium/Electron apps (Discord, VS Code, Telegram).
 - **FIXED**: The Settings window didn't open on macOS 14+; changes to history
   size, retention and "Ignore all copies" now apply immediately, the
   Accessibility status refreshes, and "Launch at login" shows the real state.

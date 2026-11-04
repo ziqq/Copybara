@@ -1,0 +1,15 @@
+{
+  "locale": "en-US",
+  "name": "Copybara: Clipboard History",
+  "subtitle": "Clipboard history for Mac",
+  "version": "0.1.12",
+  "promotionalText": "Keep more than the last thing you copied. Search your local clipboard history, pin useful clips and paste with your keyboard.",
+  "description": "Copybara keeps your clipboard history close at hand, right in the macOS menu bar.\n\nPress ⌘⇧V to open your history, type to search, and press Return to paste the selected clip into the app you were using.\n\n• Keep text, images, formatted text and file references.\n• Find clips with fuzzy search, exact matching or regular expressions.\n• Pin frequent clips and add searchable comments.\n• Paste without formatting when you only need the text.\n• Save reusable text snippets.\n• Pause recording, ignore selected apps and clear your history.\n• Choose the popup position and where the app icon appears.\n\nYour history stays on your Mac. Copybara has no account, cloud synchronization, advertising or analytics. It filters clipboard content marked as concealed or transient by the copying app; unmarked sensitive content may still be recorded.\n\nAutomatic pasting requires Accessibility permission. Copybara uses it to send the paste shortcut, not to read your screen. Launch at login is available on macOS 13 or later. Liquid Glass is available on macOS 26, with native material appearance on earlier versions.\n\nSupport: https://copybara.ustinoff.dev/#support\nPrivacy: https://copybara.ustinoff.dev/privacy.html",
+  "keywords": "clipboard,history,paste,copy,snippets,productivity,keyboard,search,mac",
+  "whatsNew": "First Mac App Store release. Local clipboard history, keyboard search and paste, pinned clips, comments and snippets.",
+  "supportURL": "https://copybara.ustinoff.dev/#support",
+  "marketingURL": "https://copybara.ustinoff.dev/",
+  "privacyPolicyURL": "https://copybara.ustinoff.dev/privacy.html",
+  "primaryCategory": "public.app-category.utilities",
+  "copyright": "2026 Anton Ustinoff"
+}

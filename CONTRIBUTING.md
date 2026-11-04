@@ -51,6 +51,10 @@ separate preferences domain. Shared-state integration tests require both so they
 can exercise menu actions and settings without touching an installed Copybara.
 The UI test runner uses ad hoc signing, a temporary app home, and prebuilt history
 fixtures with clipboard recording and global shortcuts disabled.
+Use the ABC keyboard input source for UI tests and leave it selected until the
+run finishes. On macOS 26, XCTest's ordinary-letter input failed with the Russian
+input source while Esc and Tab still arrived; the same unchanged UI suite passed
+with ABC. This is a test-runner requirement, not an app language restriction.
 
 CI runs the same tests with coverage on every push and PR. Please add or update
 tests for behavior changes — pure logic (`ClipSearch`, `FuzzyMatcher`,

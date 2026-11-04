@@ -1,0 +1,46 @@
+# Copyright (c) 2026 Anton Ustinoff. All rights reserved.
+# Use and redistribution are subject to LICENSE.
+
+include: project.yml
+name: CopybaraAppStore
+
+packages:REPLACE:
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    from: "1.9.0"
+
+targets:
+  Copybara:
+    sources:REPLACE:
+      - path: Copybara
+        excludes:
+          - Resources/Info.plist
+          - Services/UpdaterController.swift
+          - Services/UpdateChecker.swift
+      - path: LICENSE
+        buildPhase: resources
+      - path: THIRD_PARTY_NOTICES
+        buildPhase: resources
+      - path: Config/container-migration.plist
+        buildPhase: resources
+    dependencies:REPLACE:
+      - package: KeyboardShortcuts
+    settings:
+      base:
+        INFOPLIST_FILE: Config/AppStore-Info.plist
+        CODE_SIGN_ENTITLEMENTS: Config/AppStore.entitlements
+        ENABLE_APP_SANDBOX: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
+      configs:
+        Release:
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO
+
+schemes:REPLACE:
+  Copybara:
+    build:
+      targets:
+        Copybara: all
+    run:
+      config: Debug
+    archive:
+      config: Release
