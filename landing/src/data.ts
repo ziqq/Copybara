@@ -62,6 +62,7 @@ export function siteData(locale: Locale) {
       email: 'mailto:a.a.ustinoff@gmail.com',
       support: `${link('index')}#support`,
       download: 'https://github.com/ziqq/Copybara/releases/latest',
+      releases: 'https://github.com/ziqq/Copybara/releases',
       guide: `${link('index')}#how-it-works`,
       license: 'https://github.com/ziqq/Copybara/blob/main/LICENSE',
       policySource: 'https://github.com/ziqq/Copybara/blob/main/PRIVACY.md',
