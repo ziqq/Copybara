@@ -164,7 +164,7 @@ Use and redistribution are subject to LICENSE.
 - **FIXED**: Вокруг попапа с Liquid Glass были видны прямоугольные углы.
 - **FIXED**: Вставка уходила в сам Copybara, а не в приложение, где вы работали, —
   теперь целевое приложение сохраняется и надёжно получает фокус обратно.
-- **FIXED**: Вставка в приложения на Chromium/Electron (Claude, Discord, VS Code, Telegram).
+- **FIXED**: Вставка в приложения на Chromium/Electron (Discord, VS Code, Telegram).
 - **FIXED**: Окно Settings не открывалось на macOS 14+; размер истории, срок
   хранения и «Ignore all copies» теперь применяются сразу, статус Accessibility
   обновляется, а «Launch at login» показывает реальное состояние.

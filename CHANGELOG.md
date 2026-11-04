@@ -162,7 +162,7 @@ Use and redistribution are subject to LICENSE.
 - **FIXED**: Square corners showed around the Liquid Glass popup.
 - **FIXED**: Paste went into Copybara itself instead of the app you were in —
   the target app is now kept for the paste and gets focus back reliably.
-- **FIXED**: Paste into Chromium/Electron apps (Claude, Discord, VS Code, Telegram).
+- **FIXED**: Paste into Chromium/Electron apps (Discord, VS Code, Telegram).
 - **FIXED**: The Settings window didn't open on macOS 14+; changes to history
   size, retention and "Ignore all copies" now apply immediately, the
   Accessibility status refreshes, and "Launch at login" shows the real state.

@@ -115,7 +115,7 @@ final class Paster {
             state: .eventSuppressionStateSuppressionInterval
         )
         let vKeyCode: CGKeyCode = 9 // ANSI 'v' — layout-independent key position
-        // Chromium/Electron apps (Claude, Discord, VS Code, Telegram…) check the
+        // Chromium/Electron apps (Discord, VS Code, Telegram…) check the
         // device-dependent "left ⌘" bit, not just the generic Command mask.
         let flags = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue | 0x000008)
 
