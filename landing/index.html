@@ -4,44 +4,51 @@
 {% block content %}
 <main>
   <section class="hero" aria-labelledby="intro">
-    <p class="eyebrow">{{ t.hero.eyebrow }}</p>
-    <h1 id="intro">{{ t.hero.title }}</h1>
-    <p class="lead">{{ t.hero.lead }}</p>
-    <p>{{ t.hero.body }}</p>
-    <div class="actions">
-      <a class="button" href="{{ links.download }}">{{ t.hero.download }}</a>
-      <a class="button secondary" href="{{ links.guide }}">{{ t.hero.guide }}</a>
+    <div class="hero-copy">
+      <p class="eyebrow">{{ t.hero.eyebrow }}</p>
+      <h1 id="intro">{{ t.hero.title }}</h1>
+      <p class="lead">{{ t.hero.lead }}</p>
+      <div class="actions">
+        <a class="button" href="{{ links.download }}">{{ t.hero.download }}</a>
+        <a class="button secondary" href="{{ links.guide }}">{{ t.hero.guide }}</a>
+      </div>
+      <p class="notice">{{ t.hero.note }}</p>
     </div>
-    <p class="notice">{{ t.hero.note }}</p>
+    <figure class="app-preview">
+      <div class="history-crop">
+        <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/history-window.png" alt="{{ t.hero.alt }}" width="1120" height="788" fetchpriority="high" />
+      </div>
+      <figcaption>{{ t.hero.caption }}</figcaption>
+    </figure>
   </section>
-  <figure class="preview app-preview">
-    <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/01-history.jpg" alt="{{ t.hero.alt }}" width="1440" height="900" fetchpriority="high" />
-    <figcaption>{{ t.hero.caption }}</figcaption>
-  </figure>
-  <section class="features" aria-label="{{ t.features.label }}">
-    {% for item in t.features.items %}
-    <article><h2>{{ item.title }}</h2><p>{{ item.text }}</p></article>
-    {% endfor %}
-  </section>
-  <section class="how-it-works" id="how-it-works" aria-labelledby="steps-title">
-    <h2 id="steps-title">{{ t.steps.title }}</h2>
-    <ol class="steps">
-      {% for item in t.steps.items %}
-      <li><h3>{{ item.title }}</h3><p>{{ item.text }}</p></li>
-      {% endfor %}
+  <section class="how-it-works" id="how-it-works" aria-label="{{ t.steps.title }}">
+    <ol class="keyboard-flow">
+      <li><kbd>⌘⇧V</kbd><span>{{ t.steps.open }}</span></li>
+      <li>{{ t.steps.find }}</li>
+      <li><kbd>↵</kbd><span>{{ t.steps.paste }}</span></li>
     </ol>
+    <p class="notice">{{ t.steps.permission }}</p>
+  </section>
+  <section class="features" aria-labelledby="features-title">
+    <h2 id="features-title">{{ t.features.label }}</h2>
+    <div class="feature-grid">
+      {% set featureIcons = ['search', 'layers', 'desktop'] %}
+      {% for item in t.features.items %}
+      <article><img class="feature-icon" src="./src/pictograms/{{ featureIcons[loop.index0] }}.svg" alt="" width="44" height="44" /><h3>{{ item.title }}</h3><p>{{ item.text }}</p></article>
+      {% endfor %}
+    </div>
   </section>
   <section class="product-detail" aria-labelledby="pins-title">
     <div><h2 id="pins-title">{{ t.pins.title }}</h2><p>{{ t.pins.text }}</p></div>
     <figure class="preview menu-preview">
-      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/02-pins.jpg" alt="{{ t.pins.alt }}" width="1440" height="900" loading="lazy" />
+      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/pins-window.png" alt="{{ t.pins.alt }}" width="1120" height="260" loading="lazy" />
       <figcaption>{{ t.pins.caption }}</figcaption>
     </figure>
   </section>
   <section class="product-detail" aria-labelledby="menu-title">
     <div><h2 id="menu-title">{{ t.gallery.title }}</h2><p>{{ t.gallery.text }}</p></div>
     <figure class="preview menu-preview">
-      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/03-settings.jpg" alt="{{ t.gallery.alt }}" width="1440" height="900" loading="lazy" />
+      <img src="{{ repo }}docs/appstore/screenshots/web/{{ locale }}/settings-window.png" alt="{{ t.gallery.alt }}" width="960" height="1200" loading="lazy" />
       <figcaption>{{ t.gallery.caption }}</figcaption>
     </figure>
   </section>
@@ -50,6 +57,12 @@
     <h2 id="privacy-title">{{ t.data.title }}</h2>
     {% for paragraph in t.data.paragraphs %}<p>{{ paragraph }}</p>{% endfor %}
     <a href="{{ links.privacy }}">{{ t.data.link }}</a>
+  </section>
+  <section class="download" aria-labelledby="download-title">
+    <h2 id="download-title">{{ t.download.title }}</h2>
+    <p>{{ t.download.requirements }}</p>
+    <a class="button" href="{{ links.download }}">{{ t.hero.download }}</a>
+    <a class="release-link" href="{{ links.releases }}">{{ t.download.releases }}</a>
   </section>
   <section class="support" id="support" aria-labelledby="support-title">
     <h2 id="support-title">{{ t.support.title }}</h2>
