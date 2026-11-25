@@ -17,7 +17,7 @@ import time
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / 'build/appstore-screenshots'
 OUT = ROOT / 'docs/appstore/screenshots'
-APP = WORK / 'DerivedData/Build/Products/Debug/Copybara.app'
+APP = WORK / 'DerivedData/Build/Products/Debug/Copybara Debug.app'
 HELPER = WORK / 'window-id'
 
 

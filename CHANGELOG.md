@@ -13,7 +13,7 @@ Use and redistribution are subject to LICENSE.
       (no third-party telemetry).
 
 
-## Unreleased
+## 0.1.12
 - **ADDED**: A separate sandboxed Mac App Store build without Sparkle or the
   in-app update check; the direct-download build keeps its existing updater.
 - **ADDED**: One-time migration of local history and preferences into the App
@@ -24,6 +24,9 @@ Use and redistribution are subject to LICENSE.
   by Apple, so the downloaded app opens without clearing the quarantine flag.
   The signing requirement changes once: if pasting stops after updating, remove
   Copybara from Accessibility with − and add it again.
+- **FIXED**: Xcode uses a separate app identity and name for Copybara Debug,
+  so development builds no longer share Accessibility or login-item registration
+  with the installed copy.
 
 
 ## 0.1.11 — 2026-10-24

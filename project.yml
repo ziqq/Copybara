@@ -22,6 +22,10 @@ settings:
     CURRENT_PROJECT_VERSION: "14"
     MARKETING_VERSION: "0.1.12"
     SWIFT_VERSION: "5.0"
+    COPYBARA_APP_NAME: Copybara
+  configs:
+    Debug:
+      COPYBARA_APP_NAME: Copybara Debug
 
 packages:
   KeyboardShortcuts:
@@ -50,6 +54,7 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Copybara
+        WRAPPER_NAME: "$(COPYBARA_APP_NAME).app"
         PRODUCT_BUNDLE_IDENTIFIER: dev.ustinoff.copybara
         INFOPLIST_FILE: Copybara/Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -60,6 +65,7 @@ targets:
           - "@executable_path/../Frameworks"
       configs:
         Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: dev.ustinoff.copybara.debug
           ENABLE_TESTABILITY: YES
 
   CopybaraTests:
@@ -78,7 +84,7 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Copybara.app/Contents/MacOS/Copybara"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/$(COPYBARA_APP_NAME).app/Contents/MacOS/Copybara"
         # Tests only run on modern macOS; avoids XCTest "built for newer version" warnings.
         MACOSX_DEPLOYMENT_TARGET: "14.0"
 
@@ -109,7 +115,7 @@ schemes:
       environmentVariables:
         CFFIXED_USER_HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
         HOME: "$(PROJECT_TEMP_DIR)/CopybaraTestsHome"
-        COPYBARA_APP_PATH: "$(BUILT_PRODUCTS_DIR)/Copybara.app"
+        COPYBARA_APP_PATH: "$(BUILT_PRODUCTS_DIR)/$(COPYBARA_APP_NAME).app"
       targets:
         - CopybaraTests
         - CopybaraUITests
