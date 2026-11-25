@@ -121,6 +121,8 @@ open Copybara.xcodeproj
 
 Then pick your signing team in *Signing & Capabilities* and run. On first paste,
 grant Accessibility in *System Settings → Privacy & Security → Accessibility*.
+Xcode runs **Copybara Debug**, which has its own bundle identifier, Accessibility
+grant, and login-item registration.
 
 ### No paid Apple Developer account?
 
