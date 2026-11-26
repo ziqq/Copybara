@@ -19,8 +19,8 @@ fileGroups:
 
 settings:
   base:
-    CURRENT_PROJECT_VERSION: "15"
-    MARKETING_VERSION: "0.1.13"
+    CURRENT_PROJECT_VERSION: "16"
+    MARKETING_VERSION: "0.1.14"
     SWIFT_VERSION: "5.0"
     COPYBARA_APP_NAME: Copybara
   configs:

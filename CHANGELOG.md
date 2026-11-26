@@ -13,7 +13,7 @@ Use and redistribution are subject to LICENSE.
       (no third-party telemetry).
 
 
-## Unreleased
+## 0.1.14
 - **FIXED**: The side preview stays visible when clipboard history is opened
   over another app.
 
