@@ -13,6 +13,11 @@ Use and redistribution are subject to LICENSE.
       (no third-party telemetry).
 
 
+## Unreleased
+- **FIXED**: The side preview stays visible when clipboard history is opened
+  over another app.
+
+
 ## 0.1.13
 - **CHANGED**: The update dialog now uses the same layout as Notchlimits, with
   left-aligned text and stacked install and skip buttons.
