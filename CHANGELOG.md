@@ -13,6 +13,13 @@ Use and redistribution are subject to LICENSE.
       (no third-party telemetry).
 
 
+## 0.1.13
+- **CHANGED**: The update dialog now uses the same layout as Notchlimits, with
+  left-aligned text and stacked install and skip buttons.
+- **CHANGED**: Check for Updates appears immediately below About Copybara in
+  the menu bar menu.
+
+
 ## 0.1.12
 - **ADDED**: A separate sandboxed Mac App Store build without Sparkle or the
   in-app update check; the direct-download build keeps its existing updater.

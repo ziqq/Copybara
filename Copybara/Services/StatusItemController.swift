@@ -117,6 +117,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let about = NSMenuItem(title: L10n.string("About Copybara"), action: #selector(openAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
+#if !APP_STORE
+        let updates = NSMenuItem(title: L10n.string("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        menu.addItem(updates)
+#endif
         menu.addItem(.separator())
 
         let count = store.count()
@@ -133,12 +138,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(open)
 
         menu.addItem(.separator())
-
-#if !APP_STORE
-        let updates = NSMenuItem(title: L10n.string("Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
-        updates.target = self
-        menu.addItem(updates)
-#endif
 
         let settings = NSMenuItem(title: L10n.string("Settings"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
