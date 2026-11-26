@@ -132,9 +132,10 @@ final class StatusItemControllerTests: XCTestCase {
     func testMenuKeepsRequestedOrderWithoutClearOrIcons() {
         let controller = StatusItemController(store: HistoryStore(stack: CoreDataStack(inMemory: true)))
         let menu = controller.buildMenu()
+        XCTAssertEqual(menu.items.prefix(2).map(\.title),
+                       [L10n.string("About Copybara"), L10n.string("Check for Updates…")])
+        XCTAssertTrue(menu.item(at: 2)?.isSeparatorItem == true)
         let titles = menu.items.filter { !$0.isSeparatorItem }.map(\.title)
-        let updates = titles.firstIndex(of: L10n.string("Check for Updates…"))!
-        XCTAssertEqual(Array(titles[updates...updates + 2]), [L10n.string("Check for Updates…"), L10n.string("Settings"), L10n.string("Clear All")])
         XCTAssertFalse(titles.contains(L10n.string("Clear")))
         XCTAssertTrue(menu.items.allSatisfy { $0.image == nil })
         let settings = menu.items.first { $0.keyEquivalent == "," }

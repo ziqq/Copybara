@@ -4,47 +4,42 @@
 import AppKit
 import XCTest
 import Sparkle
+import SwiftUI
 @testable import Copybara
 
 @MainActor
 final class UpdaterPresentationTests: XCTestCase {
-    func testNativeCompactPromptButtonsReturnTheirChoicesAndEndModalSession() {
-        let sparkle = Bundle(for: SPUStandardUserDriver.self)
-        for (title, expected) in [("Install Update", SPUUserUpdateChoice.install),
-                                  ("Skip This Version", .skip)] {
-            let buttonTitle = sparkle.localizedString(forKey: title, value: nil, table: "Sparkle")
-            let existing = Set(NSApp.windows.map(ObjectIdentifier.init))
+    func testCompactPromptButtonsReturnTheirChoicesAndEndModalSession() {
+        for (buttonY, expected) in [(64.0, SPUUserUpdateChoice.install), (30.0, .skip)] {
             let driver = CompactUpdateUserDriver(hostBundle: .main)
-            var clicked = false
-            var prompt: NSWindow?
-            let deadline = Date().addingTimeInterval(3)
-            let timer = Timer(timeInterval: 0.02, repeats: true) { timer in
+            let click = Timer(timeInterval: 0.2, repeats: false) { _ in
                 MainActor.assumeIsolated {
-                    if let window = NSApp.modalWindow,
-                       !existing.contains(ObjectIdentifier(window)),
-                       let button = window.contentView.flatMap({ self.buttons(in: $0).first { $0.title == buttonTitle } }) {
-                        prompt = window
-                        window.alphaValue = 0
-                        clicked = true
-                        timer.invalidate()
-                        button.performClick(nil)
-                    } else if Date() >= deadline {
-                        timer.invalidate()
-                        XCTFail("the native update prompt did not expose its \(title) button")
-                        NSApp.abortModal()
+                    guard let panel = NSApp.modalWindow else { return }
+                    let point = NSPoint(x: panel.frame.width / 2, y: buttonY)
+                    for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                        let event = NSEvent.mouseEvent(
+                            with: type, location: point, modifierFlags: [],
+                            timestamp: ProcessInfo.processInfo.systemUptime,
+                            windowNumber: panel.windowNumber, context: nil,
+                            eventNumber: 0, clickCount: 1, pressure: 1
+                        )
+                        if let event { NSApp.postEvent(event, atStart: false) }
                     }
                 }
             }
-            RunLoop.main.add(timer, forMode: .common)
-            RunLoop.main.add(timer, forMode: .modalPanel)
-            defer { timer.invalidate(); prompt?.close() }
+            let timeout = Timer(timeInterval: 3, repeats: false) { _ in
+                MainActor.assumeIsolated {
+                    XCTFail("the update button did not finish the modal session")
+                    NSApp.abortModal()
+                }
+            }
+            RunLoop.main.add(click, forMode: .modalPanel)
+            RunLoop.main.add(timeout, forMode: .modalPanel)
+            defer { click.invalidate(); timeout.invalidate() }
             var choices: [SPUUserUpdateChoice] = []
 
-            // Use the production runModal presenter: the native button, rather
-            // than an injected return value, must finish the session and reply.
             driver.showCompactUpdate(version: "1.0", current: "0.9") { choices.append($0) }
 
-            XCTAssertTrue(clicked)
             XCTAssertEqual(choices, [expected])
             XCTAssertNil(NSApp.modalWindow)
             driver.dismissUpdateInstallation()
@@ -52,14 +47,10 @@ final class UpdaterPresentationTests: XCTestCase {
         }
     }
 
-    private func buttons(in view: NSView) -> [NSButton] {
-        (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
-    }
-
     func testCompactPromptReturnsExactlyOneInstallationChoice() {
         for (response, choice) in [(NSApplication.ModalResponse.alertFirstButtonReturn, SPUUserUpdateChoice.install),
                                    (.alertSecondButtonReturn, .skip), (.abort, .dismiss)] {
-            let driver = CompactUpdateUserDriver(hostBundle: .main, presentAlert: { _ in response })
+            let driver = CompactUpdateUserDriver(hostBundle: .main, runModal: { _ in response })
             var replies: [SPUUserUpdateChoice] = []
             // Exercise the driver's real transition and reply without opening
             // a modal window or downloading/installing a test update.
@@ -69,58 +60,51 @@ final class UpdaterPresentationTests: XCTestCase {
         }
     }
 
-    func testUpdatePromptWrapsVersionTextInCompactWindow() throws {
-        let alert = CompactUpdateUserDriver.makeAlert(version: "0.1.6", current: "0.1.5")
-        let label = try XCTUnwrap(alert.accessoryView as? NSTextField)
-        XCTAssertTrue(label.stringValue.contains("0.1.6"))
-        XCTAssertTrue(label.stringValue.contains("0.1.5"))
-        XCTAssertTrue(try XCTUnwrap(label.cell).wraps)
-        alert.layout()
-        XCTAssertLessThanOrEqual(alert.window.frame.width, 560,
-                                 "the version sentence must wrap instead of widening the update window")
-        XCTAssertEqual(alert.buttons.count, 2, "install and skip remain available")
-        alert.window.close()
-    }
-
     func testFocusRequestBringsTheActiveCompactPromptForward() {
         var driver: CompactUpdateUserDriver!
-        var focusedWindow: NSWindow?
-        driver = CompactUpdateUserDriver(hostBundle: .main, presentAlert: { alert in
-            alert.window.alphaValue = 0
-            alert.window.hasShadow = false
-            focusedWindow = alert.window
+        driver = CompactUpdateUserDriver(hostBundle: .main, runModal: { panel in
+            panel.orderOut(nil)
             driver.showUpdateInFocus()
-            XCTAssertTrue(alert.window.isVisible)
+            XCTAssertTrue(panel.isVisible)
             return .alertSecondButtonReturn
         })
-        defer { focusedWindow?.close(); driver = nil }
+        defer { driver = nil }
         var choices: [SPUUserUpdateChoice] = []
         driver.showCompactUpdate(version: "1.0", current: "0.9") { choices.append($0) }
         XCTAssertEqual(choices, [.skip])
     }
 
-    func testLongVersionStringsRemainInWrappedPromptWithoutLosingEitherVersion() throws {
+    func testLongVersionStringsWrapWithoutWideningThePanelOrLosingEitherVersion() {
         let version = "2026.10.15-release-candidate-with-a-long-build-identifier"
         let current = "2026.09.01-previous-release-with-a-long-build-identifier"
-        let alert = CompactUpdateUserDriver.makeAlert(version: version, current: current)
-        defer { alert.window.close() }
-        let label = try XCTUnwrap(alert.accessoryView as? NSTextField)
-        XCTAssertTrue(label.stringValue.contains(version))
-        XCTAssertTrue(label.stringValue.contains(current))
-        XCTAssertEqual(label.preferredMaxLayoutWidth, 280)
-        XCTAssertGreaterThan(label.frame.height, label.font?.pointSize ?? 0)
+        var sizes: [NSSize] = []
+        let driver = CompactUpdateUserDriver(hostBundle: .main, runModal: { panel in
+            XCTAssertEqual(panel.styleMask, .borderless)
+            sizes.append(panel.frame.size)
+            let content = panel.contentView as? NSHostingView<UpdateDialogView>
+            XCTAssertNotNil(content)
+            if sizes.count == 2 {
+                XCTAssertTrue(content?.rootView.message.contains(version) == true)
+                XCTAssertTrue(content?.rootView.message.contains(current) == true)
+            }
+            return .cancel
+        })
+        driver.showCompactUpdate(version: "0.1.6", current: "0.1.5") { _ in }
+        driver.showCompactUpdate(version: version, current: current) { _ in }
+        XCTAssertEqual(sizes.map(\.width), [304, 304])
+        if let normal = sizes.first, let wrapped = sizes.last {
+            XCTAssertGreaterThan(wrapped.height, normal.height)
+        }
     }
 
     func testDismissalClosesActiveCompactPromptAndRepliesOnce() {
         var driver: CompactUpdateUserDriver!
-        driver = CompactUpdateUserDriver(hostBundle: .main, presentAlert: { alert in
-            alert.window.alphaValue = 0
-            alert.window.hasShadow = false
-            let session = NSApp.beginModalSession(for: alert.window)
+        driver = CompactUpdateUserDriver(hostBundle: .main, runModal: { panel in
+            let session = NSApp.beginModalSession(for: panel)
             defer { NSApp.endModalSession(session) }
             _ = NSApp.runModalSession(session)
             driver.dismissUpdateInstallation()
-            XCTAssertFalse(alert.window.isVisible)
+            XCTAssertFalse(panel.isVisible)
             return .abort
         })
         defer { driver = nil }

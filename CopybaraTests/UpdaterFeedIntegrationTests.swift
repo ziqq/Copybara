@@ -4,6 +4,7 @@
 import AppKit
 import Darwin
 import Sparkle
+import SwiftUI
 import XCTest
 @testable import Copybara
 
@@ -100,9 +101,8 @@ final class UpdaterFeedIntegrationTests: XCTestCase {
     func testSimpleFeedUsesCompactPromptAndSkippingFinishesWithoutDownloading() throws {
         try withFeed(releaseNotes: nil) { host in
             var versions: [String] = []
-            let driver = CompactUpdateUserDriver(hostBundle: host) { alert in
-                versions.append((alert.accessoryView as? NSTextField)?.stringValue ?? "")
-                alert.window.close()
+            let driver = CompactUpdateUserDriver(hostBundle: host) { panel in
+                versions.append((panel.contentView as? NSHostingView<UpdateDialogView>)?.rootView.message ?? "")
                 return .alertSecondButtonReturn
             }
             let updater = SPUUpdater(hostBundle: host, applicationBundle: host, userDriver: driver, delegate: nil)
